@@ -1,0 +1,81 @@
+HELP.md
+.gradle
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+bin/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+### VS Code ###
+.vscode/
+
+# Logs (로그 파일 제외)
+logs/
+log/
+*.log
+nohup.out
+
+# 환경 변수 및 보안 설정 제외
+.env
+*.key
+*.pem
+*.p12
+*.crt
+*.der
+*.jks
+*.keystore
+*.pfx
+
+# Spring Boot 환경 설정 파일 제외 (보안 중요)
+application*.yml
+application*.properties
+config/
+
+# IntelliJ IDEA
+.idea/
+*.iws
+*.ipr
+*.iml
+workspace.xml
+*.tmp
+*.swp
+*.swo
+*.bak
+
+# OS 관련 파일 제외
+.DS_Store
+Thumbs.db
+
+# 캐시 및 빌드 관련 추가 항목
+.cache/
+*.class
+*.war
+*.jar
+*.ear

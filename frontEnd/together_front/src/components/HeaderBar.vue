@@ -58,8 +58,9 @@ nav ul {
   display: flex;
   list-style: none;
   margin: 0; /* 추가 */
+  margin-left: -300px;
   padding: 0; /* 추가 */
-  gap: 1.5rem;
+  gap: 3.5rem;
 }
 nav ul li {
   color: #000000;

@@ -31,3 +31,11 @@ coverage
 
 vue_project/node_modules/
 vue_project/dist/
+# Node.js 관련
+node_modules/
+dist/
+*.log
+.env
+.vscode/
+.idea/
+.DS_Store

@@ -1,7 +1,8 @@
 <!-- App.vue -->
 <template>
   <div id="app">
-    <HeaderBar />
+    <!-- Signup 페이지가 아닐 때만 헤더를 표시 -->
+    <HeaderBar v-if="$route.path !== '/Signup'" /> 
     <div class="content">
       <router-view />
     </div>

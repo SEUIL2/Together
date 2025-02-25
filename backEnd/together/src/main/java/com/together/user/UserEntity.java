@@ -20,7 +20,7 @@ public class UserEntity {
     private Long userId; //PK
 
     @Column(unique = true)
-    private Long loginId; //로그인 아이디
+    private Long userLoginId; //로그인 아이디
 
     @Column
     private String password; //비번

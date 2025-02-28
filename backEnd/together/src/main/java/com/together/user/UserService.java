@@ -13,7 +13,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class UserService {
 
-    private final UserRepositoty userRepository;
+    private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final StudentRepository studentRepository;
 
@@ -88,7 +88,7 @@ public class UserService {
             StudentEntity student = new StudentEntity();
             student.setUserName(requestDto.getUserName());
             student.setUserEmail(requestDto.getUserEmail());
-            student.setUserLoginId(Long.valueOf(requestDto.getUserLoginId()));
+            student.setUserLoginId(requestDto.getUserLoginId());
             student.setPassword(encodedPassword);
             student.setRole(UserEntity.UserRole.STUDENT);
             student.setStudentNumber(requestDto.getStudentNumber()); // 학번 추가
@@ -99,7 +99,7 @@ public class UserService {
             UserEntity professor = new UserEntity();
             professor.setUserName(requestDto.getUserName());
             professor.setUserEmail(requestDto.getUserEmail());
-            professor.setUserLoginId(Long.valueOf(requestDto.getUserLoginId()));
+            professor.setUserLoginId((requestDto.getUserLoginId()));
             professor.setPassword(encodedPassword);
             professor.setRole(UserEntity.UserRole.PROFESSOR);
 
@@ -115,6 +115,6 @@ public class UserService {
     }
 
     public Optional<UserEntity> findUserByEmail(String userEmail){
-        return userRepository.findByEmail(userEmail);
+        return userRepository.findByUserEmail(userEmail);
     }
 }

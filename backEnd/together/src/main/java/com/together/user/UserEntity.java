@@ -19,8 +19,8 @@ public class UserEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long userId; //PK
 
-    @Column(unique = true)
-    private Long userLoginId; //로그인 아이디
+    @Column(name = "user_login_id", unique = true)
+    private String userLoginId; //로그인 아이디
 
     @Column
     private String password; //비번
@@ -28,7 +28,7 @@ public class UserEntity {
     @Column
     private String userName; //사용자 이름
 
-    @Column
+    @Column(name = "user_email", unique = true)
     private String userEmail; //이메일
 
     @Column

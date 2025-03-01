@@ -1,9 +1,15 @@
 package com.together.user;
 
+import com.together.user.dto.UserSignUpRequestDto;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.annotation.Role;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
 import org.springframework.web.bind.annotation.*;
 
 @RequiredArgsConstructor
@@ -12,6 +18,33 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
 
     private final UserService userService;
+    private final PasswordEncoder passwordEncoder;
+
+    /**
+     *  로그인 (Spring Security에서 자동 처리됨)
+     *
+     *  예시 :
+     *  {
+     *      "userLoginId": "chulsu123",
+     *      "password": "password123"
+     *  }
+     */
+    @PostMapping("/login")
+    public ResponseEntity<String> login() {
+        return ResponseEntity.ok("로그인이 성공적으로 처리되었습니다.");
+    }
+
+    /**
+     * 세션과 쿠키를 제거하고 로그아웃 처리
+     */
+    @PostMapping("/logout")
+    public ResponseEntity<String> logout(HttpServletRequest request, HttpServletResponse response) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null) {
+            new SecurityContextLogoutHandler().logout(request, response, auth);
+        }
+        return ResponseEntity.ok("로그아웃이 완료되었습니다.");
+    }
 
     @PostMapping("/signup")
     public ResponseEntity<String> signup(@Valid @RequestBody UserSignUpRequestDto requestDto) {

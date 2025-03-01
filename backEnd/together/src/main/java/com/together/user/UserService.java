@@ -1,5 +1,6 @@
 package com.together.user;
 
+import com.together.user.dto.UserSignUpRequestDto;
 import com.together.user.student.StudentEntity;
 import com.together.user.student.StudentRepository;
 import lombok.RequiredArgsConstructor;
@@ -17,36 +18,6 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final StudentRepository studentRepository;
 
-    /*@Transactional
-    public UserEntity registerUser(
-            String userLoginId, String password, String userName, String userEmail,
-            UserEntity.UserRole userRole, String studentNumber) {
-        String encodedPassword = passwordEncoder.encode(password);
-
-        if (userRole == UserEntity.UserRole.STUDENT) {
-            if (studentNumber == null || studentNumber.isEmpty()) {
-                throw new IllegalArgumentException("STUDENT 역할의 경우 학번을 입력해야 합니다.");
-            }
-            StudentEntity student = new StudentEntity();
-            student.setUserLoginId(Long.valueOf(userLoginId));
-            student.setPassword(encodedPassword);
-            student.setUserName(userName);
-            student.setUserEmail(userEmail);
-            student.setRole(UserEntity.UserRole.STUDENT);
-            student.setStudentNumber(studentNumber);
-            return studentRepository.save(student);
-        } else if (userRole == UserEntity.UserRole.PROFESSOR) {
-            UserEntity professor = new UserEntity();
-            professor.setUserLoginId(Long.valueOf(userLoginId));
-            professor.setPassword(encodedPassword);
-            professor.setUserName(userName);
-            professor.setUserEmail(userEmail);
-            professor.setRole(UserEntity.UserRole.PROFESSOR);
-            return userRepository.save(professor);
-        } else {
-            throw new IllegalArgumentException("지원하지 않는 역할입니다.");
-        }
-    }*/
 
     /** 회원가입
      *

@@ -1,4 +1,4 @@
-package com.together.user;
+package com.together.user.dto;
 
 import lombok.Data;
 import jakarta.validation.constraints.Email;

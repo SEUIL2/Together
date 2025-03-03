@@ -1,4 +1,4 @@
-package com.together.Securityconfig;
+package com.together.Systemconfig;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -26,12 +26,17 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable()) // CSRF 보호 비활성화 (API 용도로 사용할 경우)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/user/auth/signup", "/user/auth/login").permitAll()
+                        .requestMatchers(
+                                "/auth/signup",
+                                "/auth/login",
+                                "/auth/email/send",  // 인증 없이 이메일 전송 가능하도록 설정
+                                "/auth/email/verify"
+                        ).permitAll()
                         .anyRequest().authenticated()
                 )
                 .httpBasic(withDefaults()) // Basic Auth 사용 (Postman에서 Authorization 필요)
                 .logout(logout -> logout
-                        .logoutUrl("/user/auth/logout") // 로그아웃 API 경로 설정
+                        .logoutUrl("/auth/logout") // 로그아웃 API 경로 설정
                         .logoutSuccessHandler((request, response, authentication) -> {
                             response.setStatus(200);
                             response.setContentType("application/json");

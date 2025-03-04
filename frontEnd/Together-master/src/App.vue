@@ -2,7 +2,8 @@
 <template>
   <div id="app">
     <!-- Signup 페이지가 아닐 때만 헤더를 표시 -->
-    <HeaderBar v-if="$route.path !== '/Signup'" /> 
+    <HeaderBar v-if="!['/Signup', '/CreateProject'].includes($route.path)" />
+
     <div class="content">
       <router-view />
     </div>

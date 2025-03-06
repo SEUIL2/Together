@@ -1,4 +1,4 @@
-package com.together.Systemconfig;
+package com.together.SystemConfig;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -30,11 +30,21 @@ public class SecurityConfig {
                                 "/auth/signup",
                                 "/auth/login",
                                 "/auth/email/send",  // 인증 없이 이메일 전송 가능하도록 설정
-                                "/auth/email/verify"
+                                "/auth/email/verify",
+                                "/auth/find-id",
+                                "/auth/find-id/verify",
+                                "/auth/find-password",
+                                "/auth/reset-password"
                         ).permitAll()
+                        //그 외 요청은 인증 필요
                         .anyRequest().authenticated()
                 )
                 .httpBasic(withDefaults()) // Basic Auth 사용 (Postman에서 Authorization 필요)
+                .formLogin(login -> login
+                        .loginPage("/auth/login") // 로그인 페이지 (필요한 경우)
+                        .defaultSuccessUrl("/", true) // 로그인 성공 후 이동할 페이지
+                        .permitAll()
+                )
                 .logout(logout -> logout
                         .logoutUrl("/auth/logout") // 로그아웃 API 경로 설정
                         .logoutSuccessHandler((request, response, authentication) -> {

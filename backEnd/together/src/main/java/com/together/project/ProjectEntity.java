@@ -1,5 +1,7 @@
 package com.together.project;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.together.meeting.MeetingEntity;
 import com.together.user.UserEntity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -32,4 +34,8 @@ public class ProjectEntity {
 
     @OneToMany(mappedBy = "project")
     private List<UserEntity> users;
+
+    @OneToMany(mappedBy = "project")
+    @JsonIgnore
+    private List<MeetingEntity> meetings;
 }

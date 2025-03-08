@@ -1,4 +1,4 @@
-package com.together.SystemConfig;
+package com.together.systemConfig;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

@@ -1,4 +1,4 @@
-package com.together.SystemConfig;
+package com.together.systemConfig;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -36,15 +36,12 @@ public class SecurityConfig {
                                 "/auth/find-password",
                                 "/auth/reset-password"
                         ).permitAll()
+                        .requestMatchers("/auth/me").authenticated()  // 현재 로그인한 유저 정보는 인증된 사용자만 가능
                         //그 외 요청은 인증 필요
                         .anyRequest().authenticated()
                 )
                 .httpBasic(withDefaults()) // Basic Auth 사용 (Postman에서 Authorization 필요)
-                .formLogin(login -> login
-                        .loginPage("/auth/login") // 로그인 페이지 (필요한 경우)
-                        .defaultSuccessUrl("/", true) // 로그인 성공 후 이동할 페이지
-                        .permitAll()
-                )
+                .formLogin(form -> form.disable())
                 .logout(logout -> logout
                         .logoutUrl("/auth/logout") // 로그아웃 API 경로 설정
                         .logoutSuccessHandler((request, response, authentication) -> {

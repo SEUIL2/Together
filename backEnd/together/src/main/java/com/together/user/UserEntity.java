@@ -1,10 +1,14 @@
 package com.together.user;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.together.meeting.MeetingEntity;
 import com.together.project.ProjectEntity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -42,4 +46,8 @@ public class UserEntity {
     @ManyToOne
     @JoinColumn(name = "project_id")
     private ProjectEntity project;
+
+    @OneToMany(mappedBy = "users")
+    @JsonIgnore
+    private List<MeetingEntity> meetings;
 }

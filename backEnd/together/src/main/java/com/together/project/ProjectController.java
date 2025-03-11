@@ -28,13 +28,23 @@ public class ProjectController {
             String startDateStr = (String) request.get("startDate");
             String endDateStr = (String) request.get("endDate");
 
-            if (title == null || startDateStr == null || endDateStr == null) {
-                return ResponseEntity.badRequest().build();
+            if (title == null) {
+                return ResponseEntity.badRequest().body(new ProjectResponseDto(null, null, null, null));
             }
 
-            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-            Date startDate = dateFormat.parse(startDateStr);
-            Date endDate = dateFormat.parse(endDateStr);
+            // 날짜 파싱 로직 개선
+            Date startDate = null;
+            Date endDate = null;
+
+            if (startDateStr != null && !startDateStr.isEmpty()) {
+                SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+                startDate = dateFormat.parse(startDateStr);
+            }
+
+            if (endDateStr != null && !endDateStr.isEmpty()) {
+                SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+                endDate = dateFormat.parse(endDateStr);
+            }
 
             ProjectResponseDto project = projectService.createProject(title, startDate, endDate);
 

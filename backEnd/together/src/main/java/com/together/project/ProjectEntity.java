@@ -33,12 +33,12 @@ public class ProjectEntity {
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd-MMM-yyyy hh:mm:ss a", timezone = "Asia/Seoul")
     @Temporal(TemporalType.DATE)
-    @Column(name = "start_date", nullable = false)
+    @Column(name = "start_date", nullable = true)
     private Date projectStartDate; // 시작일
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd-MMM-yyyy hh:mm:ss a", timezone = "Asia/Seoul")
     @Temporal(TemporalType.DATE)
-    @Column(name = "end_date", nullable = false)
+    @Column(name = "end_date", nullable = true)
     private Date projectEndDate; // 종료일
 
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)

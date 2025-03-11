@@ -103,13 +103,24 @@ public class ProjectController {
         return ResponseEntity.ok(invitations);
     }
         //초대수락
-    @PostMapping("/invite/accept")
-    public ResponseEntity<String> acceptInvitation(@RequestParam Long invitationId) {
+    @PostMapping("/invite/accept/{invitationId}")
+    public ResponseEntity<String> acceptInvitation(@PathVariable Long invitationId) {
         boolean success = projectService.acceptInvitation(invitationId);
         if (success) {
             return ResponseEntity.ok("초대를 수락하였습니다.");
         } else {
             return ResponseEntity.badRequest().body("초대 수락 실패: 초대 정보를 찾을 수 없습니다.");
+        }
+    }
+
+    // 초대 거절 API
+    @PostMapping("/invitations/{invitationId}/reject")
+    public ResponseEntity<String> rejectInvitation(@PathVariable Long invitationId) {
+        try {
+            String response = projectService.rejectInvitation(invitationId);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(404).body(e.getMessage());
         }
     }
 

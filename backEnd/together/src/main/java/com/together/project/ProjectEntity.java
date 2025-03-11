@@ -2,10 +2,8 @@ package com.together.project;
 
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-
-//import com.fasterxml.jackson.annotation.JsonIgnore;
-//import com.together.meeting.MeetingEntity;
-
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.together.meeting.MeetingEntity;
 import com.together.user.UserEntity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -52,6 +50,10 @@ public class ProjectEntity {
         user.setProject(this);
     }
 
+    @OneToMany(mappedBy = "project")
+    @JsonIgnore
+    private List<MeetingEntity> meetings; //m
+
     // 프로젝트에서 팀원 제거 메서드
     public void removeUser(UserEntity user) {
         users.remove(user);
@@ -74,6 +76,7 @@ public class ProjectEntity {
 
     @OneToMany(mappedBy = "project")
     @JsonIgnore
-    private List<MeetingEntity> meetings; */
+    private List<MeetingEntity> meetings;
+     */
 
 }

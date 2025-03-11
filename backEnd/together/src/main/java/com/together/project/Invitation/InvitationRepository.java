@@ -10,4 +10,5 @@ import java.util.Optional;
 public interface InvitationRepository extends JpaRepository<InvitationEntity, Long> {
     List<InvitationEntity> findByUser(UserEntity user);
     Optional<InvitationEntity> findByProjectAndUser(ProjectEntity project, UserEntity user);
+
 }

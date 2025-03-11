@@ -62,49 +62,84 @@ public class ProjectService {
 
     // 팀원 초대 (이메일로 검색 후 추가)
     @Transactional
-    public boolean inviteUserToProject(Long projectId, String userEmail) {
+    public boolean inviteUserToProject(Long projectId, String email) {
         Optional<ProjectEntity> projectOpt = projectRepository.findById(projectId);
-        Optional<UserEntity> userOpt = userRepository.findByUserEmail(userEmail);
+        Optional<UserEntity> userOpt = userRepository.findByUserEmail(email);
 
-        if (projectOpt.isPresent() && userOpt.isPresent()) {
-            ProjectEntity project = projectOpt.get();
-            UserEntity user = userOpt.get();
+        if (projectOpt.isEmpty()) {
+            throw new RuntimeException("해당 프로젝트를 찾을 수 없습니다.");
+        }
 
-            // 이미 초대된 경우 중복 저장 방지
-            Optional<InvitationEntity> existingInvitation = invitationRepository.findByProjectAndUser(project, user);
-            if (existingInvitation.isPresent()) {
-                return false; // 이미 초대됨
+        if (userOpt.isEmpty()) {
+            throw new RuntimeException("해당 사용자를 찾을 수 없습니다.");
+        }
+
+        ProjectEntity project = projectOpt.get();
+        UserEntity user = userOpt.get();
+
+        // 기존 초대 상태 확인
+        Optional<InvitationEntity> existingInvitation = invitationRepository.findByProjectAndUser(project, user);
+
+        if (existingInvitation.isPresent()) {
+            InvitationEntity invitation = existingInvitation.get();
+
+            if ("ACCEPTED".equals(invitation.getStatus())) {
+                throw new RuntimeException("해당 사용자는 이미 프로젝트에 참여 중입니다.");
             }
 
-            // 초대 요청 저장
-            InvitationEntity invitation = new InvitationEntity();
-            invitation.setProject(project);
-            invitation.setUser(user);
-            invitationRepository.save(invitation);
-
-            return true; // 초대 요청 완료
-        }
-        return false;
-    }
-//초대수락
-    public boolean acceptInvitation(Long invitationId) {
-        Optional<InvitationEntity> invitationOpt = invitationRepository.findById(invitationId);
-
-        if (invitationOpt.isPresent()) {
-            InvitationEntity invitation = invitationOpt.get();
-            if (!invitation.isAccepted()) {
-                invitation.acceptInvitation();
+            if ("REJECTED".equals(invitation.getStatus())) {
+                invitation.setStatus("PENDING");
                 invitationRepository.save(invitation);
-
-                // 실제 프로젝트에 추가
-                ProjectEntity project = invitation.getProject();
-                UserEntity user = invitation.getUser();
-                project.addUser(user);
-                projectRepository.save(project);
                 return true;
             }
+
+            return false;
         }
-        return false;
+
+        InvitationEntity invitation = new InvitationEntity();
+        invitation.setProject(project);
+        invitation.setUser(user);
+        invitation.setStatus("PENDING");  // 초대 상태
+        invitationRepository.save(invitation);
+
+        return true;  // ✅ boolean 반환
+    }
+
+
+    //초대수락
+    @Transactional
+    public boolean acceptInvitation(Long invitationId) {
+        InvitationEntity invitation = invitationRepository.findById(invitationId)
+                .orElseThrow(() -> new RuntimeException("초대 정보를 찾을 수 없습니다."));
+
+        invitation.setStatus("ACCEPTED");
+        invitation.setAccepted(true);
+
+        ProjectEntity project = invitation.getProject();
+        UserEntity user = invitation.getUser();
+
+        if (!project.getUsers().contains(user)) {
+            project.addUser(user);
+            projectRepository.save(project);
+        }
+
+        invitationRepository.save(invitation);
+
+        return true;  // ✅ boolean 반환
+    }
+
+
+    //초대거절
+
+    @Transactional
+    public String rejectInvitation(Long invitationId) {
+        InvitationEntity invitation = invitationRepository.findById(invitationId)
+                .orElseThrow(() -> new RuntimeException("초대 정보를 찾을 수 없습니다."));
+
+        invitation.setStatus("REJECTED");  // ❗ 초대 거절
+        invitationRepository.save(invitation);
+
+        return "초대가 거절되었습니다.";
     }
     // 프로젝트 팀원 목록 조회
     public List<UserEntity> getProjectMembers(Long projectId) {

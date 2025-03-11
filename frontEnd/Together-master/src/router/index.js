@@ -5,6 +5,8 @@ import MainPage2 from '../views/MainPage2.vue'
 import Signup from '../views/account/Signup.vue'
 import Login from '../views/account/Login.vue'
 import CreateProject from '../views/CreateProject.vue'
+import MyProject from '../views/MyProject.vue'
+import DashBoard from '../views/DashBoard.vue'
 const routes = [
   {
     path: '/',
@@ -31,6 +33,16 @@ const routes = [
     path: '/CreateProject',
     name: 'CreateProject',
     component: CreateProject,
+  },
+  {
+    path: '/MyProject',
+    name: 'MyProject',
+    component: MyProject,
+  },
+  {
+    path: '/DashBoard',
+    name: 'DashBoard',
+    component: DashBoard,
   },
 ]
 

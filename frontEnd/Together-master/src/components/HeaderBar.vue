@@ -26,7 +26,7 @@
           </button>
         </li>
         <li><button><span>작업</span></button></li>
-        <li><button><span>일정 관리</span></button></li>
+        <li><button @click="goToSchedule">일정 관리</button></li>
         <li><button><span>팀원 관리</span></button></li>
         <li><button><span>회의</span></button></li>
       </ul>
@@ -49,6 +49,10 @@ function goMyProject() {
 
 function goMyDashBoard() {
   router.push('/DashBoard')
+}
+
+function goSchedule() {
+  router.push('/Schedule')
 }
 </script>
 

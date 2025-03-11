@@ -1,4 +1,4 @@
-package com.together.Systemconfig;
+package com.together.systemConfig;
 
 import com.together.user.UserEntity;
 import com.together.user.UserRepository;

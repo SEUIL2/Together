@@ -1,6 +1,11 @@
 package com.together.project;
 
+
 import com.fasterxml.jackson.annotation.JsonFormat;
+
+//import com.fasterxml.jackson.annotation.JsonIgnore;
+//import com.together.meeting.MeetingEntity;
+
 import com.together.user.UserEntity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -21,6 +26,7 @@ public class ProjectEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+
     @Column(name = "project_id")
     private Long projectId; // PK
 
@@ -51,4 +57,23 @@ public class ProjectEntity {
         users.remove(user);
         user.setProject(null);
     }
+
+   /* private Long projectId; //PK
+
+    @Column
+    private String projectName; //프로젝트 이름
+
+    @Column
+    private Date projectStartDate; //시작일
+
+    @Column
+    private Date projectEndDate; //종료일
+
+    @OneToMany(mappedBy = "project")
+    private List<UserEntity> users;
+
+    @OneToMany(mappedBy = "project")
+    @JsonIgnore
+    private List<MeetingEntity> meetings; */
+
 }

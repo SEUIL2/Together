@@ -7,6 +7,7 @@ import Login from '../views/account/Login.vue'
 import CreateProject from '../views/CreateProject.vue'
 import MyProject from '../views/MyProject.vue'
 import DashBoard from '../views/DashBoard.vue'
+import Schedule from '../views/Schedule.vue'
 const routes = [
   {
     path: '/',
@@ -43,6 +44,11 @@ const routes = [
     path: '/DashBoard',
     name: 'DashBoard',
     component: DashBoard,
+  },
+  {
+    path: '/Schedule',
+    name: 'Schedule',
+    component: Schedule,
   },
 ]
 

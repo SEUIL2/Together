@@ -1,5 +1,7 @@
 package com.together.project;
 
+import com.together.project.Invitation.InvitationEntity;
+import com.together.project.Invitation.InvitationRepository;
 import com.together.project.ProjectDto.InviteResponseDto;
 import com.together.project.ProjectDto.ProjectResponseDto;
 import com.together.user.UserEntity;
@@ -19,6 +21,7 @@ public class ProjectService {
 
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
+    private final InvitationRepository invitationRepository;
 
     // 프로젝트 생성
     @Transactional
@@ -26,7 +29,7 @@ public class ProjectService {
         ProjectEntity project = new ProjectEntity();
         project.setTitle(title);
 
-        // ✅ startDate와 endDate가 null인 경우 그대로 null 값 저장
+        // ✅ startDate와 endDate가 null인 경우 그대로 저장
         project.setProjectStartDate(startDate);
         project.setProjectEndDate(endDate);
 
@@ -59,35 +62,49 @@ public class ProjectService {
 
     // 팀원 초대 (이메일로 검색 후 추가)
     @Transactional
-    public InviteResponseDto inviteUserToProject(Long projectId, String userEmail) {
+    public boolean inviteUserToProject(Long projectId, String userEmail) {
         Optional<ProjectEntity> projectOpt = projectRepository.findById(projectId);
         Optional<UserEntity> userOpt = userRepository.findByUserEmail(userEmail);
 
-        if (projectOpt.isEmpty()) {
-            throw new RuntimeException("해당 프로젝트를 찾을 수 없습니다.");
+        if (projectOpt.isPresent() && userOpt.isPresent()) {
+            ProjectEntity project = projectOpt.get();
+            UserEntity user = userOpt.get();
+
+            // 이미 초대된 경우 중복 저장 방지
+            Optional<InvitationEntity> existingInvitation = invitationRepository.findByProjectAndUser(project, user);
+            if (existingInvitation.isPresent()) {
+                return false; // 이미 초대됨
+            }
+
+            // 초대 요청 저장
+            InvitationEntity invitation = new InvitationEntity();
+            invitation.setProject(project);
+            invitation.setUser(user);
+            invitationRepository.save(invitation);
+
+            return true; // 초대 요청 완료
         }
+        return false;
+    }
+//초대수락
+    public boolean acceptInvitation(Long invitationId) {
+        Optional<InvitationEntity> invitationOpt = invitationRepository.findById(invitationId);
 
-        if (userOpt.isEmpty()) {
-            throw new RuntimeException("해당 이메일을 가진 사용자를 찾을 수 없습니다.");
+        if (invitationOpt.isPresent()) {
+            InvitationEntity invitation = invitationOpt.get();
+            if (!invitation.isAccepted()) {
+                invitation.acceptInvitation();
+                invitationRepository.save(invitation);
+
+                // 실제 프로젝트에 추가
+                ProjectEntity project = invitation.getProject();
+                UserEntity user = invitation.getUser();
+                project.addUser(user);
+                projectRepository.save(project);
+                return true;
+            }
         }
-
-        ProjectEntity project = projectOpt.get();
-        UserEntity user = userOpt.get();
-
-        // 이미 프로젝트에 속한지 확인
-        if (project.getUsers().contains(user)) {
-            throw new RuntimeException("해당 사용자는 이미 프로젝트에 참여 중입니다.");
-        }
-
-        // 팀원 추가
-        project.addUser(user);
-        projectRepository.save(project);
-
-        return new InviteResponseDto(
-                project.getProjectId(),
-                user.getUserEmail(),
-                "팀원이 성공적으로 초대되었습니다."
-        );
+        return false;
     }
     // 프로젝트 팀원 목록 조회
     public List<UserEntity> getProjectMembers(Long projectId) {

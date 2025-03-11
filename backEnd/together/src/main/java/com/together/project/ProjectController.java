@@ -1,8 +1,11 @@
 package com.together.project;
 
+import com.together.project.Invitation.InvitationEntity;
+import com.together.project.Invitation.InvitationRepository;
 import com.together.project.ProjectDto.InviteResponseDto;
 import com.together.project.ProjectDto.ProjectResponseDto;
 import com.together.user.UserEntity;
+import com.together.user.UserRepository;
 import com.together.user.dto.UserResponseDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -12,6 +15,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/projects")
@@ -19,6 +23,9 @@ import java.util.Map;
 public class ProjectController {
 
     private final ProjectService projectService;
+
+    private final UserRepository userRepository;
+    private final InvitationRepository invitationRepository;
 
     // 프로젝트 생성
     @PostMapping("/create")
@@ -28,37 +35,39 @@ public class ProjectController {
             String startDateStr = (String) request.get("startDate");
             String endDateStr = (String) request.get("endDate");
 
-            if (title == null) {
-                return ResponseEntity.badRequest().body(new ProjectResponseDto(null, null, null, null));
+            System.out.println("Title: " + title);
+            System.out.println("Start Date: " + startDateStr);
+            System.out.println("End Date: " + endDateStr);
+
+            if (title == null || title.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(null);
             }
 
-            // 날짜 파싱 로직 개선
-            Date startDate = null;
-            Date endDate = null;
-
-            if (startDateStr != null && !startDateStr.isEmpty()) {
-                SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-                startDate = dateFormat.parse(startDateStr);
-            }
-
-            if (endDateStr != null && !endDateStr.isEmpty()) {
-                SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-                endDate = dateFormat.parse(endDateStr);
-            }
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+            Date startDate = (startDateStr != null && !startDateStr.isEmpty()) ? dateFormat.parse(startDateStr) : null;
+            Date endDate = (endDateStr != null && !endDateStr.isEmpty()) ? dateFormat.parse(endDateStr) : null;
 
             ProjectResponseDto project = projectService.createProject(title, startDate, endDate);
-
             return ResponseEntity.ok(project);
         } catch (Exception e) {
             System.err.println("Error creating project: " + e.getMessage());
-            return ResponseEntity.status(500).build();
+            return ResponseEntity.status(500).body(null);
         }
     }
     // 이메일로 사용자 검색
     @GetMapping("/search")
-    public ResponseEntity<?> searchUser(@RequestParam String email) {
+    public ResponseEntity<?> searchAndInviteUser(
+            @RequestParam String email,
+            @RequestParam(required = false) Long projectId) {
         try {
             List<UserResponseDto> users = projectService.searchUserByEmail(email);
+
+            // 초대 기능 추가 (선택적)
+            if (projectId != null && !users.isEmpty()) {
+                projectService.inviteUserToProject(projectId, users.get(0).getUserEmail());
+                return ResponseEntity.ok("사용자를 찾았으며, 초대 요청이 전송되었습니다.");
+            }
+
             return ResponseEntity.ok(users);
         } catch (RuntimeException e) {
             return ResponseEntity.status(404).body(e.getMessage());
@@ -67,12 +76,40 @@ public class ProjectController {
 
     // 팀원 초대
     @PostMapping("/{projectId}/invite")
-    public ResponseEntity<?> inviteUser(@PathVariable Long projectId, @RequestParam String email) {
+    public ResponseEntity<String> inviteUser(@PathVariable Long projectId, @RequestParam String email) {
         try {
-            InviteResponseDto response = projectService.inviteUserToProject(projectId, email);
-            return ResponseEntity.ok(response);
+            boolean success = projectService.inviteUserToProject(projectId, email);
+
+            if (success) {
+                return ResponseEntity.ok("팀원이 성공적으로 초대되었습니다.");
+            } else {
+                return ResponseEntity.badRequest().body("초대에 실패했습니다.");
+            }
         } catch (RuntimeException e) {
-            return ResponseEntity.status(400).body(Map.of("error", e.getMessage()));
+            return ResponseEntity.status(400).body(e.getMessage());
+        }
+    }
+        //초대확인
+    @GetMapping("/invitations/{userId}")
+    public ResponseEntity<List<InvitationEntity>> getUserInvitations(@PathVariable Long userId) {
+        Optional<UserEntity> userOpt = userRepository.findById(userId);
+
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(404).body(null);
+        }
+
+        List<InvitationEntity> invitations = invitationRepository.findByUser(userOpt.get());
+
+        return ResponseEntity.ok(invitations);
+    }
+        //초대수락
+    @PostMapping("/invite/accept")
+    public ResponseEntity<String> acceptInvitation(@RequestParam Long invitationId) {
+        boolean success = projectService.acceptInvitation(invitationId);
+        if (success) {
+            return ResponseEntity.ok("초대를 수락하였습니다.");
+        } else {
+            return ResponseEntity.badRequest().body("초대 수락 실패: 초대 정보를 찾을 수 없습니다.");
         }
     }
 

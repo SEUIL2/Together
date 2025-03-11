@@ -1,6 +1,9 @@
 package com.together.project;
 
+import com.together.project.ProjectDto.InviteResponseDto;
+import com.together.project.ProjectDto.ProjectResponseDto;
 import com.together.user.UserEntity;
+import com.together.user.dto.UserResponseDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,58 +22,47 @@ public class ProjectController {
 
     // 프로젝트 생성
     @PostMapping("/create")
-    public ResponseEntity<ProjectEntity> createProject(@RequestBody Map<String, Object> request) {
+    public ResponseEntity<ProjectResponseDto> createProject(@RequestBody Map<String, Object> request) {
         try {
             String title = (String) request.get("title");
             String startDateStr = (String) request.get("startDate");
             String endDateStr = (String) request.get("endDate");
 
-            // 로그로 데이터를 출력하여 확인
-            System.out.println("Title: " + title);
-            System.out.println("Start Date: " + startDateStr);
-            System.out.println("End Date: " + endDateStr);
-
             if (title == null || startDateStr == null || endDateStr == null) {
-                return ResponseEntity.badRequest().body(null);
+                return ResponseEntity.badRequest().build();
             }
 
-            // String 형식을 Date로 변환
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-
-            // 수정된 날짜 변환
             Date startDate = dateFormat.parse(startDateStr);
             Date endDate = dateFormat.parse(endDateStr);
 
-            // 로그 출력
-            System.out.println("Parsed Start Date: " + startDate);
-            System.out.println("Parsed End Date: " + endDate);
+            ProjectResponseDto project = projectService.createProject(title, startDate, endDate);
 
-            ProjectEntity project = projectService.createProject(title, startDate, endDate);
             return ResponseEntity.ok(project);
         } catch (Exception e) {
-            // 예외가 발생하면 에러 메시지 출력
             System.err.println("Error creating project: " + e.getMessage());
-            return ResponseEntity.status(500).body(null);
+            return ResponseEntity.status(500).build();
         }
-
-
-
-}
+    }
     // 이메일로 사용자 검색
     @GetMapping("/search")
-    public ResponseEntity<List<UserEntity>> searchUser(@RequestParam String email) {
-        List<UserEntity> users = projectService.searchUserByEmail(email);  // 서비스 호출
-        return ResponseEntity.ok(users);
+    public ResponseEntity<?> searchUser(@RequestParam String email) {
+        try {
+            List<UserResponseDto> users = projectService.searchUserByEmail(email);
+            return ResponseEntity.ok(users);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(404).body(e.getMessage());
+        }
     }
 
     // 팀원 초대
     @PostMapping("/{projectId}/invite")
-    public ResponseEntity<String> inviteUser(@PathVariable Long projectId, @RequestParam String email) {
-        boolean success = projectService.inviteUserToProject(projectId, email);
-        if (success) {
-            return ResponseEntity.ok("팀원이 성공적으로 초대되었습니다.");
-        } else {
-            return ResponseEntity.badRequest().body("팀원 초대 실패: 사용자를 찾을 수 없거나 이미 프로젝트에 추가됨.");
+    public ResponseEntity<?> inviteUser(@PathVariable Long projectId, @RequestParam String email) {
+        try {
+            InviteResponseDto response = projectService.inviteUserToProject(projectId, email);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(400).body(Map.of("error", e.getMessage()));
         }
     }
 

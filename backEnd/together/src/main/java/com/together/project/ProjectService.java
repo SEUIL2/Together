@@ -25,6 +25,8 @@ public class ProjectService {
     public ProjectResponseDto createProject(String title, Date startDate, Date endDate) {
         ProjectEntity project = new ProjectEntity();
         project.setTitle(title);
+
+        // ✅ startDate와 endDate가 null인 경우 그대로 null 값 저장
         project.setProjectStartDate(startDate);
         project.setProjectEndDate(endDate);
 
@@ -37,7 +39,6 @@ public class ProjectService {
                 savedProject.getProjectEndDate()
         );
     }
-
     // 사용자 검색
     public List<UserResponseDto> searchUserByEmail(String email) {
         List<UserEntity> users = userRepository.findByUserEmailContaining(email);

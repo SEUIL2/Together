@@ -1,6 +1,7 @@
 package com.together.user;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.together.documentManger.FileEntity;
 import com.together.meeting.MeetingEntity;
 import com.together.project.ProjectEntity;
 import jakarta.persistence.*;
@@ -8,6 +9,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Data
@@ -50,4 +52,7 @@ public class UserEntity {
     @OneToMany(mappedBy = "users")
     @JsonIgnore
     private List<MeetingEntity> meetings;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private List<FileEntity> files = new ArrayList<>();  // 사용자가 업로드한 파일 리스트
 }

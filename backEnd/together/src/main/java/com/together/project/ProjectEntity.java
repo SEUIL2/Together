@@ -3,6 +3,7 @@ package com.together.project;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.together.documentManger.FileEntity;
 import com.together.meeting.MeetingEntity;
 import com.together.user.UserEntity;
 import jakarta.persistence.*;
@@ -59,6 +60,9 @@ public class ProjectEntity {
         users.remove(user);
         user.setProject(null);
     }
+
+    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL)
+    private List<FileEntity> files = new ArrayList<>();  // 프로젝트에 속한 파일들
 
    /* private Long projectId; //PK
 

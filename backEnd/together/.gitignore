@@ -79,3 +79,6 @@ Thumbs.db
 *.war
 *.jar
 *.ear
+
+# .gitignore 파일에 추가
+src/main/resources/google-drive-credentials.json

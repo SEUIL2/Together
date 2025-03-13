@@ -2,6 +2,7 @@ package com.together.project;
 
 import com.together.project.Invitation.InvitationEntity;
 import com.together.project.Invitation.InvitationRepository;
+import com.together.project.Invitation.dto.InvitationResponseDto;
 import com.together.project.ProjectDto.InviteResponseDto;
 import com.together.project.ProjectDto.ProjectResponseDto;
 import com.together.user.UserEntity;
@@ -105,6 +106,27 @@ public class ProjectService {
         return true;  // ✅ boolean 반환
     }
 
+//초대 확인
+
+    @Transactional
+    public List<InvitationResponseDto> getUserInvitations(Long userId) {
+        Optional<UserEntity> userOpt = userRepository.findById(userId);
+
+        if (userOpt.isEmpty()) {
+            throw new RuntimeException("해당 사용자를 찾을 수 없습니다.");
+        }
+
+        List<InvitationEntity> invitations = invitationRepository.findByUser(userOpt.get());
+
+        return invitations.stream()
+                .map(invitation -> new InvitationResponseDto(
+                        invitation.getId(),
+                        invitation.getProject().getTitle(),
+                        invitation.getUser().getUserName(),
+                        invitation.getStatus()
+                ))
+                .toList();
+    }
 
     //초대수락
     @Transactional

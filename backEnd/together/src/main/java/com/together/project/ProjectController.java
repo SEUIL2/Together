@@ -2,6 +2,7 @@ package com.together.project;
 
 import com.together.project.Invitation.InvitationEntity;
 import com.together.project.Invitation.InvitationRepository;
+import com.together.project.Invitation.dto.InvitationResponseDto;
 import com.together.project.ProjectDto.InviteResponseDto;
 import com.together.project.ProjectDto.ProjectResponseDto;
 import com.together.user.UserEntity;
@@ -26,6 +27,7 @@ public class ProjectController {
 
     private final UserRepository userRepository;
     private final InvitationRepository invitationRepository;
+
 
     // 프로젝트 생성
     @PostMapping("/create")
@@ -91,16 +93,13 @@ public class ProjectController {
     }
         //초대확인
     @GetMapping("/invitations/{userId}")
-    public ResponseEntity<List<InvitationEntity>> getUserInvitations(@PathVariable Long userId) {
-        Optional<UserEntity> userOpt = userRepository.findById(userId);
-
-        if (userOpt.isEmpty()) {
+    public ResponseEntity<List<InvitationResponseDto>> getUserInvitations(@PathVariable Long userId) {
+        try {
+            List<InvitationResponseDto> invitations = projectService.getUserInvitations(userId);
+            return ResponseEntity.ok(invitations);
+        } catch (RuntimeException e) {
             return ResponseEntity.status(404).body(null);
         }
-
-        List<InvitationEntity> invitations = invitationRepository.findByUser(userOpt.get());
-
-        return ResponseEntity.ok(invitations);
     }
         //초대수락
     @PostMapping("/invite/accept/{invitationId}")

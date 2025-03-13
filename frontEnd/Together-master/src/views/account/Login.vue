@@ -15,7 +15,7 @@
           <input
             type="text"
             placeholder="아이디"
-            v-model="username"
+            v-model="userLoginId"
             required
           />
         </div>
@@ -62,46 +62,43 @@ import { useRouter } from "vue-router";
 
 const router = useRouter();
 
-// 입력 필드
-const username = ref("");
+// 로그인 입력 필드 (로그인 DTO에 맞게 userLoginId 사용)
+const userLoginId = ref("");
 const password = ref("");
 
-// 메시지
+// 메시지 변수
 const successMessage = ref("");
 const errorMessage = ref("");
 
-// 로그인 함수
+// 로그인 함수 (Basic Auth를 사용하여 인증)
 const handleLogin = async () => {
-  // 매번 클릭 시 메시지 초기화
+  // 메시지 초기화
   successMessage.value = "";
   errorMessage.value = "";
 
-  // 로그인 요청에 보낼 데이터
-  const loginData = {
-    username: username.value,
-    password: password.value
-  };
-
   try {
-    // 백엔드 예시 엔드포인트: http://localhost:8081/auth/login
-    const response = await axios.post("http://localhost:8081/auth/login", loginData, {
-      headers: { "Content-Type": "application/json" }
-    });
-    
-    // 서버에서 200 OK 응답을 받았다면 로그인 성공 처리
-    successMessage.value = "로그인 성공!";
-    // 필요하다면 토큰 저장, 메인 페이지로 이동 등 로직 추가
-    // 예: localStorage.setItem("token", response.data.token);
-    //     router.push("/main");
+    // 아이디와 비밀번호를 Base64로 인코딩하여 Basic Auth 헤더 구성
+    const authHeader = "Basic " + btoa(`${userLoginId.value}:${password.value}`);
 
+    // 로그인 API 호출 (세션 기반 인증 시 withCredentials 옵션을 사용)
+    const response = await axios.post("http://localhost:8081/auth/login", {}, {
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": authHeader
+      },
+      withCredentials: true
+    });
+
+    // 로그인 성공 메시지 처리 (백엔드에서 성공 메시지를 반환)
+    successMessage.value = response.data;
+    // 로그인 성공 후 추가 작업 수행 (예: 메인 페이지로 이동)
+    router.push("/MainPage2");
   } catch (error) {
-    // 로그인 실패 시 (401, 403 등) 에러 메시지 출력
-    // 백엔드에서 에러 메시지를 내려주는 경우 해당 내용 사용
     errorMessage.value = error.response?.data || "로그인 실패!";
   }
 };
 
-// 회원가입 페이지로 이동
+// 회원가입 페이지로 이동하는 함수
 const goToSignup = () => {
   router.push("/Signup");
 };

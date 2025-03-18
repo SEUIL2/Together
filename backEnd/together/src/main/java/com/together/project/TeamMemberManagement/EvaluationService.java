@@ -1,6 +1,6 @@
 package com.together.project.TeamMemberManagement;
 
-import com.together.project.TeamMemberManagement.EvaluationResponseDto;
+import com.together.project.TeamMemberManagement.dto.EvaluationResponseDto;
 import com.together.project.ProjectEntity;
 import com.together.project.ProjectRepository;
 import com.together.user.UserEntity;

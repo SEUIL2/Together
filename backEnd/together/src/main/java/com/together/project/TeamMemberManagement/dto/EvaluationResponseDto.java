@@ -1,4 +1,4 @@
-package com.together.project.TeamMemberManagement;
+package com.together.project.TeamMemberManagement.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;

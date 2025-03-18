@@ -1,7 +1,7 @@
 package com.together.project.TeamMemberManagement;
 
-import com.together.project.TeamMemberManagement.EvaluationRequestDto; // ✅ 경로 수정
-import com.together.project.TeamMemberManagement.EvaluationResponseDto;
+import com.together.project.TeamMemberManagement.dto.EvaluationRequestDto; // ✅ 경로 수정
+import com.together.project.TeamMemberManagement.dto.EvaluationResponseDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

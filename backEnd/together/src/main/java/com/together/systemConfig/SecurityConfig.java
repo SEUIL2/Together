@@ -12,6 +12,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import static org.springframework.security.config.Customizer.withDefaults;
 
@@ -38,22 +39,16 @@ public class SecurityConfig {
                                 "/auth/find-password",
                                 "/auth/reset-password"
                         ).permitAll()
-                        .requestMatchers("/auth/me").authenticated()  // 현재 로그인한 유저 정보는 인증된 사용자만 가능
                         //그 외 요청은 인증 필요
                         .anyRequest().authenticated()
                 )
-                .httpBasic(withDefaults()) // Basic Auth 사용 (Postman에서 Authorization 필요)
+                .httpBasic(httpBasic -> httpBasic.disable()) // Basic Auth 사용
                 .formLogin(form -> form.disable())
-                .logout(logout -> logout
-                        .logoutUrl("/auth/logout") // 로그아웃 API 경로 설정
-                        .logoutSuccessHandler((request, response, authentication) -> {
-                            response.setStatus(200);
-                            response.setContentType("application/json");
-                            response.getWriter().write("{\"message\": \"로그아웃 성공\"}");
-                        })
-                        .invalidateHttpSession(true) // 세션 무효화
-                        .deleteCookies("JSESSIONID") // 쿠키 삭제
+                .addFilterBefore(
+                        new CustomBasicAuthenticationFilter(authenticationManager(http.getSharedObject(AuthenticationConfiguration.class))),
+                        UsernamePasswordAuthenticationFilter.class
                 );
+
 
         return http.build();
     }

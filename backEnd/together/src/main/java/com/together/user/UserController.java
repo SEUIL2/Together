@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -22,6 +23,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+@Slf4j
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("/auth")
@@ -88,7 +90,7 @@ public class UserController {
         if (userDetails == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("인증되지 않은 사용자입니다.");
         }
-
+        log.info("현재 사용자: {}", userDetails.getUsername());
         Map<String, Object> userInfo = new HashMap<>();
         userInfo.put("username", userDetails.getUsername());
         userInfo.put("roles", userDetails.getAuthorities());

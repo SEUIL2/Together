@@ -3,6 +3,7 @@ package com.together.user;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.together.documentManger.FileEntity;
 import com.together.meeting.MeetingEntity;
+import com.together.notice.NoticeEntity;
 import com.together.project.ProjectEntity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -55,4 +56,7 @@ public class UserEntity {
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<FileEntity> files = new ArrayList<>();  // 사용자가 업로드한 파일 리스트
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private List<NoticeEntity> notices = new ArrayList<>(); // 공지사항
 }

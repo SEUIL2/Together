@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.together.documentManger.FileEntity;
 import com.together.meeting.MeetingEntity;
+import com.together.notice.NoticeEntity;
 import com.together.user.UserEntity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -53,7 +54,7 @@ public class ProjectEntity {
 
     @OneToMany(mappedBy = "project")
     @JsonIgnore
-    private List<MeetingEntity> meetings; //m
+    private List<MeetingEntity> meetings; //미팅
 
     // 프로젝트에서 팀원 제거 메서드
     public void removeUser(UserEntity user) {
@@ -64,23 +65,8 @@ public class ProjectEntity {
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL)
     private List<FileEntity> files = new ArrayList<>();  // 프로젝트에 속한 파일들
 
-   /* private Long projectId; //PK
-
-    @Column
-    private String projectName; //프로젝트 이름
-
-    @Column
-    private Date projectStartDate; //시작일
-
-    @Column
-    private Date projectEndDate; //종료일
-
-    @OneToMany(mappedBy = "project")
-    private List<UserEntity> users;
-
-    @OneToMany(mappedBy = "project")
+    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL)
     @JsonIgnore
-    private List<MeetingEntity> meetings;
-     */
+    private List<NoticeEntity> notices = new ArrayList<>(); //공지사항
 
 }

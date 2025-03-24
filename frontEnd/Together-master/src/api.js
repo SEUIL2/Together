@@ -7,4 +7,14 @@ const api = axios.create({
     },
 });
 
+
+// 요청 보내기 전에 Authorization 헤더 자동 삽입
+axios.interceptors.request.use((config) => {
+    const authHeader = localStorage.getItem("authHeader");
+    if (authHeader) {
+        config.headers.Authorization = authHeader;
+    }
+    return config;
+});
+
 export default api;

@@ -1,7 +1,8 @@
 import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router'  // 라우터 임포트
-import { GcSpreadSheets, GcWorksheet, GcColumn } from '@grapecity/spread-sheets-vue'
+import { GcSpreadSheets, GcWorksheet, GcColumn} from '@grapecity/spread-sheets-vue'
+import './api';
 
 // vue-ganttastic의 GanttChart를 default import 합니다.
 import GanttChart from 'vue-ganttastic'

@@ -80,19 +80,27 @@ const handleLogin = async () => {
     // 아이디와 비밀번호를 Base64로 인코딩하여 Basic Auth 헤더 구성
     const authHeader = "Basic " + btoa(`${userLoginId.value}:${password.value}`);
 
-    // 로그인 API 호출 (세션 기반 인증 시 withCredentials 옵션을 사용)
+    // 로그인 API 호출
     const response = await axios.post("http://localhost:8081/auth/login", {}, {
       headers: {
         "Content-Type": "application/json",
         "Authorization": authHeader
-      },
-      withCredentials: true
+      }
     });
 
     // 로그인 성공 메시지 처리 (백엔드에서 성공 메시지를 반환)
+    const userInfo = response.data;
     successMessage.value = response.data;
+
+    //로그인 시 Basic 토큰을 localStorage 등에 저장
+    const base64 = btoa(`${userLoginId.value}:${password.value}`);
+    localStorage.setItem("authHeader", `Basic ${base64}`);
+
     // 로그인 성공 후 추가 작업 수행 (예: 메인 페이지로 이동)
     router.push("/MainPage2");
+
+    // 로그인 성공 후 즉시 비밀번호 제거
+    localStorage.removeItem("password"); // ❌ 저장하지 않기
   } catch (error) {
     errorMessage.value = error.response?.data || "로그인 실패!";
   }

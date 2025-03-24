@@ -11,8 +11,13 @@
   "dependencies": {
     "@grapecity/spread-sheets": "^18.0.4",
     "@grapecity/spread-sheets-vue": "^18.0.4",
+    "@vue/compat": "^3.5.13",
     "axios": "^1.8.2",
+    "dayjs": "^1.11.13",
+    "dhtmlx-gantt": "^9.0.6",
+    "tailwindcss": "^4.0.14",
     "vue": "^3.5.13",
+    "vue-ganttastic": "^0.9.34",
     "vue-router": "^4.5.0"
   },
   "devDependencies": {

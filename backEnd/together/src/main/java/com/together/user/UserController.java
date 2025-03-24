@@ -46,6 +46,7 @@ public class UserController {
      */
     @PostMapping("/login")
     public ResponseEntity<String> login() {
+        log.info("login 성공");
         return ResponseEntity.ok("로그인이 성공적으로 처리되었습니다.");
     }
 

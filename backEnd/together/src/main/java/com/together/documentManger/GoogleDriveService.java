@@ -104,4 +104,27 @@ public class GoogleDriveService {
         return new ByteArrayResource(outputStream.toByteArray());
     }
 
+    // Google Drive에 이미지만 업로드하고 URL 반환
+    public String uploadImageToGoogleDrive(MultipartFile file) throws IOException {
+        // **Google Drive에 파일 업로드**
+        File fileMetadata = new File();
+        fileMetadata.setName(file.getOriginalFilename());
+        fileMetadata.setParents(List.of("root")); // 루트 폴더에 저장
+
+        java.io.File tempFile = java.io.File.createTempFile("upload_", null);
+        try (OutputStream os = new FileOutputStream(tempFile)) {
+            os.write(file.getBytes());
+        }
+
+        AbstractInputStreamContent fileContent = new FileContent("application/octet-stream", tempFile);
+        File uploadedFile = googleDrive.files().create(fileMetadata, fileContent)
+                .setFields("id, webViewLink")
+                .execute();
+
+        // 🔹 파일을 공개로 설정
+        makeFilePublic(uploadedFile.getId());
+
+        // 🔹 Google Drive URL 반환
+        return uploadedFile.getWebViewLink();
+    }
 }

@@ -10,6 +10,7 @@ import DashBoard from '../views/DashBoard.vue'
 import Schedule from '../views/Schedule.vue'
 import SignUpForm from '../views/test/SignupForm.vue'
 import Scheduletest from '../views/test/Scheduletest.vue'
+import DiagramPage from '../views/DiagramPage.vue'
 const routes = [
   {
     path: '/',
@@ -61,6 +62,11 @@ const routes = [
     path: '/Scheduletest',
     name: 'Scheduletest',
     component: Scheduletest,
+  },
+  {
+    path: '/DiagramPage',
+    name: 'DiagramPage',
+    component: DiagramPage,
   },
 ]
 

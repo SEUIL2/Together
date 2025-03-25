@@ -85,7 +85,8 @@ const handleLogin = async () => {
       headers: {
         "Content-Type": "application/json",
         "Authorization": authHeader
-      }
+      },
+      withCredentials: true  // ✅ 세션 쿠키 저장 필수!
     });
 
     // 로그인 성공 메시지 처리 (백엔드에서 성공 메시지를 반환)
@@ -98,6 +99,8 @@ const handleLogin = async () => {
 
     // 로그인 성공 후 추가 작업 수행 (예: 메인 페이지로 이동)
     router.push("/MainPage2");
+
+    window.location.href = "/";
 
     // 로그인 성공 후 즉시 비밀번호 제거
     localStorage.removeItem("password"); // ❌ 저장하지 않기

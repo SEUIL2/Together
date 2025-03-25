@@ -6,7 +6,16 @@ export default defineConfig({
   plugins: [vue()],
   resolve: {
     alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url)) // @를 src 폴더로 설정
+      '@': fileURLToPath(new URL('./src', import.meta.url))
+    }
+  },
+  server: {
+    proxy: {
+      '/auth': {
+        target: 'http://localhost:8081', // ✅ 백엔드 주소
+        changeOrigin: true,
+        secure: false
+      }
     }
   }
 })

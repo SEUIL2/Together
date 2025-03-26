@@ -73,7 +73,7 @@ const availableColors = ['#FF8C00', '#F44336', '#2196F3', '#4CAF50', '#9C27B0']
 
 // 팀원 목록 (예시 데이터)
 const teamMembers = ref([
-  { teamName: '팀명', studentId: '2033062', name: '정유명', role: '프론트엔드', avatarColor: '#FF8C00', showColorPicker: false },
+  { teamName: '팀명', studentId: '2033062', name: '정무영', role: '프론트엔드', avatarColor: '#FF8C00', showColorPicker: false },
   { teamName: '팀명', studentId: '2033062', name: '황스일', role: '백엔드', avatarColor: '#F44336', showColorPicker: false }
 ])
 

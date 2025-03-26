@@ -12,6 +12,7 @@ import SignUpForm from '../views/test/SignupForm.vue'
 import Scheduletest from '../views/test/Scheduletest.vue'
 import DiagramPage from '../views/DiagramPage.vue'
 import MeetingPage from '../views/MeetingPage.vue'
+import TeamManagement from "@/views/TeamManagement.vue";
 const routes = [
   {
     path: '/',
@@ -73,6 +74,11 @@ const routes = [
     path: '/MeetingPage',
     name: 'MeetingPage',
     component: MeetingPage,
+  },
+  {
+    path: '/TeamManagement',
+    name: 'TeamManagement',
+    component: TeamManagement,
   },
 ]
 

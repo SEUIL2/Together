@@ -28,28 +28,17 @@ public class ProjectController {
     private final UserRepository userRepository;
     private final InvitationRepository invitationRepository;
 
-
-    // 프로젝트 생성
+    //프로젝트 생성
     @PostMapping("/create")
     public ResponseEntity<ProjectResponseDto> createProject(@RequestBody Map<String, Object> request) {
         try {
             String title = (String) request.get("title");
-            String startDateStr = (String) request.get("startDate");
-            String endDateStr = (String) request.get("endDate");
-
-            System.out.println("Title: " + title);
-            System.out.println("Start Date: " + startDateStr);
-            System.out.println("End Date: " + endDateStr);
 
             if (title == null || title.trim().isEmpty()) {
                 return ResponseEntity.badRequest().body(null);
             }
 
-            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-            Date startDate = (startDateStr != null && !startDateStr.isEmpty()) ? dateFormat.parse(startDateStr) : null;
-            Date endDate = (endDateStr != null && !endDateStr.isEmpty()) ? dateFormat.parse(endDateStr) : null;
-
-            ProjectResponseDto project = projectService.createProject(title, startDate, endDate);
+            ProjectResponseDto project = projectService.createProject(title);
             return ResponseEntity.ok(project);
         } catch (Exception e) {
             System.err.println("Error creating project: " + e.getMessage());

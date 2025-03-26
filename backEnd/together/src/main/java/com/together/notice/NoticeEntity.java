@@ -4,13 +4,12 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.together.project.ProjectEntity;
 import com.together.user.UserEntity;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.util.Date;
 
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
@@ -33,11 +32,13 @@ public class NoticeEntity {
     @ManyToOne
     @JoinColumn(name = "user_id")
     @JsonIgnore
+    @ToString.Exclude
     private UserEntity user; // 작성자 (UserEntity와 연관)
 
     @ManyToOne
     @JoinColumn(name = "project_id")
     @JsonIgnore
+    @ToString.Exclude
     private ProjectEntity project;
 
 }

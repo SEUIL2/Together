@@ -48,8 +48,6 @@ public class SecurityConfig {
                         new CustomBasicAuthenticationFilter(authenticationManager(http.getSharedObject(AuthenticationConfiguration.class))),
                         UsernamePasswordAuthenticationFilter.class
                 );
-
-
         return http.build();
     }
 

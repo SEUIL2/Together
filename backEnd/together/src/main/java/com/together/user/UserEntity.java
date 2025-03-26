@@ -5,6 +5,8 @@ import com.together.documentManger.FileEntity;
 import com.together.meeting.MeetingEntity;
 import com.together.notice.NoticeEntity;
 import com.together.project.ProjectEntity;
+import com.together.vote.entity.VoteEntity;
+import com.together.vote.entity.VoteResponseEntity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -59,4 +61,10 @@ public class UserEntity {
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<NoticeEntity> notices = new ArrayList<>(); // 공지사항
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private List<VoteEntity> votes = new ArrayList<>(); //투표
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private List<VoteResponseEntity> voteResponseEntities = new ArrayList<>(); //투표 Response
 }

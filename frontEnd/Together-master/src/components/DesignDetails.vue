@@ -16,11 +16,22 @@
           <!-- 타이틀 왼쪽에 동그라미 (동일 스타일 적용) -->
           <div class="circle" :class="{ active: item.completed }"></div>
           <span class="title-text">{{ item.name }}</span>
-          <!-- 편집/저장 아이콘 (편집 모드 토글) -->
           <i class="edit-icon" @click.stop="toggleEdit(index)">
-            <span v-if="!item.editing">&#9998;</span>
-            <img v-else src="@/assets/saveicon.png" alt="저장" class="save-icon" />
-          </i>
+  <img
+    v-if="item.name === '클래스 다이어그램'"
+    src="@/assets/arrowicon.png"
+    alt="이동"
+    class="arrow-icon"
+  />
+  <span v-else-if="!item.editing">&#9998;</span>
+  <img
+    v-else
+    src="@/assets/saveicon.png"
+    alt="저장"
+    class="save-icon"
+  />
+</i>
+
         </h3>
         <!-- 편집 모드일 때만 파일 업로드 UI 표시 -->
         <div v-if="item.editing">
@@ -55,9 +66,9 @@
 
 <script setup>
 import { ref, watch } from 'vue'
-import { useRouter } from 'vue-router' // 추가
+import { useRouter } from 'vue-router'
 
-const router = useRouter() // 라우터 인스턴스 가져오기
+const router = useRouter()
 
 const designItems = ref([
   {
@@ -116,9 +127,8 @@ const designItems = ref([
     placeholder: "프로젝트 일정 계획 파일을 첨부하세요.",
     editing: false,
   },
-]);
+])
 
-// 파일 존재 여부에 따라 완료 상태 자동 반영
 watch(
   designItems,
   (newItems) => {
@@ -127,9 +137,8 @@ watch(
     });
   },
   { deep: true }
-);
+)
 
-// 편집 모드 토글 또는 클래스 다이어그램 이동
 function toggleEdit(index) {
   const item = designItems.value[index];
   if (item.name === "클래스 다이어그램") {
@@ -139,7 +148,6 @@ function toggleEdit(index) {
   item.editing = !item.editing;
 }
 
-// 파일 업로드 처리
 function handleFileUpload(event, index) {
   const selectedFiles = event.target.files;
   if (selectedFiles && selectedFiles.length > 0) {
@@ -160,12 +168,10 @@ function handleFileUpload(event, index) {
   }
 }
 
-// 파일 삭제
 function deleteFile(itemIndex, fileIndex) {
   designItems.value[itemIndex].files.splice(fileIndex, 1);
 }
 </script>
-
 
 <style scoped>
 .detail-section {
@@ -327,4 +333,12 @@ function deleteFile(itemIndex, fileIndex) {
   outline: none;
   border-color: #3f8efc;
 }
+.edit-icon img,
+.arrow-icon {
+  width: 20px;
+  height: 20px;
+  vertical-align: middle;
+  cursor: pointer;
+}
+
 </style>

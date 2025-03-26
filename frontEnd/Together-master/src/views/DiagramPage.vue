@@ -46,9 +46,9 @@
         const newId = "Class_" + Date.now();
         this.classes.push({
           id: newId,
-          name: "Classname",
-          attributes: ["Attribute1"],
-          methods: ["Method1"],
+          name: "클래스명",
+          attributes: ["속성"],
+          methods: ["메서드"],
           x: 200,
           y: 50
         });
@@ -83,9 +83,9 @@
         const cls = this.classes.find(c => c.id === id);
         if (!cls) return;
         if (region === "attributes") {
-          cls.attributes.push("New Attribute");
+          cls.attributes.push("새로운 속성");
         } else if (region === "methods") {
-          cls.methods.push("New Method");
+          cls.methods.push("새로운 메서드");
         }
       },
       deleteClass(id) {

@@ -28,7 +28,14 @@
         <li><button><span>작업</span></button></li>
         <li><button @click="goSchedule">일정 관리</button></li>
         <li><button><span>팀원 관리</span></button></li>
-        <li><button><span>회의</span></button></li>
+        <li>
+          <button 
+            :class="{ active: $route.path === '/MeetingPage' }"
+            @click="goMeeting"
+          >
+            회의
+          </button>
+        </li>
       </ul>
     </nav>
 
@@ -64,6 +71,9 @@ function goMyDashBoard() {
 }
 function goSchedule() {
   router.push('/Schedule')
+}
+function goMeeting() {
+  router.push('/MeetingPage')
 }
 
 // 로그인 상태 & 메뉴 표시 여부

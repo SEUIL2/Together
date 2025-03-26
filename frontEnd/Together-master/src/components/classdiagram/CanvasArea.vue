@@ -30,9 +30,12 @@
             />
             <!-- + 버튼: attributes (중앙 정렬) -->
             <v-text
-              :config="getAttributePlusButtonConfig(cls)"
-              @click="(evt) => { evt.evt.stopPropagation(); handlePlus('attributes', cls); }"
-            />
+  :config="getAttributePlusButtonConfig(cls)"
+  @mousedown="(evt) => { evt.evt.stopPropagation(); evt.evt.cancelBubble = true; }"
+  @click="(evt) => { evt.evt.stopPropagation(); evt.evt.cancelBubble = true; handlePlus('attributes', cls); }"
+/>
+
+
             <v-line :config="getSeparatorConfig(headerHeight + cls.attributes.length * lineHeight + attributePlusButtonHeight)" />
   
             <!-- [3] 하단 영역: methods -->
@@ -44,9 +47,12 @@
             />
             <!-- + 버튼: methods (중앙 정렬) -->
             <v-text
-              :config="getMethodPlusButtonConfig(cls)"
-              @click="(evt) => { evt.evt.stopPropagation(); handlePlus('methods', cls); }"
-            />
+  :config="getMethodPlusButtonConfig(cls)"
+  @mousedown="(evt) => { evt.evt.stopPropagation(); evt.evt.cancelBubble = true; }"
+  @click="(evt) => { evt.evt.stopPropagation(); evt.evt.cancelBubble = true; handlePlus('methods', cls); }"
+/>
+
+
           </v-group>
         </v-layer>
         
@@ -147,14 +153,15 @@
         );
       },
       getGroupConfig(cls) {
-        return {
-          x: cls.x,
-          y: cls.y,
-          draggable: this.editingClassId !== cls.id, // 편집 중이면 드래그 불가
-          id: cls.id,
-          listening: true
-        };
-      },
+  return {
+    x: cls.x,
+    y: cls.y,
+    draggable: this.editingClassId !== cls.id && !cls._disableDrag,
+    id: cls.id,
+    listening: true
+  };
+},
+
       onDragMove(e, cls) {
         this.$emit("update-position", {
           id: cls.id,
@@ -365,12 +372,24 @@
         this.editingText = "";
       },
       handlePlus(region, cls) {
-        if (region === "attributes") {
-          this.$emit("add-item", { id: cls.id, region: "attributes" });
-        } else if (region === "methods") {
-          this.$emit("add-item", { id: cls.id, region: "methods" });
-        }
-      },
+  // 일시적으로 드래그 비활성화
+  const originalDraggable = true;
+  const targetClass = this.classes.find(c => c.id === cls.id);
+  if (targetClass) targetClass._disableDrag = true;
+
+  // 실제 속성/메서드 추가
+  if (region === "attributes") {
+    this.$emit("add-item", { id: cls.id, region: "attributes" });
+  } else if (region === "methods") {
+    this.$emit("add-item", { id: cls.id, region: "methods" });
+  }
+
+  // 한 프레임 뒤에 다시 드래그 가능하게 복원
+  setTimeout(() => {
+    if (targetClass) targetClass._disableDrag = false;
+  }, 100);
+},
+
       // 관계 추가 모드: 박스를 클릭하면 emit("box-selected", cls.id)
       onGroupClick(cls) {
         if (this.relationshipMode) {

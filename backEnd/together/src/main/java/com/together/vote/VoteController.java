@@ -106,6 +106,7 @@ public class VoteController {
      * @param voteId - 응답을 달고자 하는 투표 ID
      * @param voteResponseDTO - 투표 응답 데이터 (사용자 ID, 투표 항목 ID)
      * @return ResponseEntity<?> - 생성된 응답 객체 반환
+     * 중복 응답시 409
      */
     @PostMapping("/{voteId}/response")
     public ResponseEntity<?> createVoteResponse(@PathVariable Long voteId, @RequestBody VoteResponseDTO voteResponseDTO) {

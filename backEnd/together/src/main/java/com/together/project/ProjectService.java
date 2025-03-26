@@ -9,6 +9,8 @@ import com.together.user.UserEntity;
 import com.together.user.UserRepository;
 import com.together.user.dto.UserResponseDto;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,21 +28,26 @@ public class ProjectService {
 
     // 프로젝트 생성
     @Transactional
-    public ProjectResponseDto createProject(String title, Date startDate, Date endDate) {
+    public ProjectResponseDto createProject(String title) {
+        // 1️⃣ 현재 로그인한 사용자 조회
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String loginId = authentication.getName();
+
+        UserEntity user = userRepository.findByUserLoginId(loginId)
+                .orElseThrow(() -> new RuntimeException("로그인한 사용자를 찾을 수 없습니다."));
+
+        // 2️⃣ 프로젝트 생성 및 유저 연결
         ProjectEntity project = new ProjectEntity();
         project.setTitle(title);
+        project.addUser(user); // ✅ 자동 연결
 
-        // ✅ startDate와 endDate가 null인 경우 그대로 저장
-        project.setProjectStartDate(startDate);
-        project.setProjectEndDate(endDate);
-
+        // 3️⃣ 저장
         ProjectEntity savedProject = projectRepository.save(project);
 
+        // 4️⃣ 응답 반환
         return new ProjectResponseDto(
                 savedProject.getProjectId(),
-                savedProject.getTitle(),
-                savedProject.getProjectStartDate(),
-                savedProject.getProjectEndDate()
+                savedProject.getTitle()
         );
     }
     // 사용자 검색

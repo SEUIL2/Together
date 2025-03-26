@@ -2,6 +2,7 @@ package com.together.project.ProjectDetail;
 
 import com.together.project.ProjectDetail.dto.ProjectDetailResponseDto;
 import com.together.project.ProjectDetail.dto.ProjectDetailSimpleResponseDto;
+import com.together.project.ProjectDetail.dto.ProjectDetailTextResponseDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -38,17 +39,31 @@ public class ProjectDetailController {
     }
 
     // ✅ 프로젝트 텍스트 데이터 수정 (동기, 목표, 스토리보드, UI디자인)
-    @PutMapping("/update-text")
-    public ResponseEntity<ProjectDetailEntity> updateTextDetails(
+    @PostMapping("/create-text")
+    public ResponseEntity<ProjectDetailTextResponseDto> createTextDetails(
             @RequestParam("projectId") Long projectId,
-            @RequestParam("projectMotivation") String projectMotivation,
-            @RequestParam("projectGoal") String projectGoal,
-            @RequestParam("storyboard") String storyboard,
-            @RequestParam("uiDesign") String uiDesign) {
-
-        ProjectDetailEntity updatedDetail = projectDetailService.updateTextDetails(
-                projectId, projectMotivation, projectGoal, storyboard, uiDesign
+            @RequestParam(value = "projectMotivation", required = false) String projectMotivation,
+            @RequestParam(value = "projectGoal", required = false) String projectGoal,
+            @RequestParam(value = "storyboard", required = false) String storyboard,
+            @RequestParam(value = "uiDesign", required = false) String uiDesign,
+            @RequestParam(value = "systemArchitecture", required = false) String systemArchitecture,
+            @RequestParam(value = "devEnvironmentText", required = false) String devEnvironmentText,
+            @RequestParam(value = "versionControlStrategy", required = false) String versionControlStrategy,
+            @RequestParam(value = "commitMessageRule", required = false) String commitMessageRule,
+            @RequestParam(value = "folderNamingRule", required = false) String folderNamingRule
+    ) {
+        ProjectDetailTextResponseDto dto = projectDetailService.updateTextDetails(
+                projectId,
+                projectMotivation,
+                projectGoal,
+                storyboard,
+                uiDesign,
+                systemArchitecture,
+                devEnvironmentText,
+                versionControlStrategy,
+                commitMessageRule,
+                folderNamingRule
         );
-        return ResponseEntity.ok(updatedDetail);
+        return ResponseEntity.ok(dto);
     }
 }

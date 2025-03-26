@@ -12,6 +12,4 @@ import java.util.Date;
 public class ProjectResponseDto {
     private Long projectId;
     private String title;
-    private Date startDate;
-    private Date endDate;
 }

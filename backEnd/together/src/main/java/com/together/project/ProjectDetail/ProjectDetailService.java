@@ -3,6 +3,7 @@ package com.together.project.ProjectDetail;
 import com.together.documentManger.GoogleDriveService;
 import com.together.project.ProjectDetail.dto.ProjectDetailResponseDto;
 import com.together.project.ProjectDetail.dto.ProjectDetailSimpleResponseDto;
+import com.together.project.ProjectDetail.dto.ProjectDetailTextResponseDto;
 import com.together.project.ProjectEntity;
 import com.together.project.ProjectRepository;
 import lombok.RequiredArgsConstructor;
@@ -99,21 +100,49 @@ public class ProjectDetailService {
         return new ProjectDetailSimpleResponseDto("이미지가 성공적으로 업로드되었습니다.", uploadedImageUrl);
     }
 
-    // ✅ 프로젝트 텍스트 정보 수정 (동기, 목표, 스토리보드, UI디자인)
+    // ✅ 프로젝트 텍스트 저장
     @Transactional
-    public ProjectDetailEntity updateTextDetails(Long projectId, String projectMotivation, String projectGoal, String storyboard, String uiDesign) {
+    public ProjectDetailTextResponseDto updateTextDetails(
+            Long projectId,
+            String projectMotivation,
+            String projectGoal,
+            String storyboard,
+            String uiDesign,
+            String systemArchitecture,
+            String devEnvironmentText,
+            String versionControlStrategy,
+            String commitMessageRule,
+            String folderNamingRule
+    ) {
         ProjectEntity project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new RuntimeException("해당 프로젝트를 찾을 수 없습니다."));
 
-        ProjectDetailEntity projectDetail = projectDetailRepository.findByProject(project)
+        ProjectDetailEntity detail = projectDetailRepository.findByProject(project)
                 .orElseThrow(() -> new RuntimeException("해당 프로젝트의 상세 정보를 찾을 수 없습니다."));
 
-        projectDetail.setProjectMotivation(projectMotivation);
-        projectDetail.setProjectGoal(projectGoal);
-        projectDetail.setStoryboard(storyboard);
-        projectDetail.setUiDesign(uiDesign);
+        detail.setProjectMotivation(projectMotivation);
+        detail.setProjectGoal(projectGoal);
+        detail.setStoryboard(storyboard);
+        detail.setUiDesign(uiDesign);
+        detail.setSystemArchitecture(systemArchitecture);
+        detail.setDevEnvironmentText(devEnvironmentText);
+        detail.setVersionControlStrategy(versionControlStrategy);
+        detail.setCommitMessageRule(commitMessageRule);
+        detail.setFolderNamingRule(folderNamingRule);
 
-        return projectDetailRepository.save(projectDetail);
+        projectDetailRepository.save(detail);
+
+        return new ProjectDetailTextResponseDto(
+                detail.getProjectMotivation(),
+                detail.getProjectGoal(),
+                detail.getStoryboard(),
+                detail.getUiDesign(),
+                detail.getSystemArchitecture(),
+                detail.getDevEnvironmentText(),
+                detail.getVersionControlStrategy(),
+                detail.getCommitMessageRule(),
+                detail.getFolderNamingRule()
+        );
     }
 
     // ✅ DTO 매핑 로직

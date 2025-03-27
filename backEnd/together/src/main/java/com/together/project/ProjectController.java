@@ -18,6 +18,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+
+
 @RestController
 @RequestMapping("/projects")
 @RequiredArgsConstructor
@@ -45,6 +49,25 @@ public class ProjectController {
             return ResponseEntity.status(500).body(null);
         }
     }
+    @GetMapping("/my")
+    public ResponseEntity<ProjectResponseDto> getMyProject() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String loginId = auth.getName();
+
+        UserEntity user = userRepository.findByUserLoginId(loginId)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
+        ProjectEntity project = user.getProject(); // 유저가 속한 프로젝트 하나
+        if (project == null) {
+            return ResponseEntity.status(404).body(null); // 프로젝트 없음
+        }
+
+        return ResponseEntity.ok(new ProjectResponseDto(
+                project.getProjectId(),
+                project.getTitle()
+        ));
+    }
+
     // 이메일로 사용자 검색
     @GetMapping("/search")
     public ResponseEntity<?> searchAndInviteUser(
@@ -125,4 +148,5 @@ public class ProjectController {
         projectService.deleteProject(projectId);
         return ResponseEntity.ok("프로젝트가 삭제되었습니다.");
     }
+
 }

@@ -50,6 +50,20 @@ public class ProjectService {
                 savedProject.getTitle()
         );
     }
+    //제목수정
+    @Transactional
+    public ProjectResponseDto updateProjectTitle(Long projectId, String newTitle) {
+        ProjectEntity project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new RuntimeException("해당 프로젝트를 찾을 수 없습니다."));
+
+        project.setTitle(newTitle);
+        ProjectEntity updatedProject = projectRepository.save(project);
+
+        return new ProjectResponseDto(
+                updatedProject.getProjectId(),
+                updatedProject.getTitle()
+        );
+    }
     // 사용자 검색
     public List<UserResponseDto> searchUserByEmail(String email) {
         List<UserEntity> users = userRepository.findByUserEmailContaining(email);

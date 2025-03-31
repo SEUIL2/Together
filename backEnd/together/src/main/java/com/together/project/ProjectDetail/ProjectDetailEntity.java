@@ -24,6 +24,9 @@ public class ProjectDetailEntity {
     private ProjectEntity project;
 
     @Column
+    private String projectDescription; // 프로젝트 설명 (텍스트)
+
+    @Column
     private String projectMotivation;   // 프로젝트 동기 (텍스트 저장)
 
     @Column
@@ -54,13 +57,13 @@ public class ProjectDetailEntity {
     private String erDiagramImage;      // ER 다이어그램 (Google Drive URL)
 
     @Column
-    private String tableSpecImage;// 테이블 명세서 (Google Drive URL)
+    private String tableSpecImage;      // 테이블 명세서 (Google Drive URL)
 
    @Column
-    private String systemArchitecture; //시스템 아키텍쳐
+    private String systemArchitecture;  //시스템 아키텍쳐
 
     @Column
-    private String devEnvironmentText;         // 개발 환경 설정 (텍스트)
+    private String devEnvironmentText;    // 개발 환경 설정 (텍스트)
 
     @Column
     private String versionControlStrategy;     // 버전 관리 전략 수립 (텍스트)

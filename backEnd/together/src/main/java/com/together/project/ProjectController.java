@@ -5,6 +5,7 @@ import com.together.project.Invitation.InvitationRepository;
 import com.together.project.Invitation.dto.InvitationResponseDto;
 import com.together.project.ProjectDto.InviteResponseDto;
 import com.together.project.ProjectDto.ProjectResponseDto;
+import com.together.project.ProjectDto.ProjectTitleUpdateRequestDto;
 import com.together.user.UserEntity;
 import com.together.user.UserRepository;
 import com.together.user.dto.UserResponseDto;
@@ -49,6 +50,7 @@ public class ProjectController {
             return ResponseEntity.status(500).body(null);
         }
     }
+    //프로젝트 불러오기
     @GetMapping("/my")
     public ResponseEntity<ProjectResponseDto> getMyProject() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -66,6 +68,20 @@ public class ProjectController {
                 project.getProjectId(),
                 project.getTitle()
         ));
+    }
+
+    //프로젝트 제목 수정
+    @PutMapping("/{projectId}/update-title")
+    public ResponseEntity<ProjectResponseDto> updateProjectTitle(
+            @PathVariable Long projectId,
+            @RequestBody ProjectTitleUpdateRequestDto requestDto) {
+
+        try {
+            ProjectResponseDto updatedProject = projectService.updateProjectTitle(projectId, requestDto.getNewTitle());
+            return ResponseEntity.ok(updatedProject);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(404).body(null);
+        }
     }
 
     // 이메일로 사용자 검색

@@ -7,8 +7,11 @@ import com.together.project.ProjectDetail.dto.ProjectDetailTextResponseDto;
 import com.together.project.ProjectEntity;
 import com.together.project.ProjectRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 
 
@@ -112,7 +115,8 @@ public class ProjectDetailService {
             String devEnvironmentText,
             String versionControlStrategy,
             String commitMessageRule,
-            String folderNamingRule
+            String folderNamingRule,
+            String projectDescription
     ) {
         ProjectEntity project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new RuntimeException("해당 프로젝트를 찾을 수 없습니다."));
@@ -120,15 +124,17 @@ public class ProjectDetailService {
         ProjectDetailEntity detail = projectDetailRepository.findByProject(project)
                 .orElseThrow(() -> new RuntimeException("해당 프로젝트의 상세 정보를 찾을 수 없습니다."));
 
-        detail.setProjectMotivation(projectMotivation);
-        detail.setProjectGoal(projectGoal);
-        detail.setStoryboard(storyboard);
-        detail.setUiDesign(uiDesign);
-        detail.setSystemArchitecture(systemArchitecture);
-        detail.setDevEnvironmentText(devEnvironmentText);
-        detail.setVersionControlStrategy(versionControlStrategy);
-        detail.setCommitMessageRule(commitMessageRule);
-        detail.setFolderNamingRule(folderNamingRule);
+        // ✅ null이 아닌 필드만 업데이트
+        if (projectMotivation != null) detail.setProjectMotivation(projectMotivation);
+        if (projectGoal != null) detail.setProjectGoal(projectGoal);
+        if (storyboard != null) detail.setStoryboard(storyboard);
+        if (uiDesign != null) detail.setUiDesign(uiDesign);
+        if (systemArchitecture != null) detail.setSystemArchitecture(systemArchitecture);
+        if (devEnvironmentText != null) detail.setDevEnvironmentText(devEnvironmentText);
+        if (versionControlStrategy != null) detail.setVersionControlStrategy(versionControlStrategy);
+        if (commitMessageRule != null) detail.setCommitMessageRule(commitMessageRule);
+        if (folderNamingRule != null) detail.setFolderNamingRule(folderNamingRule);
+        if (projectDescription != null) detail.setProjectDescription(projectDescription);
 
         projectDetailRepository.save(detail);
 
@@ -141,7 +147,8 @@ public class ProjectDetailService {
                 detail.getDevEnvironmentText(),
                 detail.getVersionControlStrategy(),
                 detail.getCommitMessageRule(),
-                detail.getFolderNamingRule()
+                detail.getFolderNamingRule(),
+                detail.getProjectDescription()
         );
     }
 
@@ -169,7 +176,118 @@ public class ProjectDetailService {
                 detail.getDevEnvironmentImage(),
                 detail.getCodingStandardImage(),
                 detail.getUnitTestImage(),
-                detail.getIntegrationTestImage()
+                detail.getIntegrationTestImage(),
+                detail.getProjectDescription()
         );
     }
+
+    //전체 정보 수정
+    @Transactional
+    public ProjectDetailResponseDto updateFullDetails(
+            Long projectId,
+            String projectMotivation,
+            String projectGoal,
+            String storyboard,
+            String uiDesign,
+            String systemArchitecture,
+            String devEnvironmentText,
+            String versionControlStrategy,
+            String commitMessageRule,
+            String folderNamingRule,
+            String projectDescription,
+            MultipartFile requirementsImage,
+            MultipartFile infoStructure,
+            MultipartFile useCaseDiagramImage,
+            MultipartFile classDiagramImage,
+            MultipartFile sequenceDiagramImage,
+            MultipartFile erDiagramImage,
+            MultipartFile tableSpecImage,
+            MultipartFile schedulePlanImage,
+            MultipartFile devEnvironmentImage,
+            MultipartFile codingStandardImage,
+            MultipartFile unitTestImage,
+            MultipartFile integrationTestImage
+    ) throws IOException {
+
+        ProjectEntity project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new RuntimeException("해당 프로젝트를 찾을 수 없습니다."));
+
+        ProjectDetailEntity detail = projectDetailRepository.findByProject(project)
+                .orElseGet(() -> new ProjectDetailEntity(project, null, null, null, null, null));
+
+        // ✅ 텍스트 필드 - null 체크 후 업데이트
+        if (projectMotivation != null) detail.setProjectMotivation(projectMotivation);
+        if (projectGoal != null) detail.setProjectGoal(projectGoal);
+        if (storyboard != null) detail.setStoryboard(storyboard);
+        if (uiDesign != null) detail.setUiDesign(uiDesign);
+        if (systemArchitecture != null) detail.setSystemArchitecture(systemArchitecture);
+        if (devEnvironmentText != null) detail.setDevEnvironmentText(devEnvironmentText);
+        if (versionControlStrategy != null) detail.setVersionControlStrategy(versionControlStrategy);
+        if (commitMessageRule != null) detail.setCommitMessageRule(commitMessageRule);
+        if (folderNamingRule != null) detail.setFolderNamingRule(folderNamingRule);
+        if (projectDescription != null) detail.setProjectDescription(projectDescription);
+
+        // ✅ 이미지 필드 - null & isEmpty 체크 후 업로드 및 반영
+        if (requirementsImage != null && !requirementsImage.isEmpty()) {
+            detail.setRequirementsImage(googleDriveService.uploadImageToGoogleDrive(requirementsImage));
+        }
+        if (infoStructure != null && !infoStructure.isEmpty()) {
+            detail.setInfoStructure(googleDriveService.uploadImageToGoogleDrive(infoStructure));
+        }
+        if (useCaseDiagramImage != null && !useCaseDiagramImage.isEmpty()) {
+            detail.setUseCaseDiagramImage(googleDriveService.uploadImageToGoogleDrive(useCaseDiagramImage));
+        }
+        if (classDiagramImage != null && !classDiagramImage.isEmpty()) {
+            detail.setClassDiagramImage(googleDriveService.uploadImageToGoogleDrive(classDiagramImage));
+        }
+        if (sequenceDiagramImage != null && !sequenceDiagramImage.isEmpty()) {
+            detail.setSequenceDiagramImage(googleDriveService.uploadImageToGoogleDrive(sequenceDiagramImage));
+        }
+        if (erDiagramImage != null && !erDiagramImage.isEmpty()) {
+            detail.setErDiagramImage(googleDriveService.uploadImageToGoogleDrive(erDiagramImage));
+        }
+        if (tableSpecImage != null && !tableSpecImage.isEmpty()) {
+            detail.setTableSpecImage(googleDriveService.uploadImageToGoogleDrive(tableSpecImage));
+        }
+        if (schedulePlanImage != null && !schedulePlanImage.isEmpty()) {
+            detail.setSchedulePlanImage(googleDriveService.uploadImageToGoogleDrive(schedulePlanImage));
+        }
+        if (devEnvironmentImage != null && !devEnvironmentImage.isEmpty()) {
+            detail.setDevEnvironmentImage(googleDriveService.uploadImageToGoogleDrive(devEnvironmentImage));
+        }
+        if (codingStandardImage != null && !codingStandardImage.isEmpty()) {
+            detail.setCodingStandardImage(googleDriveService.uploadImageToGoogleDrive(codingStandardImage));
+        }
+        if (unitTestImage != null && !unitTestImage.isEmpty()) {
+            detail.setUnitTestImage(googleDriveService.uploadImageToGoogleDrive(unitTestImage));
+        }
+        if (integrationTestImage != null && !integrationTestImage.isEmpty()) {
+            detail.setIntegrationTestImage(googleDriveService.uploadImageToGoogleDrive(integrationTestImage));
+        }
+
+        // ✅ 저장
+        projectDetailRepository.save(detail);
+
+        // ✅ 응답 DTO 반환
+        return new ProjectDetailResponseDto(
+                detail.getProjectMotivation(),
+                detail.getProjectGoal(),
+                detail.getRequirementsImage(),
+                detail.getInfoStructure(),
+                detail.getStoryboard(),
+                detail.getUseCaseDiagramImage(),
+                detail.getClassDiagramImage(),
+                detail.getSequenceDiagramImage(),
+                detail.getUiDesign(),
+                detail.getErDiagramImage(),
+                detail.getTableSpecImage(),
+                detail.getSchedulePlanImage(),
+                detail.getDevEnvironmentImage(),
+                detail.getCodingStandardImage(),
+                detail.getUnitTestImage(),
+                detail.getIntegrationTestImage(),
+                detail.getProjectDescription()
+        );
+    }
+
 }

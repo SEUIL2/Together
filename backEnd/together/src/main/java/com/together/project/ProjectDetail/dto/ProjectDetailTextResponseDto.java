@@ -13,6 +13,7 @@ public class ProjectDetailTextResponseDto {
     private String storyboard;
     private String uiDesign;
     private String systemArchitecture;
+    private String projectDescription;
 
     private String devEnvironmentText;
     private String versionControlStrategy;

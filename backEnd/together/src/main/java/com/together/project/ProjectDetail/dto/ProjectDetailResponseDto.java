@@ -24,4 +24,5 @@ public class ProjectDetailResponseDto {
     private String codingStandardImage;
     private String unitTestImage;
     private String integrationTestImage;
+    private String projectDescription;
 }

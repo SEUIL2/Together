@@ -122,7 +122,11 @@ public class ProjectDetailService {
                 .orElseThrow(() -> new RuntimeException("해당 프로젝트를 찾을 수 없습니다."));
 
         ProjectDetailEntity detail = projectDetailRepository.findByProject(project)
-                .orElseThrow(() -> new RuntimeException("해당 프로젝트의 상세 정보를 찾을 수 없습니다."));
+                .orElseGet(() -> {
+                    ProjectDetailEntity newDetail = new ProjectDetailEntity();
+                    newDetail.setProject(project);
+                    return projectDetailRepository.save(newDetail);
+                });
 
         // ✅ null이 아닌 필드만 업데이트
         if (projectMotivation != null) detail.setProjectMotivation(projectMotivation);
@@ -157,8 +161,13 @@ public class ProjectDetailService {
         ProjectEntity project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new RuntimeException("해당 프로젝트를 찾을 수 없습니다."));
 
+        // ✅ 상세 정보 없으면 새로 생성
         ProjectDetailEntity detail = projectDetailRepository.findByProject(project)
-                .orElseThrow(() -> new RuntimeException("해당 프로젝트의 상세 정보를 찾을 수 없습니다."));
+                .orElseGet(() -> {
+                    ProjectDetailEntity newDetail = new ProjectDetailEntity();
+                    newDetail.setProject(project);
+                    return projectDetailRepository.save(newDetail);
+                });
 
         return new ProjectDetailResponseDto(
                 detail.getProjectMotivation(),

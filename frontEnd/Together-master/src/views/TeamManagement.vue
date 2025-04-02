@@ -1,240 +1,150 @@
 <template>
-  <div class="team-management-container">
-    <main class="main-content">
-      <div class="team-management-header">
-        <h2>팀원 관리</h2>
-        <button class="add-member-btn" @click="openInviteModal('teamMember')">+ 팀원 초대</button>
-      </div>
-
-      <table class="team-management-table">
-        <thead>
-        <tr>
-          <th>팀명</th>
-          <th>학번</th>
-          <th>이름</th>
-          <th>역할</th>
-          <th>평가</th>
-        </tr>
-        </thead>
-
-        <tbody>
-        <tr v-for="(member, idx) in teamMembers" :key="idx">
-          <td>{{ member.teamName }}</td>
-          <td>{{ member.studentId }}</td>
-          <td>
-            <div class="name-with-avatar">
-              <div class="avatar-wrapper" @click="toggleColorPicker(idx)">
-                <span class="avatar" :style="{ backgroundColor: member.avatarColor }"></span>
-                <div v-if="member.showColorPicker" class="color-picker-menu">
-                  <div
-                      v-for="color in availableColors"
-                      :key="color"
-                      class="color-option"
-                      :style="{ backgroundColor: color }"
-                      @click.stop="setColor(idx, color)"
-                  ></div>
-                </div>
-              </div>
-              <span>{{ member.name }}</span>
-            </div>
-          </td>
-          <td>{{ member.role }}</td>
-          <td>
-            <button class="evaluate-btn" @click="evaluateMember(member)">평가하기</button>
-          </td>
-        </tr>
-        </tbody>
-      </table>
-
-      <!-- 🔹 교수 초대 섹션 추가 -->
-      <div class="professor-invite-container">
-        <h3>담당 교수</h3>
-        <div class="invite-box" @click="openInviteModal('professor')">
-          <span class="plus-icon">+</span>
-        </div>
-      </div>
-
-      <!-- 초대 모달 -->
-      <InviteModal
-          v-if="showInviteModal"
-          :inviteType="inviteType"
-          @close="showInviteModal = false"
-          @invite="handleInvite"
+  <div class="member-invitation">
+    <h2>멤버 초대 페이지</h2>
+    <div class="search-section">
+      <input
+          type="email"
+          v-model="searchEmail"
+          placeholder="초대할 사용자의 이메일을 입력하세요"
       />
-    </main>
+      <button @click="searchUser">검색</button>
+    </div>
+    <div v-if="errorMessage" class="error">
+      {{ errorMessage }}
+    </div>
+    <div v-if="successMessage" class="success">
+      {{ successMessage }}
+    </div>
+    <div v-if="users && users.length">
+      <h3>검색 결과</h3>
+      <ul>
+        <li v-for="user in users" :key="user.userId">
+          <span>{{ user.userName }} ({{ user.userEmail }})</span>
+          <button @click="inviteUser(user.userEmail)">초대하기</button>
+        </li>
+      </ul>
+    </div>
   </div>
 </template>
 
-<script setup>
-import { ref } from 'vue'
-import InviteModal from '@/components/InviteModal.vue' // 초대 모달 컴포넌트
+<script>
+import axios from "axios";
+import { ref } from "vue";
 
-const availableColors = ['#FF8C00', '#F44336', '#2196F3', '#4CAF50', '#9C27B0']
+export default {
+  name: "MemberInvitation",
+  // 초대할 프로젝트의 ID는 상위 컴포넌트에서 prop으로 전달한다고 가정합니다.
+  props: {
+    projectId: {
+      type: Number,
+      required: true,
+    },
+  },
+  setup(props) {
+    const searchEmail = ref("");
+    const users = ref([]);
+    const errorMessage = ref("");
+    const successMessage = ref("");
 
-// 팀원 목록 (예시 데이터)
-const teamMembers = ref([
-  { teamName: '팀명', studentId: '2033062', name: '정무영', role: '프론트엔드', avatarColor: '#FF8C00', showColorPicker: false },
-  { teamName: '팀명', studentId: '2033062', name: '황스일', role: '백엔드', avatarColor: '#F44336', showColorPicker: false }
-])
+    // Basic Auth 설정 – 실제 운영환경에서는 별도 인증 관리 방식(예: 토큰 기반) 사용 권장
+    const axiosInstance = axios.create({
+      // 백엔드 서버 URL을 baseURL로 지정할 수 있습니다.
+      auth: {
+        username: "YOUR_USERNAME",
+        password: "YOUR_PASSWORD",
+      },
+    });
 
-// 초대 모달 상태 및 타입
-const showInviteModal = ref(false)
-const inviteType = ref('')
+    // 이메일로 사용자 검색 (projectId 없이 호출하면 사용자 리스트만 반환)
+    const searchUser = async () => {
+      errorMessage.value = "";
+      successMessage.value = "";
+      users.value = [];
+      if (!searchEmail.value) {
+        errorMessage.value = "이메일을 입력하세요.";
+        return;
+      }
+      try {
+        const response = await axiosInstance.get("/projects/search", {
+          params: {
+            email: searchEmail.value,
+          },
+        });
+        users.value = response.data;
+        if (users.value.length === 0) {
+          errorMessage.value = "일치하는 사용자를 찾지 못했습니다.";
+        }
+      } catch (error) {
+        errorMessage.value =
+            error.response && error.response.data
+                ? error.response.data
+                : "사용자 검색 중 오류가 발생했습니다.";
+      }
+    };
 
-// 초대 모달 열기
-function openInviteModal(type) {
-  inviteType.value = type
-  showInviteModal.value = true
-}
+    // 검색된 사용자 중 선택한 사용자에게 초대 요청
+    const inviteUser = async (email) => {
+      errorMessage.value = "";
+      successMessage.value = "";
+      try {
+        const response = await axiosInstance.post(
+            `/projects/${props.projectId}/invite`,
+            null,
+            {
+              params: {
+                email: email,
+              },
+            }
+        );
+        successMessage.value = response.data;
+      } catch (error) {
+        errorMessage.value =
+            error.response && error.response.data
+                ? error.response.data
+                : "초대 요청 중 오류가 발생했습니다.";
+      }
+    };
 
-// 초대 처리 로직
-function handleInvite(invitedPerson) {
-  if (inviteType.value === 'teamMember') {
-    teamMembers.value.push({ ...invitedPerson, avatarColor: '#2196F3', showColorPicker: false })
-  } else if (inviteType.value === 'professor') {
-    alert(`'${invitedPerson.name}' 교수님이 초대되었습니다.`)
-  }
-  showInviteModal.value = false
-}
-
-// 평가하기 로직
-function evaluateMember(member) {
-  alert(`'${member.name}' 님을 평가합니다.`)
-}
-
-function toggleColorPicker(idx) {
-  teamMembers.value = teamMembers.value.map((member, index) => ({
-    ...member,
-    showColorPicker: index === idx ? !member.showColorPicker : false
-  }))
-}
-
-function setColor(idx, color) {
-  teamMembers.value[idx].avatarColor = color
-  teamMembers.value[idx].showColorPicker = false
-}
+    return {
+      searchEmail,
+      users,
+      errorMessage,
+      successMessage,
+      searchUser,
+      inviteUser,
+    };
+  },
+};
 </script>
 
 <style scoped>
-.team-management-container {
-  width: 100%;
-  min-height: 100vh;
-  background-color: #fafafa;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  padding: 20px;
-  box-sizing: border-box;
-}
-
-.main-content {
-  width: 100%;
-  max-width: 1000px;
-  background-color: #fff;
-  border-radius: 10px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+.member-invitation {
+  max-width: 600px;
+  margin: 0 auto;
   padding: 20px;
 }
 
-.team-management-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.search-section {
   margin-bottom: 20px;
 }
 
-.add-member-btn {
-  background-color: #3f8efc;
-  color: #fff;
-  border: none;
-  padding: 8px 16px;
-  font-size: 0.9rem;
-  border-radius: 4px;
-  cursor: pointer;
+input[type="email"] {
+  padding: 8px;
+  margin-right: 10px;
+  width: 300px;
 }
 
-.team-management-table {
-  width: 100%;
-  border-collapse: collapse;
-  background-color: #fff;
-  border-radius: 10px;
-  overflow: hidden;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+button {
+  padding: 8px 12px;
 }
 
-.team-management-table th,
-.team-management-table td {
-  padding: 12px 16px;
-  text-align: left;
-  border-bottom: 1px solid #eee;
-  vertical-align: middle;
+.error {
+  color: red;
+  margin-bottom: 10px;
 }
 
-.name-with-avatar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.avatar-wrapper {
-  cursor: pointer;
-  position: relative;
-}
-
-.avatar {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  display: inline-block;
-  border: 1px solid #ccc;
-}
-
-.color-picker-menu {
-  position: absolute;
-  top: 28px;
-  left: 0;
-  display: flex;
-  flex-wrap: wrap;
-  width: 100px;
-  background: #fff;
-  border: 1px solid #eee;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-  padding: 4px;
-  border-radius: 4px;
-  z-index: 100;
-}
-
-.color-option {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  margin: 2px;
-  cursor: pointer;
-}
-
-.professor-invite-container {
-  margin-top: 20px;
-  text-align: left;
-  width: 50%;
-}
-
-.professor-invite-container h3 {
-  font-weight: bold;
-  margin-bottom: 8px;
-}
-
-.invite-box {
-  width: 100%;
-  height: 80px;
-  border: 2px solid #000;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  cursor: pointer;
-}
-
-.plus-icon {
-  font-size: 24px;
-  font-weight: bold;
+.success {
+  color: green;
+  margin-bottom: 10px;
 }
 </style>

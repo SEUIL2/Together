@@ -1,9 +1,12 @@
 package com.together.notice;
 
+import com.together.notification.NotificationService;
 import com.together.project.ProjectEntity;
 import com.together.project.ProjectRepository;
+import com.together.project.ProjectService;
 import com.together.user.UserEntity;
 import com.together.user.UserRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfigureOrder;
 import org.springframework.stereotype.Service;
@@ -23,6 +26,9 @@ public class NoticeService {
     @Autowired
     private ProjectRepository projectRepository;
 
+    @Autowired
+    private NotificationService notificationService;
+
     // 공지사항 작성
     public NoticeEntity createNotice(Long userId, Long projectId, NoticeDTO noticeDTO) {
         Optional<UserEntity> userOptional = userRepository.findById(userId);
@@ -38,9 +44,19 @@ public class NoticeService {
             notice.setUser(user);
             notice.setProject(project);
 
+            List<UserEntity> projectUsers = project.getUsers();
+            if (projectUsers != null) {
+                for (UserEntity notificationUser : projectUsers) {
+                    notificationService.sendNotification(
+                            notificationUser.getUserId(),
+                            "공지사항 등록",
+                            notice.getTitle() + " 공지사항이 등록되었습니다."
+                    );
+                }
+            }
+
             return noticeRepository.save(notice);
         }
-
         return null;  // User or Project not found
     }
 

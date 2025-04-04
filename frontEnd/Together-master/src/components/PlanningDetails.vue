@@ -79,6 +79,8 @@
 
 <script setup>
 import { ref, watch } from 'vue'
+import axios from 'axios'
+import { onMounted } from 'vue'
 
 // 각 항목 초기 데이터; 파일첨부 항목은 files 배열 추가
 const planningItems = ref([
@@ -138,8 +140,15 @@ watch(
 
 // 편집 모드 토글
 function toggleEdit(index) {
-  planningItems.value[index].editing = !planningItems.value[index].editing;
+  const item = planningItems.value[index]
+  item.editing = !item.editing
+
+  // 🔒 닫는 시점에 저장
+  if (!item.editing) {
+    saveItem(index)
+  }
 }
+
 
 // 파일 첨부 처리: 여러 파일 처리, 각 파일에 업로드 날짜 저장
 function handleFileUpload(event, index) {
@@ -168,6 +177,112 @@ function handleFileUpload(event, index) {
 function deleteFile(itemIndex, fileIndex) {
   planningItems.value[itemIndex].files.splice(fileIndex, 1);
 }
+
+
+
+async function saveItem(index) {
+  const item = planningItems.value[index]
+
+  try {
+    if (item.name === "프로젝트 동기" || item.name === "프로젝트 목표" || item.name === "스토리보드") {
+      // 텍스트 저장
+      const formParams = new URLSearchParams()
+      if (item.name === "프로젝트 동기") formParams.append("projectMotivation", item.content)
+      if (item.name === "프로젝트 목표") formParams.append("projectGoal", item.content)
+      if (item.name === "스토리보드") formParams.append("storyboard", item.content)
+
+      await axios.post('/project-details/create-text', formParams, {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          Authorization: localStorage.getItem('authHeader'),
+        },
+        withCredentials: true,
+      })
+    }
+
+    if ((item.name === "요구사항 정의" || item.name === "정보구조도") && item.files.length > 0) {
+      const latestFile = item.files[item.files.length - 1]
+      const blob = dataURLtoBlob(latestFile.data)
+      const formData = new FormData()
+      formData.append('imageType', item.name === "요구사항 정의" ? "requirements" : "infostructure")
+      formData.append('file', blob, latestFile.name)
+
+      await axios.post('/project-details/upload-image', formData, {
+        headers: {
+          Authorization: localStorage.getItem('authHeader'),
+        },
+        withCredentials: true,
+      })
+    }
+  } catch (error) {
+    console.error("❌ 저장 실패:", error)
+    alert(`${item.name} 저장 중 오류가 발생했습니다.`)
+  }
+}
+
+// 🔄 base64 → Blob 변환
+function dataURLtoBlob(dataUrl) {
+  const arr = dataUrl.split(',')
+  const mime = arr[0].match(/:(.*?);/)[1]
+  const bstr = atob(arr[1])
+  let n = bstr.length
+  const u8arr = new Uint8Array(n)
+  while (n--) {
+    u8arr[n] = bstr.charCodeAt(n)
+  }
+  return new Blob([u8arr], { type: mime })
+}
+
+
+
+onMounted(async () => {
+  try {
+    const res = await axios.get('/project-details/my-project', {
+      headers: {
+        Authorization: localStorage.getItem('authHeader'),
+      },
+      withCredentials: true,
+    })
+
+    const data = res.data
+
+    planningItems.value.forEach(item => {
+      switch (item.name) {
+        case "프로젝트 동기":
+          item.content = data.projectMotivation || ""
+          break
+        case "프로젝트 목표":
+          item.content = data.projectGoal || ""
+          break
+        case "스토리보드":
+          item.content = data.storyboard || ""
+          break
+        case "요구사항 정의":
+          if (data.requirementsImage) {
+            item.files = [{
+              name: "요구사항 정의.png",
+              data: data.requirementsImage,
+              uploadDate: "서버에서 불러옴"
+            }]
+          }
+          break
+        case "정보구조도":
+          if (data.infoStructure) {
+            item.files = [{
+              name: "정보구조도.png",
+              data: data.infoStructure,
+              uploadDate: "서버에서 불러옴"
+            }]
+          }
+          break
+      }
+    })
+  } catch (err) {
+    console.error("❌ 기획 데이터 불러오기 실패:", err)
+  }
+})
+
+
 </script>
 
 <style scoped>

@@ -27,7 +27,14 @@
         </li>
         <li><button><span>작업</span></button></li>
         <li><button @click="goSchedule">일정 관리</button></li>
-        <li><button><span>팀원 관리</span></button></li>
+        <li>
+          <button 
+            :class="{ active: $route.path === '/TeamManagement' }"
+            @click="goTeam"
+          >
+            팀원 관리
+          </button>
+        </li>
         <li>
           <button 
             :class="{ active: $route.path === '/MeetingPage' }"
@@ -39,8 +46,11 @@
       </ul>
     </nav>
 
-    <!-- 설정 아이콘 버튼 -->
+    <!-- 알림 + 설정 아이콘 영역 -->
     <div class="settings-icon">
+      <!-- 🔔 알림 컴포넌트 삽입 -->
+      <NotificationPopup />
+
       <button @click="toggleMenu">
         <img src="@/assets/settings.png" alt="Settings" class="settings-img" />
       </button>
@@ -59,6 +69,8 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
+import NotificationPopup from '@/components/NotificationPopup.vue'
+
 
 const router = useRouter()
 
@@ -75,6 +87,9 @@ function goSchedule() {
 function goMeeting() {
   router.push('/MeetingPage')
 }
+function goTeam() {
+  router.push('/TeamManagement')
+}
 
 // 로그인 상태 & 메뉴 표시 여부
 const isLoggedIn = ref(false)
@@ -84,19 +99,19 @@ function toggleMenu() {
   showMenu.value = !showMenu.value
 }
 
-// 로그인/로그아웃 버튼 클릭 시
+// ✅ 로그인/로그아웃 버튼 클릭
 async function handleAuth() {
   if (isLoggedIn.value) {
-    // ✅ 로그아웃 요청
     try {
       await axios.post('/auth/logout', null, { withCredentials: true })
+      localStorage.removeItem('authHeader') // 로컬 스토리지도 정리
       isLoggedIn.value = false
       alert('로그아웃 되었습니다.')
+      window.location.href = '/' // 🔥 로그아웃 후 새로고침
     } catch (e) {
       alert('로그아웃 중 오류가 발생했습니다.')
     }
   } else {
-    // 로그인 페이지로 이동
     router.push('/login')
   }
   showMenu.value = false
@@ -104,21 +119,34 @@ async function handleAuth() {
 
 // ✅ 마운트 시 로그인 상태 확인
 onMounted(async () => {
+  await checkLoginStatus()
+
+  // ✅ 로그인 성공 이벤트 리스너 등록
+  window.addEventListener("login-success", checkLoginStatus)
+})
+
+const checkLoginStatus = async () => {
   try {
-    const response = await axios.get('/auth/me', { withCredentials: true })
+    const response = await axios.get('/auth/me', {
+      headers: {
+        Authorization: localStorage.getItem("authHeader")
+      },
+      withCredentials: true
+    })
     if (response.status === 200) {
       isLoggedIn.value = true
     }
   } catch (err) {
     isLoggedIn.value = false
   }
-})
+}
+
 </script>
 
 
 <style scoped>
 .header-bar {
-  position: fixed;     
+  position: fixed;
   top: 0;
   left: 0;
   width: 100%;
@@ -132,7 +160,6 @@ onMounted(async () => {
   border-bottom: 1px solid #eee;
 }
 
-/* 로고 영역 */
 .logo {
   display: flex;
   align-items: center;
@@ -149,7 +176,6 @@ onMounted(async () => {
   font-size: 22px;
 }
 
-/* 메뉴 리스트 */
 nav ul {
   display: flex;
   list-style: none;
@@ -194,7 +220,6 @@ nav ul li button.active::after {
   border-radius: 5px;
 }
 
-/* 설정 아이콘 버튼 */
 .settings-icon {
   position: relative;
   display: flex;
@@ -215,7 +240,6 @@ nav ul li button.active::after {
   object-fit: contain;
 }
 
-/* 팝업 메뉴 */
 .settings-popup {
   position: absolute;
   top: 40px;

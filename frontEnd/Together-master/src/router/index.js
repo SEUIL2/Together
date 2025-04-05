@@ -80,6 +80,7 @@ const routes = [
     name: 'TeamManagement',
     component: TeamManagement,
   },
+  
 ]
 
 const router = createRouter({

@@ -3,7 +3,7 @@
     <Sidebar />
 
     <main class="main-content">
-      <!-- 프로젝트 상단 정보 (생략) -->
+      <!-- 프로젝트 상단 정보 -->
       <section class="project-header">
         <img src="@/assets/togetherlogo.png" alt="프로젝트 로고" class="project-logo" />
         <div class="project-info">
@@ -13,6 +13,9 @@
             class="project-description"
             placeholder="프로젝트에 대한 설명을 적어주세요"
           ></textarea>
+          <!-- 저장 버튼 -->
+          <button class="save-btn" @click="saveProjectInfo">저장</button>
+
         </div>
         <div class="vertical-line"></div>
         <div class="progress-container">
@@ -40,27 +43,29 @@
         </div>
       </section>
 
-      <!-- 동적 컴포넌트: 선택된 단계에 따른 상세 입력 컴포넌트 -->
+      <!-- 상세 입력 컴포넌트 -->
       <component :is="currentDetailComponent" v-if="selectedStep"></component>
     </main>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import axios from 'axios'
 import Sidebar from '@/components/Sidebar.vue'
 import PlanningDetails from '@/components/PlanningDetails.vue'
 import DesignDetails from '@/components/DesignDetails.vue'
 import DevelopmentDetails from '@/components/DevelopmentDetails.vue'
 import TestingDetails from '@/components/TestingDetails.vue'
 
-const projectName = ref("TOGETHER")
-const projectDescription = ref("부천대 학생을 위한 졸업작품 도우미")
+const projectId = ref(null)
+const projectName = ref("로딩 중...")
+const projectDescription = ref("")
 const progress = ref(55)
 const steps = ref([
   { name: "기획", current: 1, total: 5 },
   { name: "설계", current: 1, total: 8 },
-  { name: "개발", current: 1, total: 2 },
+  { name: "개발", current: 1, total: 4 },
   { name: "테스트", current: 1, total: 3 },
 ])
 const selectedStep = ref("")
@@ -83,10 +88,74 @@ const currentDetailComponent = computed(() => {
       return null
   }
 })
+
+// 제목 저장 요청
+const saveProjectInfo = async () => {
+  if (!projectId.value) {
+    alert("프로젝트 ID를 불러오지 못했습니다.")
+    return
+  }
+
+  try {
+    // 1️⃣ 제목 저장
+    await axios.put(`/projects/${projectId.value}/update-title`, {
+      newTitle: projectName.value
+    })
+
+    // 2️⃣ 설명 저장 (x-www-form-urlencoded 형식)
+    const formParams = new URLSearchParams()
+    formParams.append('projectId', projectId.value)
+    formParams.append('projectDescription', projectDescription.value)
+
+    await axios.post('/project-details/create-text', formParams, {
+  headers: {
+    'Content-Type': 'application/x-www-form-urlencoded',
+    'Authorization': localStorage.getItem('authHeader')
+  },
+  withCredentials: true
+})
+
+
+    alert("프로젝트 제목과 설명이 저장되었습니다.")
+  } catch (err) {
+    console.error("❌ 저장 오류:", err)
+    alert("저장 중 오류가 발생했습니다.")
+  }
+}
+
+
+
+
+// 페이지 진입 시 프로젝트 정보 로드
+onMounted(async () => {
+  try {
+    const res = await axios.get('/projects/my', {
+      headers: {
+        Authorization: localStorage.getItem('authHeader')
+      },
+      withCredentials: true
+    })
+    projectId.value = res.data.projectId
+    projectName.value = res.data.title
+
+    // ✅ 설명도 불러오기
+    const detailRes = await axios.get('/project-details/my-project', {
+      headers: {
+        Authorization: localStorage.getItem('authHeader')
+      },
+      withCredentials: true
+    })
+    projectDescription.value = detailRes.data.projectDescription
+
+  } catch (err) {
+    console.error('프로젝트 정보를 불러오지 못했습니다:', err)
+  }
+})
+
+
 </script>
 
 <style scoped>
-/* 전체 레이아웃 */
 .project-container {
   display: flex;
   width: 100vw;
@@ -95,7 +164,6 @@ const currentDetailComponent = computed(() => {
   background-color: #fafafa;
 }
 
-/* 메인 컨텐츠 */
 .main-content {
   margin-left: 220px;
   margin-right: 18px;
@@ -104,7 +172,6 @@ const currentDetailComponent = computed(() => {
   padding: 20px;
 }
 
-/* 프로젝트 상단 정보 */
 .project-header {
   display: flex;
   align-items: center;
@@ -139,6 +206,20 @@ const currentDetailComponent = computed(() => {
   background: none;
   resize: none;
 }
+.save-btn {
+  align-self: flex-start;
+  background-color: #3f8efc;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  margin-top: 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+.save-btn:hover {
+  background-color: #2e6fd8;
+}
 .vertical-line {
   width: 1px;
   height: 80px;
@@ -146,7 +227,6 @@ const currentDetailComponent = computed(() => {
   margin: 0 20px;
 }
 
-/* 진행도 영역 */
 .progress-container {
   display: flex;
   flex-direction: column;
@@ -181,7 +261,6 @@ const currentDetailComponent = computed(() => {
   background: #3f8efc;
 }
 
-/* 단계별 요약 정보 */
 .project-steps {
   display: flex;
   align-items: center;
@@ -222,10 +301,8 @@ const currentDetailComponent = computed(() => {
   width: 1px;
   background-color: #ddd;
 }
-
-/* active 상태: 배경색 변경, 테두리 추가 등으로 표시 */
 .step.active {
-  background-color: #e6f0ff; /* 연한 파란색 배경 */
+  background-color: #e6f0ff;
   border-radius: 8px;
 }
 .step.active h4,
@@ -233,8 +310,6 @@ const currentDetailComponent = computed(() => {
   font-weight: bold;
   color: #3f8efc;
 }
-
-/* 타임라인 (가로) */
 .timeline {
   display: flex;
   justify-content: space-between;

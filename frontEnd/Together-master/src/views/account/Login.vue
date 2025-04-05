@@ -1,119 +1,100 @@
 <template>
   <div class="login-container">
-    <!-- 로고 -->
     <div class="logo">
       <img src="@/assets/togetherlogo.png" alt="로고" />
     </div>
 
-    <!-- 로그인 폼 -->
     <div class="login-form">
       <h2 class="login-title">로그인</h2>
 
       <form @submit.prevent="handleLogin">
-        <!-- 아이디 입력 -->
         <div class="input-group">
-          <input
-            type="text"
-            placeholder="아이디"
-            v-model="userLoginId"
-            required
-          />
+          <input type="text" placeholder="아이디" v-model="userLoginId" required />
         </div>
 
-        <!-- 비밀번호 입력 -->
         <div class="input-group">
-          <input
-            type="password"
-            placeholder="비밀번호"
-            v-model="password"
-            required
-          />
+          <input type="password" placeholder="비밀번호" v-model="password" required />
         </div>
 
-        <!-- 로그인 버튼 -->
         <button type="submit" class="login-btn">로그인</button>
 
-        <!-- 로그인 성공/실패 메시지 -->
         <p v-if="successMessage" class="success-msg">{{ successMessage }}</p>
         <p v-if="errorMessage" class="error-msg">{{ errorMessage }}</p>
 
-        <!-- 아이디 / 비밀번호 찾기 (옵션) -->
         <div class="find-links">
           <a href="#">아이디 찾기</a> | <a href="#">비밀번호 찾기</a>
         </div>
 
-        <!-- 회원가입 안내 -->
         <hr />
         <p class="signup-text">회원이 아니신가요?</p>
-
-        <!-- 회원가입 버튼 -->
-        <button type="button" class="signup-btn" @click="goToSignup">
-          회원가입
-        </button>
+        <button type="button" class="signup-btn" @click="goToSignup">회원가입</button>
       </form>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from "vue";
-import axios from "axios";
-import { useRouter } from "vue-router";
+import { ref } from 'vue'
+import axios from 'axios'
+import { useRouter } from 'vue-router'
 
-const router = useRouter();
+const router = useRouter()
 
-// 로그인 입력 필드 (로그인 DTO에 맞게 userLoginId 사용)
-const userLoginId = ref("");
-const password = ref("");
+const userLoginId = ref('')
+const password = ref('')
+const successMessage = ref('')
+const errorMessage = ref('')
 
-// 메시지 변수
-const successMessage = ref("");
-const errorMessage = ref("");
-
-// 로그인 함수 (Basic Auth를 사용하여 인증)
 const handleLogin = async () => {
-  // 메시지 초기화
-  successMessage.value = "";
-  errorMessage.value = "";
+  successMessage.value = ''
+  errorMessage.value = ''
 
   try {
-    // 아이디와 비밀번호를 Base64로 인코딩하여 Basic Auth 헤더 구성
-    const authHeader = "Basic " + btoa(`${userLoginId.value}:${password.value}`);
+    const encoded = btoa(`${userLoginId.value}:${password.value}`)
+    const authHeader = `Basic ${encoded}`
 
-    // 로그인 API 호출
-    const response = await axios.post("http://localhost:8081/auth/login", {}, {
+    await axios.post('/auth/login', {}, {
       headers: {
-        "Content-Type": "application/json",
-        "Authorization": authHeader
+        Authorization: authHeader
       },
-      withCredentials: true  // ✅ 세션 쿠키 저장 필수!
-    });
+      withCredentials: true
+    })
 
-    // 로그인 성공 메시지 처리 (백엔드에서 성공 메시지를 반환)
-    const userInfo = response.data;
-    successMessage.value = response.data;
+    localStorage.setItem("authHeader", authHeader)
+    successMessage.value = "로그인 성공!"
 
-    //로그인 시 Basic 토큰을 localStorage 등에 저장
-    const base64 = btoa(`${userLoginId.value}:${password.value}`);
-    localStorage.setItem("authHeader", `Basic ${base64}`);
+    // ✅ 로그인 성공 이벤트 발생 (HeaderBar에서 듣고 반응)
+    window.dispatchEvent(new Event("login-success"))
 
-    // 로그인 성공 후 추가 작업 수행 (예: 메인 페이지로 이동)
-    router.push("/MainPage2");
+    const res = await axios.get('/auth/me', {
+      headers: {
+        Authorization: authHeader
+      },
+      withCredentials: true
+    })
 
-    window.location.href = "/";
+    const projectId = res.data.projectId
 
-    // 로그인 성공 후 즉시 비밀번호 제거
-    localStorage.removeItem("password"); // ❌ 저장하지 않기
+    if (projectId) {
+      router.push('/MyProject')
+    } else {
+      router.push('/MainPage2')
+    }
+
   } catch (error) {
-    errorMessage.value = error.response?.data || "로그인 실패!";
+    errorMessage.value = error.response?.data || "로그인에 실패했습니다."
   }
-};
+}
 
-// 회원가입 페이지로 이동하는 함수
+
 const goToSignup = () => {
-  router.push("/Signup");
-};
+  router.push("/Signup")
+}
 </script>
+
+
+
+
 
 <style scoped>
 /* 전체 컨테이너 */

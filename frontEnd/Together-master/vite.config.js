@@ -12,7 +12,17 @@ export default defineConfig({
   server: {
     proxy: {
       '/auth': {
-        target: 'http://localhost:8081', // ✅ 백엔드 주소
+        target: 'http://localhost:8081',
+        changeOrigin: true,
+        secure: false
+      },
+      '/projects': {
+        target: 'http://localhost:8081',
+        changeOrigin: true,
+        secure: false
+      },
+      '/project-details': {
+        target: 'http://localhost:8081',
         changeOrigin: true,
         secure: false
       }

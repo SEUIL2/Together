@@ -10,83 +10,137 @@
           :class="{ active: selectedIndex === index }"
           @click="selectedIndex = index"
         >
-          {{ meeting.date }}
+          {{ meeting.date || formatDate(meeting.meetingDate) }}
         </li>
       </ul>
       <button class="add-btn" @click="addMeeting">회의 생성</button>
     </aside>
 
     <!-- 오른쪽: 회의 상세 -->
-    <main class="content">
+    <main class="content" v-if="meetings.length > 0">
       <div class="header">
         <input
           v-model="meetings[selectedIndex].title"
           class="title-input"
           placeholder="제목을 입력하세요"
+          @blur="() => saveMeeting(meetings[selectedIndex])"
         />
-        <p class="date">{{ meetings[selectedIndex].date }}</p>
+        <p class="date">{{ formatDate(meetings[selectedIndex].meetingDate) }}</p>
         <button class="delete-btn" @click="deleteMeeting">삭제</button>
       </div>
 
       <!-- 마크다운 에디터 -->
       <v-md-editor
-        v-if="meetings.length > 0"
         v-model="meetings[selectedIndex].content"
         height="70vh"
+        @blur="() => saveMeeting(meetings[selectedIndex])"
       />
+    </main>
+
+    <!-- 로딩 또는 데이터 없을 때 -->
+    <main v-else class="content">
+      <p>회의가 없습니다. 왼쪽에서 회의를 추가해주세요!</p>
     </main>
   </div>
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, onMounted, watch } from 'vue'
+import api from '@/api/meetingApi'
 
-// 회의 목록
-const meetings = ref(
-  JSON.parse(localStorage.getItem('meetings')) || [
-    {
-      date: '2025년 3월 26일',
-      title: '첫 회의',
-      content: '# 회의 내용을 작성하세요'
-    }
-  ]
-)
-
+const meetings = ref([])
 const selectedIndex = ref(0)
 
-function addMeeting() {
-  const dateStr = new Date().toLocaleDateString('ko-KR', {
+// ✅ 날짜 포맷
+const formatDate = (dateStr) => {
+  const date = new Date(dateStr)
+  return date.toLocaleDateString('ko-KR', {
     year: 'numeric',
     month: 'long',
     day: 'numeric'
   })
-
-  meetings.value.push({
-    date: dateStr,
-    title: '새 회의',
-    content: '# 새 회의 내용을 작성하세요'
-  })
-
-  selectedIndex.value = meetings.value.length - 1
-  saveMeetings()
 }
 
-function deleteMeeting() {
+// ✅ 회의 목록 불러오기
+async function fetchMeetings() {
+  try {
+    const response = await api.get('/all-author')
+    meetings.value = response.data
+  } catch (err) {
+    console.error('회의 목록 불러오기 실패:', err)
+  }
+}
+
+// ✅ 회의 생성
+async function addMeeting() {
+  const now = new Date()
+  const meetingDto = {
+    title: '새 회의',
+    content: '# 새 회의 내용을 작성하세요',
+    meetingDate: now,
+    createdAt: now,
+    updatedAt: now
+  }
+
+  try {
+    const response = await api.post('/create', meetingDto)
+    meetings.value.push(response.data)
+    selectedIndex.value = meetings.value.length - 1
+  } catch (err) {
+    console.error('회의 생성 실패:', err)
+  }
+}
+
+// ✅ 회의 삭제
+async function deleteMeeting() {
   if (meetings.value.length <= 1) {
     alert('최소 하나의 회의는 남겨야 합니다.')
     return
   }
-  meetings.value.splice(selectedIndex.value, 1)
-  selectedIndex.value = 0
-  saveMeetings()
+
+  const target = meetings.value[selectedIndex.value]
+
+  try {
+    await api.delete(`/delete/${target.meetingId}`)
+    meetings.value.splice(selectedIndex.value, 1)
+    selectedIndex.value = 0
+  } catch (err) {
+    console.error('회의 삭제 실패:', err)
+  }
 }
 
-function saveMeetings() {
-  localStorage.setItem('meetings', JSON.stringify(meetings.value))
+// ✅ 회의 저장
+async function saveMeeting(meeting) {
+  try {
+    meeting.updatedAt = new Date()
+    await api.put(`/update/${meeting.meetingId}`, meeting)
+    // console.log('저장됨:', meeting)
+  } catch (err) {
+    console.error('회의 저장 실패:', err)
+  }
 }
 
-watch(meetings, saveMeetings, { deep: true })
+// ✅ 무한 루프 방지용 watcher
+let previousContent = ''
+
+watch(meetings, (newMeetings) => {
+  const current = newMeetings[selectedIndex.value]
+  if (!current || !current.meetingId) return
+
+  const currentContent = JSON.stringify(current)
+  if (currentContent !== previousContent) {
+    previousContent = currentContent
+    saveMeeting(current)
+  }
+}, { deep: true })
+
+// ✅ 처음 로딩 시 회의 불러오기
+onMounted(() => {
+  fetchMeetings()
+})
 </script>
+
+
 
 <style scoped>
 .meeting-page {

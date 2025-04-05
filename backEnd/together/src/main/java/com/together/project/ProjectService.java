@@ -1,5 +1,6 @@
 package com.together.project;
 
+import com.together.notification.NotificationService;
 import com.together.project.Invitation.InvitationEntity;
 import com.together.project.Invitation.InvitationRepository;
 import com.together.project.Invitation.dto.InvitationResponseDto;
@@ -25,6 +26,7 @@ public class ProjectService {
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
     private final InvitationRepository invitationRepository;
+    private final NotificationService notificationService;
 
     // 프로젝트 생성
     @Transactional
@@ -98,6 +100,13 @@ public class ProjectService {
 
         ProjectEntity project = projectOpt.get();
         UserEntity user = userOpt.get();
+
+        // ⭐ 알림 전송 코드 추가
+        notificationService.sendNotification(
+                user.getUserId(),
+                "프로젝트 초대",
+                project.getTitle() + " 프로젝트에 초대되었습니다."
+        );
 
         // 기존 초대 상태 확인
         Optional<InvitationEntity> existingInvitation = invitationRepository.findByProjectAndUser(project, user);

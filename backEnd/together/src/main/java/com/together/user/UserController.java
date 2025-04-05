@@ -86,6 +86,17 @@ public class UserController {
         return ResponseEntity.ok("회원가입이 완료되었습니다.");
     }
 
+    /** 현재 사용자 정보 추출
+     * 예시
+     * {
+     *     "roles": [
+     *         {
+     *             "authority": "ROLE_STUDENT"
+     *         }
+     *     ],
+     *     "username": "test01"
+     * }
+     */
     @GetMapping("/me")
     public ResponseEntity<?> getCurrentUser(@AuthenticationPrincipal UserDetails userDetails) {
         if (userDetails == null) {

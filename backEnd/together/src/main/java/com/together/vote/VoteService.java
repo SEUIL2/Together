@@ -1,5 +1,6 @@
 package com.together.vote;
 
+import com.together.notification.NotificationService;
 import com.together.project.ProjectEntity;
 import com.together.project.ProjectRepository;
 import com.together.user.UserEntity;
@@ -35,6 +36,9 @@ public class VoteService {
     @Autowired
     private VoteItemRepository voteItemRepository;
 
+    @Autowired
+    private NotificationService notificationService;
+
     // 투표 생성
     public VoteEntity createVote(Long userId, Long projectId, VoteDTO voteDTO) {
         Optional<UserEntity> userOptional = userRepository.findById(userId);
@@ -61,6 +65,16 @@ public class VoteService {
 
                 // 투표 항목 리스트에 항목 추가
                 vote.getVoteItems().add(voteItem);
+            }
+
+            // 투표 생성 후
+            List<UserEntity> projectUsers = project.getUsers();
+            for (UserEntity notificationUser : projectUsers) {
+                notificationService.sendNotification(
+                        notificationUser.getUserId(),
+                        "투표 등록",
+                        vote.getTitle() + " 투표가 생성되었습니다."
+                );
             }
 
             return voteRepository.save(vote);

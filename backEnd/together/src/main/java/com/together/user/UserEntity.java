@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.together.documentManger.FileEntity;
 import com.together.meeting.MeetingEntity;
 import com.together.notice.NoticeEntity;
+import com.together.notification.NotificationEntity;
 import com.together.project.ProjectEntity;
 import com.together.vote.entity.VoteEntity;
 import com.together.vote.entity.VoteResponseEntity;
@@ -67,4 +68,7 @@ public class UserEntity {
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<VoteResponseEntity> voteResponseEntities = new ArrayList<>(); //투표 Response
+
+    @OneToMany(mappedBy = "receiver", cascade = CascadeType.ALL)
+    private List<NotificationEntity> notificationEntities = new ArrayList<>();
 }

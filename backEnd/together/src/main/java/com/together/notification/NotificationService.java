@@ -2,11 +2,13 @@ package com.together.notification;
 
 import com.together.user.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class NotificationService {
@@ -19,6 +21,13 @@ public class NotificationService {
      * @param userId 알림 받을 사용자 ID
      * @param message 알림 메시지 (ex. "새 공지사항이 등록되었습니다.")
      * @param linkUrl 클릭 시 이동할 페이지 경로 (ex. "/notices/5")
+     *  현재 생성된 자동 알림
+     * 1. 프로젝트 초대 _ ProjectService.java -> inviteUserToProject() _ 테스트완료
+     * 2. 공지사항 등록 _ NoticeService.java -> createNotice() _ 테스트 완료
+     * 3. 투표 등록 _ VoteService.java -> createVote()
+     * 예정된 자동알림
+     * 4. 작업 할당
+     * 5. 교수 피드백
      */
     public void sendNotification(Long userId, String message, String linkUrl) {
         userRepository.findById(userId).ifPresent(user -> {
@@ -29,7 +38,7 @@ public class NotificationService {
                     .createdAt(new Date())
                     .receiver(user)
                     .build();
-
+            log.info("알림 생성됨: {}", noti);
             notificationRepository.save(noti);
         });
     }
@@ -39,7 +48,10 @@ public class NotificationService {
      * (상단 알림 종 아이콘에 표시되는 내용)
      */
     public List<NotificationEntity> getUnreadNotifications(Long userId) {
-        //return notificationRepository.findByReceiverIdAndIsReadFalse(userId);
+
+        
+
+
         return notificationRepository.findByReceiverUserIdAndIsReadFalse(userId);
     }
 
@@ -48,7 +60,7 @@ public class NotificationService {
      * (알림 내역 페이지에서 사용)
      */
     public List<NotificationEntity> getAllNotifications(Long userId) {
-        //return notificationRepository.findByReceiverIdOrderByCreatedAtDesc(userId);
+
         return notificationRepository.findByReceiverUserIdOrderByCreatedAtDesc(userId);
     }
 

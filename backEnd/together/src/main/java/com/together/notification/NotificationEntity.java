@@ -1,5 +1,6 @@
 package com.together.notification;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.together.user.UserEntity;
 import jakarta.persistence.*;
 import lombok.*;
@@ -30,6 +31,7 @@ public class NotificationEntity {
 
     @ManyToOne
     @JoinColumn(name = "user_id")
+    @JsonIgnore
     private UserEntity receiver; //알림 수신자
 
 }

@@ -1,6 +1,8 @@
 package com.together.project.ProjectDetail.planning;
 
 import com.together.documentManger.GoogleDriveService;
+import com.together.project.ProjectDetail.planning.dto.PlanningAllResponseDto;
+import com.together.project.ProjectDetail.planning.dto.PlanningItemDto;
 import com.together.project.ProjectEntity;
 import com.together.project.ProjectRepository;
 import com.together.project.ProjectDetail.common.FileMeta;
@@ -209,5 +211,47 @@ public class PlanningDetailService {
         } else {
             throw new IllegalArgumentException("올바른 Google Drive 파일 URL 형식이 아닙니다: " + url);
         }
+    }
+
+    /**
+     * 전체 기획 항목들을 한 번에 불러오는 서비스 로직
+     * @param projectId 해당 프로젝트 ID
+     * @return PlanningAllResponseDto 형태로 전체 반환
+     */
+    @Transactional(readOnly = true)
+    public PlanningAllResponseDto getAllDetails(Long projectId) {
+        PlanningDetailEntity detail = getOrCreateDetail(projectId);
+
+        return PlanningAllResponseDto.builder()
+                .motivation(toItem(detail.getMotivationText(), detail.getMotivationFiles()))
+                .goal(toItem(detail.getGoalText(), detail.getGoalFiles()))
+                .requirement(toItem(detail.getRequirementText(), detail.getRequirementFiles()))
+                .infostructure(toItem(detail.getInfoStructureText(), detail.getInfoStructureFiles()))
+                .storyboard(toItem(detail.getStoryboardText(), detail.getStoryboardFiles()))
+                .description(toItem(detail.getDescriptionText(), detail.getDescriptionFiles()))
+                .build();
+    }
+
+    /**
+     * 개별 항목의 텍스트 + 파일 리스트를 DTO로 변환
+     */
+    private PlanningItemDto toItem(String text, List<FileMeta> files) {
+        List<FileMetaDto> fileDtos = files.stream()
+                .map(f -> new FileMetaDto(f.getUrl(), f.getUploadedAt()))
+                .toList();
+
+        return new PlanningItemDto(text, fileDtos);
+    }
+
+    private PlanningDetailEntity getOrCreateDetail(Long projectId) {
+        ProjectEntity project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 프로젝트가 존재하지 않습니다."));
+
+        return repository.findByProject(project)
+                .orElseGet(() -> {
+                    PlanningDetailEntity newDetail = new PlanningDetailEntity();
+                    newDetail.setProject(project);
+                    return repository.save(newDetail);
+                });
     }
 }

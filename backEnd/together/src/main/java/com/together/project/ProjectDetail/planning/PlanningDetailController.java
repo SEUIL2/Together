@@ -1,5 +1,6 @@
 package com.together.project.ProjectDetail.planning;
 
+import com.together.project.ProjectDetail.planning.dto.PlanningAllResponseDto;
 import com.together.project.ProjectDetail.planning.dto.PlanningDetailRequestDto;
 import com.together.project.ProjectDetail.planning.dto.PlanningDetailResponseDto;
 import com.together.systemConfig.UserDetailsImpl;
@@ -70,4 +71,18 @@ public class PlanningDetailController {
                 "deletedUrl", fileUrl
         ));
     }
+
+    /**
+     * 전체 기획 항목 조회 API
+     * - 프로젝트 동기, 목표, 설명 등 항목별 내용과 첨부 파일을 한 번에 반환
+     * - GET /planning/all
+     */
+    @GetMapping("/all")
+    public ResponseEntity<PlanningAllResponseDto> getAllPlanningDetails(
+            @AuthenticationPrincipal UserDetailsImpl userDetails
+    ) {
+        Long projectId = userDetails.getUser().getProject().getProjectId();
+        return ResponseEntity.ok(service.getAllDetails(projectId));
+    }
+
 }

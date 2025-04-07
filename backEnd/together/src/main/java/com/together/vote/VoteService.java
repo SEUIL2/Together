@@ -67,7 +67,7 @@ public class VoteService {
                 vote.getVoteItems().add(voteItem);
             }
 
-            // 투표 생성 후
+            // ⭐ 알림 전송 코드 추가
             List<UserEntity> projectUsers = project.getUsers();
             for (UserEntity notificationUser : projectUsers) {
                 notificationService.sendNotification(

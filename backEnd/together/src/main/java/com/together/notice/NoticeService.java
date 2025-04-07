@@ -44,6 +44,7 @@ public class NoticeService {
             notice.setUser(user);
             notice.setProject(project);
 
+            // ⭐ 알림 전송 코드 추가
             List<UserEntity> projectUsers = project.getUsers();
             if (projectUsers != null) {
                 for (UserEntity notificationUser : projectUsers) {

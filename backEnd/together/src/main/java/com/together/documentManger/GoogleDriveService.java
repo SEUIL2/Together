@@ -127,4 +127,19 @@ public class GoogleDriveService {
         // 🔹 Google Drive URL 반환
         return uploadedFile.getWebViewLink();
     }
+
+    public String extractDriveFileId(String fileUrl) {
+        // 예: https://drive.google.com/file/d/FILE_ID/view?usp=sharing
+        String regex = "/d/([a-zA-Z0-9_-]+)";
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(regex);
+        java.util.regex.Matcher matcher = pattern.matcher(fileUrl);
+
+        if (matcher.find()) {
+            return matcher.group(1);
+        } else {
+            throw new IllegalArgumentException("잘못된 구글 드라이브 URL 형식입니다: " + fileUrl);
+        }
+    }
+
+
 }

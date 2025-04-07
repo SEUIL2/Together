@@ -48,6 +48,10 @@ public class NotificationService {
      * (상단 알림 종 아이콘에 표시되는 내용)
      */
     public List<NotificationEntity> getUnreadNotifications(Long userId) {
+
+        
+
+
         return notificationRepository.findByReceiverUserIdAndIsReadFalse(userId);
     }
 
@@ -56,6 +60,7 @@ public class NotificationService {
      * (알림 내역 페이지에서 사용)
      */
     public List<NotificationEntity> getAllNotifications(Long userId) {
+
         return notificationRepository.findByReceiverUserIdOrderByCreatedAtDesc(userId);
     }
 

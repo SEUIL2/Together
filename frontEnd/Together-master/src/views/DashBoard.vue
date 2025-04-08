@@ -171,7 +171,7 @@
     gap: 20px;
   }
   .card.wide {
-    flex: 2;
+    flex: 1;
   }
   .card:not(.wide) {
     flex: 1;

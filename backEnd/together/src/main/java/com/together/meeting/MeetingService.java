@@ -34,19 +34,25 @@ public class MeetingService {
                 .users(user)
                 .build();
 
+        //미팅 내용 출력될때 userName 을 더하기위해 saved 에 저장
+        MeetingEntity saved = meetingRepository.save(meeting);
+
         return meetingRepository.save(meeting);
     }
 
     // 회의 전체 목록 조회
     @Transactional(readOnly = true)
-    public List<MeetingEntity> getAllMeetings() {
-        return meetingRepository.findAll();
+    public List<MeetingResponseDto> getAllMeetings() {
+        return meetingRepository.findAll().stream()
+                .map(this::convertToDto)
+                .toList();
     }
 
     // 특정 회의 조회
     @Transactional(readOnly = true)
-    public MeetingEntity getMeetingById(Long meetingId) {
+    public MeetingResponseDto getMeetingById(Long meetingId) {
         return meetingRepository.findById(meetingId)
+                .map(this::convertToDto)
                 .orElseThrow(() -> new EntityNotFoundException("회의를 찾을 수 없습니다."));
     }
 
@@ -81,5 +87,18 @@ public class MeetingService {
         }
 
         meetingRepository.delete(meeting);
+    }
+
+    //UserEntity.userName 추출하기위한 변환 메소드
+    private MeetingResponseDto convertToDto(MeetingEntity meeting) {
+        return MeetingResponseDto.builder()
+                .meetingId(meeting.getMeetingId())
+                .title(meeting.getTitle())
+                .content(meeting.getContent())
+                .meetingDate(meeting.getMeetingDate())
+                .createdAt(meeting.getCreatedAt())
+                .updatedAt(meeting.getUpdatedAt())
+                .authorName(meeting.getUsers().getUserName()) //여기서 userName 을 받아옴
+                .build();
     }
 }

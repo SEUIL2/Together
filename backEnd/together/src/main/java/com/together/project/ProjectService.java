@@ -4,6 +4,7 @@ import com.together.notification.NotificationService;
 import com.together.project.Invitation.InvitationEntity;
 import com.together.project.Invitation.InvitationRepository;
 import com.together.project.Invitation.dto.InvitationResponseDto;
+import com.together.project.Invitation.dto.TeamMemberDto;
 import com.together.project.ProjectDto.InviteResponseDto;
 import com.together.project.ProjectDto.ProjectResponseDto;
 import com.together.user.UserEntity;
@@ -84,85 +85,65 @@ public class ProjectService {
                 .toList();
     }
 
-    // 팀원 초대 (이메일로 검색 후 추가)
+    // ✅ 팀원 초대
     @Transactional
     public boolean inviteUserToProject(Long projectId, String email) {
-        Optional<ProjectEntity> projectOpt = projectRepository.findById(projectId);
-        Optional<UserEntity> userOpt = userRepository.findByUserEmail(email);
+        ProjectEntity project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new RuntimeException("프로젝트 없음"));
+        UserEntity user = userRepository.findByUserEmail(email)
+                .orElseThrow(() -> new RuntimeException("사용자 없음"));
 
-        if (projectOpt.isEmpty()) {
-            throw new RuntimeException("해당 프로젝트를 찾을 수 없습니다.");
-        }
-
-        if (userOpt.isEmpty()) {
-            throw new RuntimeException("해당 사용자를 찾을 수 없습니다.");
-        }
-
-        ProjectEntity project = projectOpt.get();
-        UserEntity user = userOpt.get();
-
-        // ⭐ 알림 전송 코드 추가
-        notificationService.sendNotification(
-                user.getUserId(),
-                "프로젝트 초대",
-                project.getTitle() + " 프로젝트에 초대되었습니다."
-        );
-
-        // 기존 초대 상태 확인
-        Optional<InvitationEntity> existingInvitation = invitationRepository.findByProjectAndUser(project, user);
-
-        if (existingInvitation.isPresent()) {
-            InvitationEntity invitation = existingInvitation.get();
-
-            if ("ACCEPTED".equals(invitation.getStatus())) {
-                throw new RuntimeException("해당 사용자는 이미 프로젝트에 참여 중입니다.");
-            }
-
-            if ("REJECTED".equals(invitation.getStatus())) {
-                invitation.setStatus("PENDING");
-                invitationRepository.save(invitation);
+        // 중복 초대 체크
+        Optional<InvitationEntity> existing = invitationRepository.findByProjectAndUser(project, user);
+        if (existing.isPresent()) {
+            String status = existing.get().getStatus();
+            if ("ACCEPTED".equals(status)) {
+                throw new RuntimeException("이미 참여 중");
+            } else if ("REJECTED".equals(status)) {
+                existing.get().setStatus("PENDING");
+                invitationRepository.save(existing.get());
                 return true;
             }
-
             return false;
         }
 
+        // 새로운 초대
         InvitationEntity invitation = new InvitationEntity();
         invitation.setProject(project);
         invitation.setUser(user);
-        invitation.setStatus("PENDING");  // 초대 상태
+        invitation.setStatus("PENDING");
         invitationRepository.save(invitation);
 
-        return true;  // ✅ boolean 반환
+        // 알림 전송
+        String message = String.format("%s님이 사용자를 %s 프로젝트에 초대하였습니다.",
+                project.getUsers().get(0).getUserName(), project.getTitle());
+        notificationService.sendNotification(user.getUserId(), message, "/projects");
+
+        return true;
     }
 
-//초대 확인
-
-    @Transactional
+    // ✅ 나의 초대 목록
     public List<InvitationResponseDto> getUserInvitations(Long userId) {
-        Optional<UserEntity> userOpt = userRepository.findById(userId);
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("사용자 없음"));
 
-        if (userOpt.isEmpty()) {
-            throw new RuntimeException("해당 사용자를 찾을 수 없습니다.");
-        }
+        List<InvitationEntity> list = invitationRepository.findByUser(user);
 
-        List<InvitationEntity> invitations = invitationRepository.findByUser(userOpt.get());
-
-        return invitations.stream()
-                .map(invitation -> new InvitationResponseDto(
-                        invitation.getId(),
-                        invitation.getProject().getTitle(),
-                        invitation.getUser().getUserName(),
-                        invitation.getStatus()
-                ))
-                .toList();
+        return list.stream()
+                .map(inv -> new InvitationResponseDto(
+                        inv.getId(),
+                        inv.getProject().getTitle(),
+                        inv.getUser().getUserName(),
+                        inv.getStatus()
+                )).toList();
     }
 
-    //초대수락
+
+    // ✅ 초대 수락
     @Transactional
     public boolean acceptInvitation(Long invitationId) {
         InvitationEntity invitation = invitationRepository.findById(invitationId)
-                .orElseThrow(() -> new RuntimeException("초대 정보를 찾을 수 없습니다."));
+                .orElseThrow(() -> new RuntimeException("초대 없음"));
 
         invitation.setStatus("ACCEPTED");
         invitation.setAccepted(true);
@@ -170,36 +151,42 @@ public class ProjectService {
         ProjectEntity project = invitation.getProject();
         UserEntity user = invitation.getUser();
 
+        // 프로젝트에 사용자 추가
         if (!project.getUsers().contains(user)) {
             project.addUser(user);
             projectRepository.save(project);
         }
 
         invitationRepository.save(invitation);
-
-        return true;  // ✅ boolean 반환
+        return true;
     }
 
 
-    //초대거절
-
+    // ✅ 초대 거절
     @Transactional
     public String rejectInvitation(Long invitationId) {
         InvitationEntity invitation = invitationRepository.findById(invitationId)
-                .orElseThrow(() -> new RuntimeException("초대 정보를 찾을 수 없습니다."));
+                .orElseThrow(() -> new RuntimeException("초대 없음"));
 
-        invitation.setStatus("REJECTED");  // ❗ 초대 거절
+        invitation.setStatus("REJECTED");
         invitationRepository.save(invitation);
-
-        return "초대가 거절되었습니다.";
+        return "초대를 거절했습니다.";
     }
-    // 프로젝트 팀원 목록 조회
-    public List<UserEntity> getProjectMembers(Long projectId) {
-        return projectRepository.findById(projectId)
-                .map(ProjectEntity::getUsers)
+
+    // ✅ 팀원 조회
+    public List<TeamMemberDto> getProjectMembers(Long projectId) {
+        ProjectEntity project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new RuntimeException("프로젝트를 찾을 수 없습니다."));
-    }
 
+        return project.getUsers().stream()
+                .map(user -> new TeamMemberDto(
+                        user.getUserId(),
+                        user.getUserName(),
+                        user.getUserEmail(),
+                        user.getRole().name()
+                ))
+                .toList();
+    }
     // 프로젝트 삭제
     @Transactional
     public void deleteProject(Long projectId) {

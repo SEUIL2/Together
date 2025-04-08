@@ -3,14 +3,17 @@ package com.together.project;
 import com.together.project.Invitation.InvitationEntity;
 import com.together.project.Invitation.InvitationRepository;
 import com.together.project.Invitation.dto.InvitationResponseDto;
+import com.together.project.Invitation.dto.TeamMemberDto;
 import com.together.project.ProjectDto.InviteResponseDto;
 import com.together.project.ProjectDto.ProjectResponseDto;
 import com.together.project.ProjectDto.ProjectTitleUpdateRequestDto;
+import com.together.systemConfig.UserDetailsImpl;
 import com.together.user.UserEntity;
 import com.together.user.UserRepository;
 import com.together.user.dto.UserResponseDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.text.SimpleDateFormat;
@@ -104,33 +107,31 @@ public class ProjectController {
         }
     }
 
-    // 팀원 초대
-    @PostMapping("/{projectId}/invite")
-    public ResponseEntity<String> inviteUser(@PathVariable Long projectId, @RequestParam String email) {
-        try {
-            boolean success = projectService.inviteUserToProject(projectId, email);
+    // ✅ 팀원 초대 API
+    @PostMapping("/invite")
+    public ResponseEntity<String> inviteUser(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @RequestParam String email
+    ) {
+        Long projectId = userDetails.getUser().getProject().getProjectId();
+        boolean success = projectService.inviteUserToProject(projectId, email);
 
-            if (success) {
-                return ResponseEntity.ok("팀원이 성공적으로 초대되었습니다.");
-            } else {
-                return ResponseEntity.badRequest().body("초대에 실패했습니다.");
-            }
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(400).body(e.getMessage());
+        if (success) {
+            return ResponseEntity.ok("초대 요청을 보냈습니다.");
+        } else {
+            return ResponseEntity.badRequest().body("이미 초대 중이거나 실패했습니다.");
         }
     }
         //초대확인
-    @GetMapping("/invitations/{userId}")
-    public ResponseEntity<List<InvitationResponseDto>> getUserInvitations(@PathVariable Long userId) {
-        try {
-            List<InvitationResponseDto> invitations = projectService.getUserInvitations(userId);
-            return ResponseEntity.ok(invitations);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(404).body(null);
+        @GetMapping("/invitations")
+        public ResponseEntity<List<InvitationResponseDto>> getMyInvitations(
+                @AuthenticationPrincipal UserDetailsImpl userDetails
+        ) {
+            List<InvitationResponseDto> responses = projectService.getUserInvitations(userDetails.getUser().getUserId());
+            return ResponseEntity.ok(responses);
         }
-    }
         //초대수락
-    @PostMapping("/invite/accept/{invitationId}")
+    @PostMapping("/invite/{invitationId}/accept/")
     public ResponseEntity<String> acceptInvitation(@PathVariable Long invitationId) {
         boolean success = projectService.acceptInvitation(invitationId);
         if (success) {
@@ -151,10 +152,13 @@ public class ProjectController {
         }
     }
 
-    // 프로젝트 팀원 목록 조회
-    @GetMapping("/{projectId}/members")
-    public ResponseEntity<List<UserEntity>> getProjectMembers(@PathVariable Long projectId) {
-        List<UserEntity> members = projectService.getProjectMembers(projectId);
+    // ✅ 프로젝트 팀원 조회
+    @GetMapping("/members")
+    public ResponseEntity<List<TeamMemberDto>> getProjectMembers(
+            @AuthenticationPrincipal UserDetailsImpl userDetails
+    ) {
+        Long projectId = userDetails.getUser().getProject().getProjectId();
+        List<TeamMemberDto> members = projectService.getProjectMembers(projectId);
         return ResponseEntity.ok(members);
     }
 

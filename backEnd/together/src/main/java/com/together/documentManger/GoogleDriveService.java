@@ -40,37 +40,43 @@ public class GoogleDriveService {
                 .execute();
     }
 
-    // **파일 업로드 (Google Drive + DB 저장)**
+    // ✅ 파일 업로드 (Google Drive + DB 저장)
     public FileEntity uploadFile(MultipartFile file, Long userId, Long projectId) throws IOException {
+        // 🔍 사용자와 프로젝트 조회
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
         ProjectEntity project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new IllegalArgumentException("프로젝트를 찾을 수 없습니다."));
 
-        // **Google Drive에 파일 업로드**
+        // 📁 Google Drive에 업로드할 메타데이터 설정
         File fileMetadata = new File();
         fileMetadata.setName(file.getOriginalFilename());
         fileMetadata.setParents(List.of("root")); // 루트 폴더에 저장
 
+        // 🧠 실제 파일 생성
         java.io.File tempFile = java.io.File.createTempFile("upload_", null);
         try (OutputStream os = new FileOutputStream(tempFile)) {
             os.write(file.getBytes());
         }
 
-        AbstractInputStreamContent fileContent = new FileContent("application/octet-stream", tempFile);
+        // 📌 MIME 타입 자동 감지 (ex. image/jpeg, application/pdf ...)
+        String mimeType = file.getContentType();
+        AbstractInputStreamContent fileContent = new FileContent(mimeType, tempFile);
+
+        // ☁️ Google Drive로 파일 업로드
         File uploadedFile = googleDrive.files().create(fileMetadata, fileContent)
                 .setFields("id, webViewLink, mimeType, size")
                 .execute();
 
-        // 🔹 파일을 공개로 설정
+        // 🌍 업로드한 파일을 공개로 설정
         makeFilePublic(uploadedFile.getId());
 
-        // **DB에 저장**
+        // 🗃️ DB에 파일 메타데이터 저장
         FileEntity fileEntity = FileEntity.builder()
                 .googleDriveFileId(uploadedFile.getId())
                 .fileName(file.getOriginalFilename())
-                .fileType(uploadedFile.getMimeType())  // 파일 유형 저장
-                .fileSize(String.valueOf(uploadedFile.getSize()))      // 파일 크기 저장
+                .fileType(uploadedFile.getMimeType())   // 예: image/jpeg
+                .fileSize(String.valueOf(uploadedFile.getSize()))
                 .fileUrl(uploadedFile.getWebViewLink())
                 .user(user)
                 .project(project)

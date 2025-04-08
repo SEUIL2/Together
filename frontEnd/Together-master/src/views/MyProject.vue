@@ -13,9 +13,7 @@
             class="project-description"
             placeholder="프로젝트에 대한 설명을 적어주세요"
           ></textarea>
-          <!-- 저장 버튼 -->
           <button class="save-btn" @click="saveProjectInfo">저장</button>
-
         </div>
         <div class="vertical-line"></div>
         <div class="progress-container">
@@ -44,7 +42,11 @@
       </section>
 
       <!-- 상세 입력 컴포넌트 -->
-      <component :is="currentDetailComponent" v-if="selectedStep"></component>
+      <component
+        :is="currentDetailComponent"
+        v-if="selectedStep"
+        @updateStepProgress="updatePlanningProgress"  
+      />
     </main>
   </div>
 </template>
@@ -62,13 +64,15 @@ const projectId = ref(null)
 const projectName = ref("로딩 중...")
 const projectDescription = ref("")
 const progress = ref(55)
+
 const steps = ref([
-  { name: "기획", current: 1, total: 5 },
+  { name: "기획", current: 0, total: 5 },
   { name: "설계", current: 1, total: 8 },
   { name: "개발", current: 1, total: 4 },
   { name: "테스트", current: 1, total: 3 },
 ])
-const selectedStep = ref("")
+
+const selectedStep = ref("기획")
 
 function selectStep(stepName) {
   selectedStep.value = stepName
@@ -76,20 +80,20 @@ function selectStep(stepName) {
 
 const currentDetailComponent = computed(() => {
   switch (selectedStep.value) {
-    case "기획":
-      return PlanningDetails
-    case "설계":
-      return DesignDetails
-    case "개발":
-      return DevelopmentDetails
-    case "테스트":
-      return TestingDetails
-    default:
-      return null
+    case "기획": return PlanningDetails
+    case "설계": return DesignDetails
+    case "개발": return DevelopmentDetails
+    case "테스트": return TestingDetails
+    default: return null
   }
 })
 
-// 제목 저장 요청
+// ✅ 자식 컴포넌트에서 완료 항목 수 업데이트 받기
+function updatePlanningProgress(count) {
+  steps.value[0].current = count
+}
+
+// 저장 요청
 const saveProjectInfo = async () => {
   if (!projectId.value) {
     alert("프로젝트 ID를 불러오지 못했습니다.")
@@ -97,24 +101,20 @@ const saveProjectInfo = async () => {
   }
 
   try {
-    // 1️⃣ 제목 저장
     await axios.put(`/projects/${projectId.value}/update-title`, {
       newTitle: projectName.value
     })
 
-    // 2️⃣ 설명 저장 (x-www-form-urlencoded 형식)
-    const formParams = new URLSearchParams()
-    formParams.append('projectId', projectId.value)
-    formParams.append('projectDescription', projectDescription.value)
+    const formData = new FormData()
+    formData.append("type", "description")
+    formData.append("text", projectDescription.value)
 
-    await axios.post('/project-details/create-text', formParams, {
-  headers: {
-    'Content-Type': 'application/x-www-form-urlencoded',
-    'Authorization': localStorage.getItem('authHeader')
-  },
-  withCredentials: true
-})
-
+    await axios.post('/planning/upload', formData, {
+      headers: {
+        Authorization: localStorage.getItem('authHeader')
+      },
+      withCredentials: true
+    })
 
     alert("프로젝트 제목과 설명이 저장되었습니다.")
   } catch (err) {
@@ -123,37 +123,27 @@ const saveProjectInfo = async () => {
   }
 }
 
-
-
-
-// 페이지 진입 시 프로젝트 정보 로드
+// 프로젝트 초기 정보 로드
 onMounted(async () => {
   try {
     const res = await axios.get('/projects/my', {
-      headers: {
-        Authorization: localStorage.getItem('authHeader')
-      },
+      headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true
     })
     projectId.value = res.data.projectId
     projectName.value = res.data.title
 
-    // ✅ 설명도 불러오기
-    const detailRes = await axios.get('/project-details/my-project', {
-      headers: {
-        Authorization: localStorage.getItem('authHeader')
-      },
+    const detailRes = await axios.get('/planning/all', {
+      headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true
     })
-    projectDescription.value = detailRes.data.projectDescription
-
+    projectDescription.value = detailRes.data.description?.text || ""
   } catch (err) {
     console.error('프로젝트 정보를 불러오지 못했습니다:', err)
   }
 })
-
-
 </script>
+
 
 <style scoped>
 .project-container {

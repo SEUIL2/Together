@@ -21,7 +21,17 @@ export default defineConfig({
         changeOrigin: true,
         secure: false
       },
-      '/project-details': {
+      '/planning': {
+        target: 'http://localhost:8081',
+        changeOrigin: true,
+        secure: false
+      },
+      '/notifications': {
+        target: 'http://localhost:8081',
+        changeOrigin: true,
+        secure: false
+      },
+      '/notices': {
         target: 'http://localhost:8081',
         changeOrigin: true,
         secure: false

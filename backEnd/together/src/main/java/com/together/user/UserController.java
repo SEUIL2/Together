@@ -45,7 +45,6 @@ public class UserController {
      *      "password": "password123"
      *  }
      *
-     *  현재 로그인 시스템
      */
     @PostMapping("/login")
     public ResponseEntity<String> login(@RequestParam String userLoginId) {

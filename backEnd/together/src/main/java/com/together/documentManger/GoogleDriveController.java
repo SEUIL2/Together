@@ -1,17 +1,17 @@
 package com.together.documentManger;
 
+import com.together.systemConfig.UserDetailsImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.List;
 
 @RestController
@@ -25,15 +25,20 @@ public class GoogleDriveController {
     @PostMapping("/upload")
     public ResponseEntity<FileEntity> uploadFile(
             @RequestParam("file") MultipartFile file,
-            @RequestParam("userId") Long userId,
-            @RequestParam("projectId") Long projectId) throws IOException {
+            @AuthenticationPrincipal UserDetailsImpl userDetails) throws IOException {
+
+        //자동추출
+        Long userId = userDetails.getUser().getUserId();
+        Long projectId = userDetails.getUser().getProject().getProjectId();
+
         FileEntity savedFile = googleDriveService.uploadFile(file, userId, projectId);
         return ResponseEntity.ok(savedFile);
     }
 
     // **특정 프로젝트의 파일 조회**
-    @GetMapping("/project/{projectId}")
-    public ResponseEntity<List<FileEntity>> getFilesByProject(@PathVariable Long projectId) {
+    @GetMapping("/project")
+    public ResponseEntity<List<FileEntity>> getFilesByProject(@AuthenticationPrincipal UserDetailsImpl userDetails) {
+        Long projectId = userDetails.getUser().getProject().getProjectId();
         List<FileEntity> files = googleDriveService.getFilesByProject(projectId);
         return ResponseEntity.ok(files);
     }

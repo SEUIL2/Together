@@ -47,6 +47,15 @@ public class UserService {
             throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
         }
 
+        /*// 이메일 인증 여부 확인
+        UserEntity existingUser = userRepository.findByUserEmail(requestDto.getUserEmail())
+                .orElseThrow(() -> new IllegalArgumentException("이메일을 찾을 수 없습니다."));
+
+        // 이메일 인증되지 않았을 경우 회원가입 막기
+        if (!existingUser.isEmailVerified()) {
+            throw new IllegalArgumentException("이메일 인증이 완료되지 않았습니다.");
+        }*/
+
         // 비밀번호 암호화
         String encodedPassword = passwordEncoder.encode(requestDto.getPassword());
 
@@ -63,20 +72,20 @@ public class UserService {
             student.setPassword(encodedPassword);
             student.setRole(UserEntity.UserRole.STUDENT);
             student.setStudentNumber(requestDto.getStudentNumber()); // 학번 추가
+            student.setEmailVerified(false); //이메일 인증여부 false
 
             studentRepository.save(student);
-        }
-        else if ("PROFESSOR".equals(requestDto.getUserRole())) {
+        } else if ("PROFESSOR".equals(requestDto.getUserRole())) {
             UserEntity professor = new UserEntity();
             professor.setUserName(requestDto.getUserName());
             professor.setUserEmail(requestDto.getUserEmail());
             professor.setUserLoginId((requestDto.getUserLoginId()));
             professor.setPassword(encodedPassword);
             professor.setRole(UserEntity.UserRole.PROFESSOR);
+            professor.setEmailVerified(false); //이메일 인증여부 false
 
             userRepository.save(professor);
-        }
-        else {
+        } else {
             throw new IllegalArgumentException("올바른 사용자 유형이 아닙니다.");
         }
     }

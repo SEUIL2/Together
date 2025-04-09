@@ -1,5 +1,6 @@
 package com.together.vote;
 
+import com.together.systemConfig.UserDetailsImpl;
 import com.together.vote.DTO.VoteDTO;
 import com.together.vote.DTO.VoteResponseDTO;
 import com.together.vote.entity.VoteEntity;
@@ -8,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -26,13 +28,16 @@ public class VoteController {
      *     "title": "졸업작품 개발 방향 투표",  // 투표 제목
      *     "options": ["프론트엔드 개발", "백엔드 개발"]  // 투표 항목들
      * }
-     * @param userId - 투표를 생성하는 사용자 ID
-     * @param projectId - 투표가 속한 프로젝트 ID
+     * @AuthenticationPrincipal - 자동 추출
      * @param voteDTO - 투표 데이터 (제목, 항목들)
      * @return ResponseEntity<VoteEntity> - 생성된 투표 객체 반환
      */
     @PostMapping("/create")
-    public ResponseEntity<VoteEntity> createVote(@RequestParam Long userId, @RequestParam Long projectId, @RequestBody VoteDTO voteDTO) {
+    public ResponseEntity<VoteEntity> createVote(@AuthenticationPrincipal UserDetailsImpl userDetails,
+                                                 @RequestBody VoteDTO voteDTO) {
+        Long userId = userDetails.getUser().getUserId();
+        Long projectId = userDetails.getUser().getProject().getProjectId();
+
         VoteEntity createdVote = voteService.createVote(userId, projectId, voteDTO);
         if (createdVote != null) {
             log.info("투표 생성 성공");
@@ -43,11 +48,12 @@ public class VoteController {
 
     /**
      * 특정 프로젝트에 속한 모든 투표 조회
-     * @param projectId - 프로젝트 ID
+     * AuthenticationPrincipal - 자동 추출
      * @return ResponseEntity<List<VoteEntity>> - 프로젝트에 속한 모든 투표 리스트 반환
      */
-    @GetMapping("/project/{projectId}")
-    public ResponseEntity<List<VoteEntity>> getVotesByProject(@PathVariable Long projectId) {
+    @GetMapping("/project")
+    public ResponseEntity<List<VoteEntity>> getVotesByProject(@AuthenticationPrincipal UserDetailsImpl userDetails) {
+        Long projectId = userDetails.getUser().getProject().getProjectId();
         List<VoteEntity> votes = voteService.getVotesByProject(projectId);
         return ResponseEntity.ok(votes);  // 투표 목록 반환
     }

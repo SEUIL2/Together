@@ -1,5 +1,7 @@
 package com.together.user.email;
 
+import com.together.user.UserEntity;
+import com.together.user.UserRepository;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +17,7 @@ import java.util.Random;
 public class EmailService { //이메일 전송 서비스
 
     private final JavaMailSender mailSender;
+    private final UserRepository userRepository;
 
     // 인증 코드 생성
     public String generateVerificationCode() {

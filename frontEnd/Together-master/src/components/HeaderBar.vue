@@ -48,66 +48,73 @@
 
     <!-- 알림 + 설정 아이콘 영역 -->
     <div class="settings-icon">
-      <!-- 🔔 알림 컴포넌트 삽입 -->
+      <!-- 🔔 알림 팝업 (내부에서 상태 관리) -->
       <NotificationPopup />
 
-      <button @click="toggleMenu">
-        <img src="@/assets/settings.png" alt="Settings" class="settings-img" />
-      </button>
-
-      <!-- 설정 팝업 메뉴 -->
-      <div v-if="showMenu" class="settings-popup">
-        <button class="popup-btn" @click="handleAuth">
-          {{ isLoggedIn ? '로그아웃' : '로그인' }}
+      <!-- ⚙️ 설정 아이콘 -->
+      <div ref="settingsRef">
+        <button @click="toggleMenu">
+          <img src="@/assets/settings.png" alt="Settings" class="settings-img" />
         </button>
+
+        <!-- 설정 팝업 메뉴 -->
+        <div v-if="showMenu" class="settings-popup">
+          <button class="popup-btn" @click="handleAuth">
+            {{ isLoggedIn ? '로그아웃' : '로그인' }}
+          </button>
+        </div>
       </div>
     </div>
   </header>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import NotificationPopup from '@/components/NotificationPopup.vue'
 
-
 const router = useRouter()
 
 // 페이지 이동 함수
-function goMyProject() {
-  router.push('/MyProject')
-}
-function goMyDashBoard() {
-  router.push('/DashBoard')
-}
-function goSchedule() {
-  router.push('/Schedule')
-}
-function goMeeting() {
-  router.push('/MeetingPage')
-}
-function goTeam() {
-  router.push('/TeamManagement')
-}
+const goMyProject = () => router.push('/MyProject')
+const goMyDashBoard = () => router.push('/DashBoard')
+const goSchedule = () => router.push('/Schedule')
+const goMeeting = () => router.push('/MeetingPage')
+const goTeam = () => router.push('/TeamManagement')
 
-// 로그인 상태 & 메뉴 표시 여부
+// 로그인 상태 & 설정 팝업 표시 여부
 const isLoggedIn = ref(false)
 const showMenu = ref(false)
 
+// 팝업 DOM 참조
+const settingsRef = ref(null)
+
+// 설정 팝업 토글
 function toggleMenu() {
   showMenu.value = !showMenu.value
 }
 
-// ✅ 로그인/로그아웃 버튼 클릭
+// 외부 클릭 시 설정 팝업 닫기
+function handleClickOutside(event) {
+  if (
+    showMenu.value &&
+    settingsRef.value &&
+    !settingsRef.value.contains(event.target)
+  ) {
+    showMenu.value = false
+  }
+}
+
+// 로그인/로그아웃 버튼 처리
 async function handleAuth() {
   if (isLoggedIn.value) {
     try {
       await axios.post('/auth/logout', null, { withCredentials: true })
-      localStorage.removeItem('authHeader') // 로컬 스토리지도 정리
+      localStorage.removeItem('authHeader')
       isLoggedIn.value = false
       alert('로그아웃 되었습니다.')
-      window.location.href = '/' // 🔥 로그아웃 후 새로고침
+      window.location.href = '/'
     } catch (e) {
       alert('로그아웃 중 오류가 발생했습니다.')
     }
@@ -117,21 +124,14 @@ async function handleAuth() {
   showMenu.value = false
 }
 
-// ✅ 마운트 시 로그인 상태 확인
-onMounted(async () => {
-  await checkLoginStatus()
-
-  // ✅ 로그인 성공 이벤트 리스너 등록
-  window.addEventListener("login-success", checkLoginStatus)
-})
-
+// 로그인 상태 확인
 const checkLoginStatus = async () => {
   try {
     const response = await axios.get('/auth/me', {
       headers: {
-        Authorization: localStorage.getItem("authHeader")
+        Authorization: localStorage.getItem('authHeader'),
       },
-      withCredentials: true
+      withCredentials: true,
     })
     if (response.status === 200) {
       isLoggedIn.value = true
@@ -141,7 +141,18 @@ const checkLoginStatus = async () => {
   }
 }
 
+// 마운트 시 실행
+onMounted(() => {
+  checkLoginStatus()
+  window.addEventListener('login-success', checkLoginStatus)
+  document.addEventListener('click', handleClickOutside)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
 </script>
+
 
 
 <style scoped>

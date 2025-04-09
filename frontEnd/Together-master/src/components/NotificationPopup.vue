@@ -1,5 +1,5 @@
 <template>
-  <div class="notification-wrapper">
+  <div class="notification-wrapper" ref="wrapperRef">
     <img src="@/assets/bell.png" @click="toggleNotifications" class="notification-icon" />
 
     <div v-if="showNotifications" class="notification-popup">
@@ -25,6 +25,7 @@ import axios from 'axios'
 
 const showNotifications = ref(false)
 const notifications = ref([])
+const wrapperRef = ref(null)
 
 // 초대 알림을 가져오는 함수
 async function fetchNotifications() {

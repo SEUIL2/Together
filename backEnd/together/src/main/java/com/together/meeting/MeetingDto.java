@@ -27,4 +27,6 @@ public class MeetingDto {
 
     private Long userId; // 유저 ID만 저장
 
+    private Long projectId;
+
 }

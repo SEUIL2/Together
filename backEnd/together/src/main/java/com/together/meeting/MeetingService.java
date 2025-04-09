@@ -1,5 +1,7 @@
 package com.together.meeting;
 
+import com.together.project.ProjectEntity;
+import com.together.project.ProjectRepository;
 import com.together.user.UserEntity;
 import com.together.user.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -8,7 +10,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -18,12 +19,15 @@ public class MeetingService {
 
     private final MeetingRepository meetingRepository;
     private final UserRepository userRepository;
+    private final ProjectRepository projectRepository;
 
     // 회의 생성
     @Transactional
-    public MeetingEntity createMeeting(MeetingDto meetingDto, Long userId) {
+    public MeetingEntity createMeeting(MeetingDto meetingDto, Long userId, Long projectId) {
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다."));
+        ProjectEntity project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new EntityNotFoundException("프로젝트를 찾을 수 없습니다."));
 
         MeetingEntity meeting = MeetingEntity.builder()
                 .title(meetingDto.getTitle())
@@ -32,6 +36,7 @@ public class MeetingService {
                 .createdAt(meetingDto.getCreatedAt())
                 .updatedAt(meetingDto.getUpdatedAt())
                 .users(user)
+                .project(project)
                 .build();
 
         //미팅 내용 출력될때 userName 을 더하기위해 saved 에 저장
@@ -42,8 +47,8 @@ public class MeetingService {
 
     // 회의 전체 목록 조회
     @Transactional(readOnly = true)
-    public List<MeetingResponseDto> getAllMeetings() {
-        return meetingRepository.findAll().stream()
+    public List<MeetingResponseDto> getAllMeetings(Long projectId) {
+        return meetingRepository.findByProjectProjectId(projectId).stream()
                 .map(this::convertToDto)
                 .toList();
     }

@@ -1,5 +1,7 @@
 package com.together.meeting;
 
+import com.together.project.ProjectEntity;
+import com.together.project.ProjectRepository;
 import com.together.user.UserEntity;
 import com.together.user.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +19,7 @@ public class MeetingController {
 
     private final MeetingService meetingService;
     private final UserRepository userRepository;
+    private final ProjectRepository projectRepository;
 
     /**
      *   회의 생성 API (POST /meetings)
@@ -37,8 +40,12 @@ public class MeetingController {
         UserEntity user = userRepository.findByUserLoginId(userDetails.getUsername())
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
+        ProjectEntity project = projectRepository.findById(meetingDto.getProjectId())
+                .orElseThrow(() -> new IllegalArgumentException("프로젝트를 찾을 수 없습니다."));
+
+
         // 회의 생성
-        MeetingEntity createdMeeting = meetingService.createMeeting(meetingDto, user.getUserId());
+        MeetingEntity createdMeeting = meetingService.createMeeting(meetingDto, user.getUserId(),project.getProjectId());
 
         return ResponseEntity.ok(createdMeeting);
     }
@@ -52,9 +59,9 @@ public class MeetingController {
      * 수정
      * 1. userName 을 출력하며 순환참조를 방지하기위해 MeetingResponseDto 로 convertToDto 후 출력
      */
-    @GetMapping("/all-author")
-    public ResponseEntity<List<MeetingResponseDto>> getAllMeetings() {
-        return ResponseEntity.ok(meetingService.getAllMeetings());
+    @GetMapping("/all-author/{projectId}")
+    public ResponseEntity<List<MeetingResponseDto>> getAllMeetings(@PathVariable Long projectId) {
+        return ResponseEntity.ok(meetingService.getAllMeetings(projectId));
     }
 
     /**

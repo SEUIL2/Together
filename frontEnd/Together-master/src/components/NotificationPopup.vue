@@ -1,5 +1,5 @@
 <template>
-  <div class="notification-wrapper">
+  <div class="notification-wrapper" ref="wrapperRef">
     <img src="@/assets/bell.png" @click="toggleNotifications" class="notification-icon" />
 
     <div v-if="showNotifications" class="notification-popup">
@@ -20,14 +20,16 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import axios from 'axios'
 
 const currentUserId = 8 // 실제 로그인 사용자 ID로 바꿔야 함
 
 const showNotifications = ref(false)
 const notifications = ref([])
+const wrapperRef = ref(null)
 
+// 알림 토글
 function toggleNotifications() {
   showNotifications.value = !showNotifications.value
   if (showNotifications.value) {
@@ -35,6 +37,24 @@ function toggleNotifications() {
   }
 }
 
+// 외부 클릭 시 팝업 닫기
+function handleClickOutside(event) {
+  if (wrapperRef.value && !wrapperRef.value.contains(event.target)) {
+    showNotifications.value = false
+  }
+}
+
+// 마운트 시 이벤트 등록
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
+})
+
+// 언마운트 시 이벤트 해제
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
+
+// 알림 데이터 가져오기
 async function fetchNotifications() {
   try {
     const res = await axios.get('/notifications/all', {
@@ -47,6 +67,7 @@ async function fetchNotifications() {
   }
 }
 
+// 알림 읽음 처리
 async function markAsRead(notification) {
   if (notification.isRead) return
 
@@ -55,14 +76,12 @@ async function markAsRead(notification) {
       withCredentials: true
     })
     notification.isRead = true
-    // 원하면 이동 기능 추가 가능
-    // window.location.href = notification.linkUrl
   } catch (e) {
     console.error('알림 읽음 처리 실패', e)
   }
 }
 
-// 시간 포맷: YYYY-MM-DD HH:mm
+// 시간 포맷
 function formatDate(dateStr) {
   const date = new Date(dateStr)
   const yyyy = date.getFullYear()

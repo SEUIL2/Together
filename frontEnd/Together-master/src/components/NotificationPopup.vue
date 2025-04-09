@@ -20,33 +20,57 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount, onUnmounted } from 'vue'
 import axios from 'axios'
+
+// 공지사항 알림 API 호출에 필요한 로그인 사용자 ID (실제 로그인 사용자의 ID 사용)
+const currentUserId = 8
 
 const showNotifications = ref(false)
 const notifications = ref([])
 const wrapperRef = ref(null)
+let intervalId = null
 
-// 초대 알림을 가져오는 함수
+// 알림 팝업 토글: 열릴 때 두 API 호출 후 결과 병합
 async function fetchNotifications() {
   try {
-    // 백엔드의 초대 API 호출: 로그인한 사용자의 초대 목록을 가져옴.
-    const res = await axios.get('/projects/invitations', {
-      withCredentials: true
-    })
-    // 응답 데이터를 알림 형식으로 매핑
-    notifications.value = res.data.map(invite => ({
-      id: invite.invitationId, // 초대 고유 ID (InvitationResponseDto의 필드명과 맞춰주세요)
-      // DTO에 별도 메시지가 없다면 기본 텍스트를 사용
-      message: invite.message || '새로운 팀원 초대가 도착했습니다.',
-      createdAt: invite.createdAt, // 초대 생성 시간
-      isRead: invite.isRead || false // 읽음 여부 (없으면 false로 처리)
+    // 두 API를 병렬 호출 (공지사항 알림과 팀 초대 알림)
+    const [notiResponse, inviteResponse] = await Promise.all([
+      axios.get('/notifications/all', {
+        params: { userId: currentUserId },
+        withCredentials: true
+      }),
+      axios.get('/projects/invitations', {
+        withCredentials: true
+      })
+    ])
+
+    // 공지사항 알림: 각 알림 객체에 type 추가 ("announcement")
+    const announcementNotifications = notiResponse.data.map(noti => ({
+      ...noti,
+      type: 'announcement'
     }))
+
+    // 팀 초대 알림: InvitationResponseDto 데이터를 알림 객체 형식으로 매핑, type은 "invitation"
+    const invitationNotifications = inviteResponse.data.map(invite => ({
+      id: invite.invitationId, // InvitationResponseDto에 맞게 수정
+      message: invite.message || '새로운 팀원 초대가 도착했습니다.',
+      createdAt: invite.createdAt,
+      isRead: invite.isRead || false,
+      type: 'invitation'
+    }))
+
+    // 두 배열을 병합한 후 생성 시간 순(내림차순)으로 정렬
+    const merged = [...announcementNotifications, ...invitationNotifications]
+    merged.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    notifications.value = merged
+
   } catch (e) {
-    console.error('알림 가져오기 실패', e)
+    console.error('알림 데이터 가져오기 실패', e)
   }
 }
 
+// 알림 팝업 토글 함수: 팝업 열릴 때 알림 갱신 호출
 function toggleNotifications() {
   showNotifications.value = !showNotifications.value
   if (showNotifications.value) {
@@ -54,14 +78,32 @@ function toggleNotifications() {
   }
 }
 
+// 외부 클릭 시 팝업 닫기
+function handleClickOutside(event) {
+  if (wrapperRef.value && !wrapperRef.value.contains(event.target)) {
+    showNotifications.value = false
+  }
+}
+
+// 알림 읽음 처리: type에 따라 처리 분기
 async function markAsRead(notification) {
   if (notification.isRead) return
-  // 서버에 읽음 처리를 위한 API가 있다면 여기에 호출 가능
-  // 예: await axios.post(`/notifications/${notification.id}/read`, null, { withCredentials: true })
-  // 현재는 단순히 로컬 상태 변경
+
+  // 공지사항 알림인 경우 API 호출
+  if (notification.type === 'announcement') {
+    try {
+      await axios.post(`/notifications/${notification.id}/read`, null, {
+        withCredentials: true
+      })
+    } catch (e) {
+      console.error('공지사항 알림 읽음 처리 실패', e)
+    }
+  }
+  // 팀 초대 알림은 현재 로컬에서만 읽음 처리 (추후 서버 API가 있다면 추가)
   notification.isRead = true
 }
 
+// 시간 포맷 함수: YYYY-MM-DD hh:mm 형식
 function formatDate(dateStr) {
   const date = new Date(dateStr)
   const yyyy = date.getFullYear()
@@ -72,15 +114,20 @@ function formatDate(dateStr) {
   return `${yyyy}-${mm}-${dd} ${hh}:${min}`
 }
 
-// 초대 알림 새로고침을 위해 주기적으로 fetchNotifications() 호출 (예: 10초마다)
-let intervalId = null
+// 컴포넌트가 마운트될 때 외부 클릭 이벤트 등록 및 주기적 알림 갱신(예: 10초마다)
 onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
   intervalId = setInterval(() => {
-    fetchNotifications()
+    // 팝업이 열려 있는 동안에만 알림 데이터를 주기적으로 새로고침
+    if (showNotifications.value) {
+      fetchNotifications()
+    }
   }, 10000)
 })
 
-onUnmounted(() => {
+// 언마운트 시 이벤트 해제 및 타이머 정리
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleClickOutside)
   clearInterval(intervalId)
 })
 </script>

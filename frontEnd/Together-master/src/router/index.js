@@ -13,6 +13,8 @@ import Scheduletest from '../views/test/Scheduletest.vue'
 import DiagramPage from '../views/DiagramPage.vue'
 import MeetingPage from '../views/MeetingPage.vue'
 import TeamManagement from "@/views/TeamManagement.vue";
+import EmailVerification from "@/views/account/EmailVerificationPage.vue";
+import SignupDetails from "@/views/account/SignupDetailsPage.vue";
 const routes = [
   {
     path: '/',
@@ -80,6 +82,17 @@ const routes = [
     name: 'TeamManagement',
     component: TeamManagement,
   },
+  {
+    path: '/EmailVerification',
+    name: 'EmailVerification',
+    component: EmailVerification,
+  },
+  {
+    path: '/SignupDetails',
+    name: 'SignupDetails',
+    component: SignupDetails,
+  },
+  
   
 ]
 

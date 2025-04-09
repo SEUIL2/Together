@@ -53,8 +53,24 @@
   </template>
   
   <script setup>
+  import { ref, onMounted } from 'vue'
+  import axios from 'axios'
   import DashboardNotice from '@/components/dashboard/DashboardNotice.vue'
+  
+  const userId = ref(null)
+  const projectId = ref(null)
+  
+  onMounted(async () => {
+    try {
+      const res = await axios.get('/auth/me', { withCredentials: true })
+      userId.value = res.data.userId
+      projectId.value = res.data.projectId
+    } catch (e) {
+      console.error('유저 정보 불러오기 실패', e)
+    }
+  })
   </script>
+  
   
   <style scoped>
 .dashboard-container {

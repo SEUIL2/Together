@@ -28,10 +28,44 @@
           </div>
         </div>
 
-        <div class="input-group small-input2">
-          <label>*E-mail</label>
-          <input v-model="form.userEmail" type="email" placeholder="이메일을 입력해주세요" required />
-        </div>
+<!-- 이메일 입력 -->
+<div class="input-group small-input2">
+  <label>*E-mail</label>
+  <div class="input-with-button">
+    <input
+      v-model="form.userEmail"
+      type="email"
+      placeholder="이메일을 입력해주세요"
+      required
+    />
+    <button
+      type="button"
+      class="check-btn"
+      @click="sendEmailVerification"
+      :disabled="emailVerified"
+    >
+      인증 요청
+    </button>
+  </div>
+</div>
+
+<!-- 인증 코드 입력 -->
+<div v-if="emailVerificationSent && !emailVerified" class="input-group small-input2">
+  <label>인증 코드</label>
+  <div class="input-with-button">
+    <input
+      v-model="emailCode"
+      type="text"
+      placeholder="이메일로 받은 인증 코드를 입력해주세요"
+    />
+    <button type="button" class="check-btn" @click="verifyEmailCode">인증 확인</button>
+  </div>
+</div>
+
+<!-- 인증 완료 시 메시지 -->
+<p v-if="emailVerified" style="color: green;">이메일 인증이 완료되었습니다.</p>
+
+
 
         <div class="input-group small-input">
           <label>*아이디</label>
@@ -66,16 +100,17 @@
 
 <script setup>
 import { ref } from "vue";
-import api from "@/api.js"; // vite.config.js에 alias 설정 필요 (@ -> src 디렉토리)
+import api from "@/api.js";
 
-// 사용자 유형 (학생 또는 교수)
 const userType = ref("student");
-
-// 성공/오류 메시지
 const successMessage = ref("");
 const errorMessage = ref("");
 
-// 폼 데이터 (백엔드의 UserSignUpRequestDto와 일치)
+// 🔹 이메일 인증 관련 상태
+const emailVerificationSent = ref(false); // 인증 메일 전송 여부
+const emailCode = ref(""); // 사용자가 입력한 인증 코드
+const emailVerified = ref(false); // 인증 성공 여부
+
 const form = ref({
   userName: "",
   userEmail: "",
@@ -86,22 +121,58 @@ const form = ref({
   studentNumber: ""
 });
 
-// 사용자 유형 설정 및 폼 데이터 업데이트
 const setUserType = (type) => {
   userType.value = type;
   if (type === "professor") {
-    // 교수의 경우 학번은 필요 없으므로 초기화
     form.value.studentNumber = "";
   }
 };
 
-// 회원가입 요청 함수
+// 이메일 인증 요청
+const sendEmailVerification = async () => {
+  successMessage.value = ""
+  errorMessage.value = ""
+  try {
+    await api.post("/auth/email/send", null, {
+      params: { email: form.value.userEmail }
+    })
+    emailVerificationSent.value = true
+    successMessage.value = "인증 코드가 이메일로 전송되었습니다."
+  } catch (error) {
+    errorMessage.value = error.response?.data || "이메일 인증 요청 실패"
+  }
+}
+
+// 인증 코드 확인
+const verifyEmailCode = async () => {
+  try {
+    const res = await api.post("/auth/email/verify", null, {
+      params: {
+        email: form.value.userEmail,
+        code: emailCode.value
+      }
+    })
+    emailVerified.value = true
+    successMessage.value = "이메일 인증이 완료되었습니다."
+    errorMessage.value = ""
+  } catch (error) {
+    emailVerified.value = false
+    errorMessage.value = error.response?.data || "인증 코드가 올바르지 않습니다."
+  }
+}
+
+//회원가입 요청
 const signup = async () => {
-  // 메시지 초기화
   successMessage.value = "";
   errorMessage.value = "";
 
-  // 비밀번호 확인 검증
+  // ✅ 이메일 인증 여부 확인 (가장 먼저 검사!)
+  if (!emailVerified.value) {
+    errorMessage.value = "이메일 인증을 먼저 완료해주세요.";
+    return;
+  }
+
+  // 🔒 비밀번호 확인
   if (form.value.password !== form.value.confirmPassword) {
     errorMessage.value = "비밀번호가 일치하지 않습니다.";
     return;
@@ -114,11 +185,10 @@ const signup = async () => {
   }
 
   try {
-    // 백엔드 /auth/signup API 호출
     const response = await api.post("/auth/signup", form.value, {
       headers: { "Content-Type": "application/json" }
     });
-    successMessage.value = response.data; // 예: "회원가입이 완료되었습니다."
+    successMessage.value = response.data;
     errorMessage.value = "";
   } catch (error) {
     errorMessage.value = error.response?.data || "회원가입 실패";
@@ -126,7 +196,8 @@ const signup = async () => {
   }
 };
 
-// 아이디 중복 검사 함수
+
+// 🔹 아이디 중복 검사
 const checkDuplicateId = async () => {
   try {
     const response = await api.get(`/auth/check-username?username=${form.value.userLoginId}`);
@@ -141,6 +212,7 @@ const checkDuplicateId = async () => {
   }
 };
 </script>
+
 
 <style scoped>
 /* 전체 컨테이너 */

@@ -61,9 +61,6 @@
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
 
-const userId = 8
-const projectId = 1
-
 const notices = ref([])
 const showModal = ref(false)
 const isEditMode = ref(false)
@@ -74,15 +71,79 @@ onMounted(() => {
   fetchNotices()
 })
 
+// 공지사항 목록 불러오기
 async function fetchNotices() {
   try {
-    const res = await axios.get(`/notices/project/${projectId}`)
+    const authHeader = localStorage.getItem("authHeader")
+    const res = await axios.get('/notices/all-notice', {
+      headers: {
+        Authorization: authHeader
+      },
+      withCredentials: true
+    })
     notices.value = res.data
   } catch (e) {
     console.error('공지사항 불러오기 실패', e)
   }
 }
 
+// 공지사항 생성
+async function createNotice() {
+  if (!editNotice.value.title || !editNotice.value.content) {
+    return alert('제목과 내용을 입력해주세요')
+  }
+  try {
+    const authHeader = localStorage.getItem("authHeader")
+    await axios.post('/notices/create', editNotice.value, {
+      headers: {
+        Authorization: authHeader,
+        'Content-Type': 'application/json'
+      },
+      withCredentials: true
+    })
+    closeModal()
+    fetchNotices()
+  } catch (e) {
+    console.error('공지사항 등록 실패', e)
+  }
+}
+
+// 공지사항 수정
+async function updateNotice() {
+  try {
+    const authHeader = localStorage.getItem("authHeader")
+    await axios.put(`/notices/update/${editNotice.value.noticeId}`, editNotice.value, {
+      headers: {
+        Authorization: authHeader,
+        'Content-Type': 'application/json'
+      },
+      withCredentials: true
+    })
+    closeModal()
+    fetchNotices()
+  } catch (e) {
+    console.error('공지사항 수정 실패', e)
+  }
+}
+
+// 공지사항 삭제
+async function deleteNotice() {
+  try {
+    const authHeader = localStorage.getItem("authHeader")
+    await axios.delete(`/notices/delete/${editNotice.value.noticeId}`, {
+      headers: {
+        Authorization: authHeader
+      },
+      withCredentials: true
+    })
+    closeModal()
+    fetchNotices()
+  } catch (e) {
+    console.error('공지사항 삭제 실패', e)
+  }
+}
+
+// 모달 관련 함수
 function openCreateModal() {
   editNotice.value = { title: '', content: '' }
   isEditMode.value = false
@@ -104,44 +165,7 @@ function closeModal() {
   isEditing.value = false
 }
 
-async function createNotice() {
-  if (!editNotice.value.title || !editNotice.value.content) return alert('제목과 내용을 입력해주세요')
-  try {
-    await axios.post(`/notices/create`, editNotice.value, {
-      params: { userId, projectId },
-      headers: { 'Content-Type': 'application/json' },
-      withCredentials: true
-    })
-    closeModal()
-    fetchNotices()
-  } catch (e) {
-    console.error('공지사항 등록 실패', e)
-  }
-}
-
-async function updateNotice() {
-  try {
-    await axios.put(`/notices/update/${editNotice.value.noticeId}`, editNotice.value, {
-      headers: { 'Content-Type': 'application/json' },
-      withCredentials: true
-    })
-    closeModal()
-    fetchNotices()
-  } catch (e) {
-    console.error('공지사항 수정 실패', e)
-  }
-}
-
-async function deleteNotice() {
-  try {
-    await axios.delete(`/notices/delete/${editNotice.value.noticeId}`, { withCredentials: true })
-    closeModal()
-    fetchNotices()
-  } catch (e) {
-    console.error('공지사항 삭제 실패', e)
-  }
-}
-
+// 날짜 포맷 함수
 function formatDate(dateStr) {
   const date = new Date(dateStr)
   const month = (date.getMonth() + 1).toString().padStart(2, '0')
@@ -149,6 +173,8 @@ function formatDate(dateStr) {
   return `${month}월${day}일`
 }
 </script>
+
+
 
 <style scoped>
 .notice-header {

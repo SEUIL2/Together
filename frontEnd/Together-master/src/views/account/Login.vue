@@ -53,28 +53,19 @@ const handleLogin = async () => {
     const encoded = btoa(`${userLoginId.value}:${password.value}`)
     const authHeader = `Basic ${encoded}`
 
-    await axios.post('/auth/login', {}, {
-      headers: {
-        Authorization: authHeader
-      },
+    // Basic Auth만 저장
+    localStorage.setItem("authHeader", authHeader)
+
+    // Security에서 인증되면 /auth/me로 확인
+    const res = await axios.get('/auth/me', {
+      headers: { Authorization: authHeader },
       withCredentials: true
     })
 
-    localStorage.setItem("authHeader", authHeader)
     successMessage.value = "로그인 성공!"
-
-    // ✅ 로그인 성공 이벤트 발생 (HeaderBar에서 듣고 반응)
     window.dispatchEvent(new Event("login-success"))
 
-    const res = await axios.get('/auth/me', {
-      headers: {
-        Authorization: authHeader
-      },
-      withCredentials: true
-    })
-
     const projectId = res.data.projectId
-
     if (projectId) {
       router.push('/MyProject')
     } else {
@@ -87,15 +78,11 @@ const handleLogin = async () => {
 }
 
 
+
 const goToSignup = () => {
   router.push("/Signup")
 }
 </script>
-
-
-
-
-
 <style scoped>
 /* 전체 컨테이너 */
 .login-container {

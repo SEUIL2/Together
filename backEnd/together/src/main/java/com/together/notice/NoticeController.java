@@ -46,10 +46,15 @@ public class NoticeController {
     }
 
     // 공지사항 조회
-    @GetMapping("/project/{projectId}")
-    public ResponseEntity<List<NoticeEntity>> getNoticesByProject(@PathVariable Long projectId) {
-        List<NoticeEntity> notices = noticeService.getNoticesByProject(projectId);
-        return ResponseEntity.ok(notices);
+    @GetMapping("/all-notice/{projectId}")
+    public ResponseEntity<List<NoticeResponseDto>> getNoticesByProject(@PathVariable Long projectId) {
+        return ResponseEntity.ok(noticeService.getNoticesByProject(projectId));
+    }
+
+    //특정 공지사항 조회
+    @GetMapping("notice/{noticeId}")
+    public ResponseEntity<NoticeResponseDto> getNoticeById(@PathVariable Long noticeId) {
+        return ResponseEntity.ok(noticeService.getNoticeById(noticeId));
     }
 
 }

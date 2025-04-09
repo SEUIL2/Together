@@ -1,5 +1,5 @@
 <template>
-  <div class="notification-wrapper">
+  <div class="notification-wrapper" ref="wrapperRef">
     <img src="@/assets/bell.png" @click="toggleNotifications" class="notification-icon" />
 
     <div v-if="showNotifications" class="notification-popup">
@@ -20,13 +20,32 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import axios from 'axios'
-
-const currentUserId = 8 // 실제 로그인 사용자 ID로 바꿔야 함
 
 const showNotifications = ref(false)
 const notifications = ref([])
+const wrapperRef = ref(null)
+
+// 초대 알림을 가져오는 함수
+async function fetchNotifications() {
+  try {
+    // 백엔드의 초대 API 호출: 로그인한 사용자의 초대 목록을 가져옴.
+    const res = await axios.get('/projects/invitations', {
+      withCredentials: true
+    })
+    // 응답 데이터를 알림 형식으로 매핑
+    notifications.value = res.data.map(invite => ({
+      id: invite.invitationId, // 초대 고유 ID (InvitationResponseDto의 필드명과 맞춰주세요)
+      // DTO에 별도 메시지가 없다면 기본 텍스트를 사용
+      message: invite.message || '새로운 팀원 초대가 도착했습니다.',
+      createdAt: invite.createdAt, // 초대 생성 시간
+      isRead: invite.isRead || false // 읽음 여부 (없으면 false로 처리)
+    }))
+  } catch (e) {
+    console.error('알림 가져오기 실패', e)
+  }
+}
 
 function toggleNotifications() {
   showNotifications.value = !showNotifications.value
@@ -35,34 +54,14 @@ function toggleNotifications() {
   }
 }
 
-async function fetchNotifications() {
-  try {
-    const res = await axios.get('/notifications/all', {
-      params: { userId: currentUserId },
-      withCredentials: true
-    })
-    notifications.value = res.data
-  } catch (e) {
-    console.error('알림 가져오기 실패', e)
-  }
-}
-
 async function markAsRead(notification) {
   if (notification.isRead) return
-
-  try {
-    await axios.post(`/notifications/${notification.id}/read`, null, {
-      withCredentials: true
-    })
-    notification.isRead = true
-    // 원하면 이동 기능 추가 가능
-    // window.location.href = notification.linkUrl
-  } catch (e) {
-    console.error('알림 읽음 처리 실패', e)
-  }
+  // 서버에 읽음 처리를 위한 API가 있다면 여기에 호출 가능
+  // 예: await axios.post(`/notifications/${notification.id}/read`, null, { withCredentials: true })
+  // 현재는 단순히 로컬 상태 변경
+  notification.isRead = true
 }
 
-// 시간 포맷: YYYY-MM-DD HH:mm
 function formatDate(dateStr) {
   const date = new Date(dateStr)
   const yyyy = date.getFullYear()
@@ -72,6 +71,18 @@ function formatDate(dateStr) {
   const min = String(date.getMinutes()).padStart(2, '0')
   return `${yyyy}-${mm}-${dd} ${hh}:${min}`
 }
+
+// 초대 알림 새로고침을 위해 주기적으로 fetchNotifications() 호출 (예: 10초마다)
+let intervalId = null
+onMounted(() => {
+  intervalId = setInterval(() => {
+    fetchNotifications()
+  }, 10000)
+})
+
+onUnmounted(() => {
+  clearInterval(intervalId)
+})
 </script>
 
 <style scoped>
@@ -101,7 +112,6 @@ function formatDate(dateStr) {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   z-index: 2000;
   border-radius: 10px;
-
   scrollbar-width: none;
   -ms-overflow-style: none;
 }

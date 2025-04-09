@@ -3,12 +3,13 @@ package com.together.systemConfig;
 import com.together.user.UserEntity;
 import com.together.user.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.userdetails.User;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CustomUserDetailsService implements UserDetailsService {
@@ -22,15 +23,16 @@ public class CustomUserDetailsService implements UserDetailsService {
      */
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        //사용자 정보 조회
         UserEntity user = userRepository.findByUserLoginId(username)
                 .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다: " + username));
 
-        // Spring Security의 UserDetails 객체를 반환한다.
-        /*return User.builder()
-                .username(user.getUserLoginId())
-                .password(user.getPassword())
-                .roles(user.getRole().name()) // "STUDENT" 또는 "PROFESSOR"
-                .build(); */
+        // 이메일 인증 여부 확인
+        if (!user.isEmailVerified()) {
+            log.error("이메일 인증되지 않은 사용자 : {}", username);
+            throw new IllegalArgumentException("이메일 인증이 완료되지 않았습니다.");
+        }
+
         return new UserDetailsImpl(user);
     }
 }

@@ -1,5 +1,6 @@
 package com.together.systemConfig;
 
+import com.together.user.UserEntity;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -7,11 +8,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -55,7 +53,7 @@ public class CustomBasicAuthenticationFilter extends OncePerRequestFilter {
                 // 4️⃣ AuthenticationManager를 사용하여 인증 시도
                 Authentication authResult = authenticationManager.authenticate(authRequest);
 
-                // 5️⃣ 인증 성공 시 SecurityContext에 저장
+                // 5️⃣ 인증 성공 시 SecurityContext 에 저장
                 SecurityContextHolder.getContext().setAuthentication(authResult);
             } catch (Exception ex) {
                 // ❌ 인증 실패 시 401 응답

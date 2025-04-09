@@ -1,6 +1,6 @@
 package com.together.meeting;
 
-import com.together.project.ProjectEntity;
+import com.together.systemConfig.UserDetailsImpl;
 import com.together.project.ProjectRepository;
 import com.together.user.UserEntity;
 import com.together.user.UserRepository;
@@ -34,18 +34,13 @@ public class MeetingController {
     @PostMapping("/create")
     public ResponseEntity<MeetingEntity> createMeeting(
             @RequestBody MeetingDto meetingDto,
-            @AuthenticationPrincipal UserDetails userDetails) {
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {
 
-        // 현재 로그인한 사용자의 정보를 가져와 UserEntity 조회
-        UserEntity user = userRepository.findByUserLoginId(userDetails.getUsername())
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
-
-        ProjectEntity project = projectRepository.findById(meetingDto.getProjectId())
-                .orElseThrow(() -> new IllegalArgumentException("프로젝트를 찾을 수 없습니다."));
-
+        Long user = userDetails.getUser().getUserId();
+        Long project = userDetails.getUser().getProject().getProjectId();
 
         // 회의 생성
-        MeetingEntity createdMeeting = meetingService.createMeeting(meetingDto, user.getUserId(),project.getProjectId());
+        MeetingEntity createdMeeting = meetingService.createMeeting(meetingDto, user, project);
 
         return ResponseEntity.ok(createdMeeting);
     }
@@ -58,9 +53,11 @@ public class MeetingController {
      * ---
      * 수정
      * 1. userName 을 출력하며 순환참조를 방지하기위해 MeetingResponseDto 로 convertToDto 후 출력
+     * 2. 프론트에서 불러올때 projectId를 입력하게끔 수정 -> 해당 프로젝트에있는 회의만 출력됨
      */
-    @GetMapping("/all-author/{projectId}")
-    public ResponseEntity<List<MeetingResponseDto>> getAllMeetings(@PathVariable Long projectId) {
+    @GetMapping("/all-author")
+    public ResponseEntity<List<MeetingResponseDto>> getAllMeetings(@AuthenticationPrincipal UserDetailsImpl userDetails) {
+        Long projectId = userDetails.getUser().getProject().getProjectId();
         return ResponseEntity.ok(meetingService.getAllMeetings(projectId));
     }
 

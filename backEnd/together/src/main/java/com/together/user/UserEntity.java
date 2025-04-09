@@ -9,9 +9,7 @@ import com.together.project.ProjectEntity;
 import com.together.vote.entity.VoteEntity;
 import com.together.vote.entity.VoteResponseEntity;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,6 +38,9 @@ public class UserEntity {
 
     @Column(name = "user_email", unique = true)
     private String userEmail; //이메일
+
+    @Column
+    private boolean emailVerified; //이메일 인증 여부
 
     @Column
     @Enumerated(EnumType.STRING)

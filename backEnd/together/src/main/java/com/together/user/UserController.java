@@ -1,5 +1,6 @@
 package com.together.user;
 
+import com.together.systemConfig.UserDetailsImpl;
 import com.together.user.dto.UserSignUpRequestDto;
 import com.together.user.email.EmailService;
 import com.together.user.email.VerificationCodeService;
@@ -43,9 +44,20 @@ public class UserController {
      *      "userLoginId": "chulsu123",
      *      "password": "password123"
      *  }
+     *
+     *  현재 로그인 시스템
      */
     @PostMapping("/login")
-    public ResponseEntity<String> login() {
+    public ResponseEntity<String> login(@RequestParam String userLoginId) {
+        UserEntity user = userRepository.findByUserLoginId(userLoginId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        // 이메일 인증 여부 확인
+        if (!user.isEmailVerified()) {
+            // 이메일 인증되지 않은 경우 로그인 실패 처리
+            return ResponseEntity.status(403).body("이메일 인증이 완료되지 않았습니다.");
+        }
+
         log.info("login 성공");
         return ResponseEntity.ok("로그인이 성공적으로 처리되었습니다.");
     }
@@ -73,6 +85,12 @@ public class UserController {
         if (userService.findUserByEmail(requestDto.getUserEmail()).isPresent()) {
             return ResponseEntity.badRequest().body("이미 등록된 이메일입니다.");
         }
+
+        /*// 이메일 인증 확인
+        if (!emailService.isEmailVerified(requestDto.getUserEmail())) {
+            log.info("이메일 인증이 완료되지 않았습니다.");
+            return ResponseEntity.badRequest().body("이메일 인증이 완료되지 않았습니다.");
+        }*/
 
         // 유효성 검사: STUDENT인 경우 학번 필수
         if ("STUDENT".equalsIgnoreCase(requestDto.getUserRole()) &&

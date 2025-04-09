@@ -1,7 +1,6 @@
 package com.together.project.ProjectDetail.planning;
 
 import com.together.project.ProjectDetail.planning.dto.PlanningAllResponseDto;
-import com.together.project.ProjectDetail.planning.dto.PlanningDetailRequestDto;
 import com.together.project.ProjectDetail.planning.dto.PlanningDetailResponseDto;
 import com.together.systemConfig.UserDetailsImpl;
 import lombok.RequiredArgsConstructor;

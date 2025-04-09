@@ -1,8 +1,10 @@
 package com.together.notice;
 
+import com.together.systemConfig.UserDetailsImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,7 +19,10 @@ public class NoticeController {
 
     // 공지사항 작성
     @PostMapping("/create")
-    public ResponseEntity<NoticeEntity> createNotice(@RequestParam Long userId, @RequestParam Long projectId, @RequestBody NoticeDTO noticeDTO) {
+    public ResponseEntity<NoticeEntity> createNotice(@AuthenticationPrincipal UserDetailsImpl userDetails,
+                                                     @RequestBody NoticeDTO noticeDTO) {
+        Long userId = userDetails.getUser().getUserId();
+        Long projectId = userDetails.getUser().getProject().getProjectId();
         NoticeEntity createdNotice = noticeService.createNotice(userId, projectId, noticeDTO);
         if (createdNotice != null) {
             return ResponseEntity.ok(createdNotice);
@@ -46,8 +51,9 @@ public class NoticeController {
     }
 
     // 공지사항 조회
-    @GetMapping("/all-notice/{projectId}")
-    public ResponseEntity<List<NoticeResponseDto>> getNoticesByProject(@PathVariable Long projectId) {
+    @GetMapping("/all-notice")
+    public ResponseEntity<List<NoticeResponseDto>> getNoticesByProject(@AuthenticationPrincipal UserDetailsImpl userDetails) {
+        Long projectId = userDetails.getUser().getProject().getProjectId();
         return ResponseEntity.ok(noticeService.getNoticesByProject(projectId));
     }
 

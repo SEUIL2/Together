@@ -1,8 +1,10 @@
 package com.together.notification;
 
+import com.together.systemConfig.UserDetailsImpl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,23 +24,23 @@ public class NotificationController {
 
     /**
      *  안 읽은 알림 목록 조회
-     * @param userId 사용자 ID
      * @return 읽지 않은 알림 리스트
      * 프론트: 종 아이콘 클릭 시 이 API 호출
      */
     @GetMapping("/unread")
-    public ResponseEntity<List<NotificationEntity>> getUnread(@RequestParam Long userId) {
+    public ResponseEntity<List<NotificationEntity>> getUnread(@AuthenticationPrincipal UserDetailsImpl userDetails) {
+        Long userId = userDetails.getUser().getUserId();
         return ResponseEntity.ok(notificationService.getUnreadNotifications(userId));
     }
 
     /**
      *  전체 알림 내역 조회
-     * @param userId 사용자 ID
      * @return 알림 전체 목록 (최신순)
      * 프론트: 알림 내역 페이지에서 사용
      */
     @GetMapping("/all")
-    public ResponseEntity<List<NotificationEntity>> getAll(@RequestParam Long userId) {
+    public ResponseEntity<List<NotificationEntity>> getAll(@AuthenticationPrincipal UserDetailsImpl userDetails) {
+        Long userId = userDetails.getUser().getUserId();
         return ResponseEntity.ok(notificationService.getAllNotifications(userId));
     }
 

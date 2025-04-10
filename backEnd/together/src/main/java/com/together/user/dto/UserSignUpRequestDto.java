@@ -27,4 +27,7 @@ public class UserSignUpRequestDto {
     private String userRole; // STUDENT or PROFESSOR
 
     private String studentNumber; // STUDENT일 경우 필수, PROFESSOR 경우 Null
+
+    private boolean emailVerified; //무영 추가
+
 }

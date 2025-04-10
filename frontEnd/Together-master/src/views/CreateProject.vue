@@ -54,7 +54,7 @@ const createProject = async () => {
     console.log("생성된 프로젝트:", res.data)
 
     // 나중에 상세 페이지로 이동하고 싶다면 이 부분 사용
-    // router.push(`/projects/${res.data.projectId}`)
+    router.push(`/MyProject`)
   } catch (err) {
     console.error(err)
     alert("프로젝트 생성 중 오류가 발생했습니다.")

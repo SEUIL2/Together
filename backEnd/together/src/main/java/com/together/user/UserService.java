@@ -80,7 +80,9 @@ public class UserService {
             student.setPassword(encodedPassword);
             student.setRole(UserEntity.UserRole.STUDENT);
             student.setStudentNumber(requestDto.getStudentNumber()); // 학번 추가
-            student.setEmailVerified(false); //이메일 인증여부 false
+//            student.setEmailVerified(false); //이메일 인증여부 false
+            student.setEmailVerified(requestDto.isEmailVerified()); // <-- 수정 무영 추가
+
 
             studentRepository.save(student);
         } else if ("PROFESSOR".equals(requestDto.getUserRole())) {
@@ -90,7 +92,8 @@ public class UserService {
             professor.setUserLoginId((requestDto.getUserLoginId()));
             professor.setPassword(encodedPassword);
             professor.setRole(UserEntity.UserRole.PROFESSOR);
-            professor.setEmailVerified(false); //이메일 인증여부 false
+//            professor.setEmailVerified(false); //이메일 인증여부 false
+            professor.setEmailVerified(requestDto.isEmailVerified()); // <-- 수정 무영 추가
 
             userRepository.save(professor);
         } else {

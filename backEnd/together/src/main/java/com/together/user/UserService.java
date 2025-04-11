@@ -27,6 +27,13 @@ public class UserService {
      * 프론트에서 학생 or 교수를 선택했을때 해당 입력 필드를 보여주고
      * 입력이 완료되었을때 UserSignUpRequestDto에 해당하는 변수들을 서버로 보내주면 됨
      *
+     * 현재(4월9일) 회원가입 시스템
+     * 1. 회원가입 시 setEmailVerified 을 제외한 정보들을 입력하고 회원가입
+     * 2. emailVerified 가 자동으로 false 상태가 됨
+     * 3. EmailVerificationController{} 페이지의 sendVerificationEmail() 메소드에서 이메일 인증 시도
+     * 4. EmailVerificationController{} 페이지의 verifyEmail() 메소드에서 이메일에 온 코드를 입력해서 성공하면
+     * emailVerified 가 true 가 되면서 회원가입 완료
+     *
      * @param requestDto {@link UserSignUpRequestDto}의 객체로, 사용자 가입 정보를 포함:
      *                   - userName: 사용자의 이름.
      *                   - userEmail: 사용자의 이메일 주소.
@@ -35,6 +42,7 @@ public class UserService {
      *                   - confirmPassword: 비밀번호 확인 값 (비밀번호 유효성 검사를 위해 필요).
      *                   - userRole: 사용자의 역할. "STUDENT" 또는 "PROFESSOR"만 허용됨.
      *                   - studentNumber: 학생 번호. 사용자 역할이 "STUDENT"인 경우 필수 입력 값.
+     *                   - setEmailVerified : 이메일 인증이 되어있는지 안되어있는지
      * @throws IllegalArgumentException 다음의 경우 예외를 발생:
      *                                  - 비밀번호가 확인 비밀번호와 일치하지 않는 경우.
      *                                  - 역할이 "STUDENT"이고 학생 번호가 제공되지 않은 경우.

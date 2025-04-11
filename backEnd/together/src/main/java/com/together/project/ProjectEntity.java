@@ -3,6 +3,8 @@ package com.together.project;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.together.comment.CommentController;
+import com.together.comment.CommentEntity;
 import com.together.documentManger.FileEntity;
 import com.together.meeting.MeetingEntity;
 import com.together.notice.NoticeEntity;
@@ -62,6 +64,10 @@ public class ProjectEntity {
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL)
     @JsonIgnore
     private List<VoteEntity> votes = new ArrayList<>(); //투표
+
+    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL)
+    @JsonIgnore
+    private List<CommentEntity> commentEntities = new ArrayList<>();
 
 
 }

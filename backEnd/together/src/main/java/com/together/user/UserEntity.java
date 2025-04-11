@@ -1,6 +1,7 @@
 package com.together.user;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.together.comment.CommentEntity;
 import com.together.documentManger.FileEntity;
 import com.together.meeting.MeetingEntity;
 import com.together.notice.NoticeEntity;
@@ -10,7 +11,9 @@ import com.together.vote.entity.VoteEntity;
 import com.together.vote.entity.VoteResponseEntity;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -42,6 +45,10 @@ public class UserEntity {
     @Column
     private boolean emailVerified; //이메일 인증 여부
 
+    @Column(updatable = false)
+    @CreationTimestamp
+    private LocalDateTime createdAt; //임시 유저 더미데이터를 삭제하기 위한 시간 체크 필드
+
     @Column
     @Enumerated(EnumType.STRING)
     private UserRole role;
@@ -72,4 +79,9 @@ public class UserEntity {
 
     @OneToMany(mappedBy = "receiver", cascade = CascadeType.ALL)
     private List<NotificationEntity> notificationEntities = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user" , cascade = CascadeType.ALL)
+    @JsonIgnore
+    private List<CommentEntity> commentEntities = new ArrayList<>();
+
 }

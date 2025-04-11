@@ -23,12 +23,16 @@ public class CommentService {
     private final UserRepository userRepository;
     private final ProjectRepository projectRepository;
 
-    // 댓글 트리 구조 반환
+    /**
+     * 🔎 댓글 트리 조회
+     * - 특정 위치(targetId)에 달린 모든 댓글을 시간순으로 가져와서
+     * - 부모-자식 관계로 연결된 "트리 구조"로 반환
+     */
     public List<CommentDto> getCommentTree(Long targetId, CommentEntity.CommentType type) {
         List<CommentEntity> allComments = commentRepository.findByTargetIdAndCommentTypeOrderByCreatedAtAsc(targetId, type);
 
-        Map<Long, CommentDto> dtoMap = new HashMap<>();
-        List<CommentDto> rootList = new ArrayList<>();
+        Map<Long, CommentDto> dtoMap = new HashMap<>(); // ID 기준으로 댓글 저장
+        List<CommentDto> rootList = new ArrayList<>(); // 최상위 댓글 리스트
 
         for (CommentEntity entity : allComments) {
             CommentDto dto = CommentDto.builder()
@@ -43,8 +47,9 @@ public class CommentService {
             dtoMap.put(entity.getId(), dto);
 
             if (entity.getParent() == null) {
-                rootList.add(dto);// 루트 댓글
+                rootList.add(dto); // 부모가 없으면 루트 댓글
             } else {
+                // 부모 댓글이 있다면 자식으로 연결
                 CommentDto parentDto = dtoMap.get(entity.getParent().getId());
                 if (parentDto != null) {
                     parentDto.getChildren().add(dto); // 자식 댓글 연결
@@ -55,7 +60,11 @@ public class CommentService {
         return rootList;
     }
 
-    // 댓글 작성
+    /**
+     * 📝 댓글 작성
+     * - 사용자, 프로젝트, 부모댓글을 확인하고
+     * - 새로운 댓글을 생성해서 DB에 저장
+     */
     @Transactional
     public CommentEntity createComment(String content, Long userId, Long projectId, Long targetId,
                                        CommentEntity.CommentType type, Long parentId) {
@@ -86,7 +95,11 @@ public class CommentService {
         return commentRepository.save(comment);
     }
 
-    // 댓글 삭제 (soft delete)
+    /**
+     * 🗑️ 댓글 삭제 (Soft Delete)
+     * - 본인 댓글만 삭제 가능
+     * - DB에선 안 지우고, isDeleted = true, content = null 처리
+     */
     @Transactional
     public void deleteComment(Long commentId, Long userId) {
         CommentEntity comment = commentRepository.findById(commentId)
@@ -96,11 +109,15 @@ public class CommentService {
             throw new IllegalArgumentException("본인의 댓글만 삭제할 수 있습니다.");
         }
 
-        comment.setDeleted(true);
+        comment.setDeleted(true); // 삭제 표시
         comment.setContent(null); // 내용 제거
     }
 
-    // 댓글 수정
+    /**
+     * ✏️ 댓글 수정
+     * - 본인 댓글만 수정 가능
+     * - 내용 업데이트 + 수정 시간 갱신
+     */
     @Transactional
     public CommentEntity updateComment(Long commentId, String content, Long userId) {
         CommentEntity comment = commentRepository.findById(commentId)

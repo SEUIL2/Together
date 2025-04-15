@@ -19,6 +19,8 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
@@ -94,9 +96,18 @@ public class GoogleDriveService {
 
     // **파일 삭제 (Google Drive + DB에서 삭제)**
     public void deleteFile(String googleDriveFileId) throws IOException {
-        googleDrive.files().delete(googleDriveFileId).execute();
+        try {
+            googleDrive.files().delete(googleDriveFileId).execute();
+        } catch (Exception e) {
+            throw new RuntimeException("Google Drive에서 파일 삭제 실패", e);
+        }
+
+        // 🔁 FileEntity 사용하는 경우만 삭제 (Optional)
         fileRepository.findByGoogleDriveFileId(googleDriveFileId)
-                .ifPresent(fileRepository::delete);
+                .ifPresentOrElse(
+                        fileRepository::delete,
+                        () -> System.out.println("[INFO] FileEntity DB 기록 없음. 무시하고 진행.")
+                );
     }
 
     // 파일 다운로드
@@ -135,17 +146,27 @@ public class GoogleDriveService {
     }
 
     public String extractDriveFileId(String fileUrl) {
-        // 예: https://drive.google.com/file/d/FILE_ID/view?usp=sharing
-        String regex = "/d/([a-zA-Z0-9_-]+)";
-        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(regex);
-        java.util.regex.Matcher matcher = pattern.matcher(fileUrl);
+        // 📌 Google Drive 파일 ID를 추출하는 다양한 URL 패턴 지원
+        String regex = "/(?:file|document|presentation|spreadsheets)/d/([a-zA-Z0-9_-]+)";
+        Pattern pattern = Pattern.compile(regex);
+        Matcher matcher = pattern.matcher(fileUrl);
 
         if (matcher.find()) {
             return matcher.group(1);
-        } else {
-            throw new IllegalArgumentException("잘못된 구글 드라이브 URL 형식입니다: " + fileUrl);
         }
-    }
+
+        // 📎 대체 포맷: https://drive.google.com/open?id=FILE_ID
+        regex = "[?&]id=([a-zA-Z0-9_-]+)";
+        pattern = Pattern.compile(regex);
+        matcher = pattern.matcher(fileUrl);
+
+        if (matcher.find()) {
+            return matcher.group(1);
+        }
+
+        // ❌ 매칭 실패
+        throw new IllegalArgumentException("유효한 Google Drive 링크가 아닙니다: " + fileUrl);
 
 
-}
+}}
+

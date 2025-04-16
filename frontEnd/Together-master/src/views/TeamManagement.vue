@@ -1,28 +1,3 @@
-<!-- <template>
-  <div>
-    <button @click="showInviteModal = true">팀원 초대</button>
-
-    < InviteModal 컴포넌트를 사용 -->
-     <!--
-    <InviteModal :isOpen="showInviteModal" @close="showInviteModal = false" />
-  </div>
-</template>
-
-<script>
-import InviteModal from './InviteModal.vue';
-
-export default {
-  components: {
-    InviteModal,
-  },
-  data() {
-    return {
-      showInviteModal: false, // 모달 열림/닫힘 상태
-    };
-  },
-};
-</script> -->
-
 <template>
   <div class="team-management-container">
     <main class="main-content">
@@ -33,85 +8,64 @@ export default {
 
       <table class="team-management-table">
         <thead>
-          <tr>
-            <th>팀명</th>
-            <th>학번</th>
-            <th>이름</th>
-            <th>역할</th>
-            <th>평가</th>
-          </tr>
+        <tr>
+          <th>팀명</th>
+          <th>학번</th>
+          <th>이름</th>
+          <th>역할</th>
+          <th>평가</th>
+        </tr>
         </thead>
-
         <tbody>
-          <tr v-for="(member, idx) in teamMembers" :key="idx">
-            <td>{{ member.teamName }}</td>
-            <td>{{ member.studentId }}</td>
-            <td>
-              <div class="name-with-avatar">
-                <div class="avatar-wrapper" @click="toggleColorPicker(idx)">
-                  <span class="avatar" :style="{ backgroundColor: member.avatarColor }"></span>
-                </div>
-                <span>{{ member.name }}</span>
+        <tr v-for="(member, idx) in teamMembers" :key="member.userId">
+          <td>{{ member.teamName }}</td>
+          <td>{{ member.studentId }}</td>
+          <td>
+            <div class="name-with-avatar">
+              <div class="avatar-wrapper" @click="toggleColorPicker(idx)">
+                <span class="avatar" :style="{ backgroundColor: member.avatarColor }"></span>
+              </div>
+              <span>{{ member.name }}</span>
 
-                <!-- 색상 선택 메뉴 -->
-                <div
+              <div
                   v-if="member.showColorPicker"
                   class="color-picker-menu"
                   @click.stop
-                >
-                  <div
+              >
+                <div
                     v-for="color in availableColors"
                     :key="color"
                     class="color-option"
                     :style="{ backgroundColor: color }"
                     @click="setColor(idx, color)"
-                  ></div>
-                </div>
+                ></div>
               </div>
-            </td>
-            <td>{{ member.role }}</td>
-            <td>
-              <button class="evaluate-btn" @click="evaluateMember(member)">평가하기</button>
-            </td>
-          </tr>
+            </div>
+          </td>
+          <td>{{ member.role }}</td>
+          <td>
+            <button class="evaluate-btn" @click="evaluateMember(member)">평가하기</button>
+          </td>
+        </tr>
         </tbody>
       </table>
 
-      <!-- 초대 모달 -->
       <InviteModal
-  :isOpen="showInviteModal"
-  @close="showInviteModal = false"
-/>
-
+          :isOpen="showInviteModal"
+          @close="showInviteModal = false"
+          @invite="handleInvite"
+      />
     </main>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import InviteModal from './InviteModal.vue';
+import { ref, onMounted } from 'vue'
+import axios from 'axios'
+import InviteModal from './InviteModal.vue'
 
 const availableColors = ['#FF8C00', '#F44336', '#2196F3', '#4CAF50', '#9C27B0']
-
-const teamMembers = ref([
-  {
-    teamName: '팀명',
-    studentId: '2033062',
-    name: '정유명',
-    role: '프론트엔드',
-    avatarColor: '#FF8C00',
-    showColorPicker: false
-  },
-  {
-    teamName: '팀명',
-    studentId: '2033062',
-    name: '황스일',
-    role: '백엔드',
-    avatarColor: '#F44336',
-    showColorPicker: false
-  }
-])
-
+const teamMembers = ref([])
 const showInviteModal = ref(false)
 
 function openInviteModal() {
@@ -146,6 +100,27 @@ function setColor(idx, color) {
 function getRandomColor() {
   return availableColors[Math.floor(Math.random() * availableColors.length)]
 }
+
+async function fetchTeamMembers() {
+  try {
+    const { data } = await axios.get('/projects/members', { withCredentials: true })
+    teamMembers.value = data.map(member => ({
+      userId: member.userId,
+      teamName: member.projectTitle,
+      studentId: member.loginId,
+      name: member.userName,
+      role: member.role,
+      avatarColor: getRandomColor(),
+      showColorPicker: false
+    }))
+  } catch (e) {
+    console.error('팀원 정보 가져오기 실패', e)
+  }
+}
+
+onMounted(() => {
+  fetchTeamMembers()
+})
 </script>
 
 <style scoped>

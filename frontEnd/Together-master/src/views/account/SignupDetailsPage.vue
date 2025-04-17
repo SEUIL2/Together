@@ -151,11 +151,6 @@ const signup = async () => {
   }
 }
 </script>
-
-  
-  
-  
-  
   
   <style scoped>
   .signup-container {

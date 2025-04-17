@@ -41,9 +41,10 @@ public class DesignDetailService {
                 detail.getUsecaseFiles().addAll(metaList);
             }
             case "class-diagram" -> {
-                if (json != null) detail.setClassDiagramText(json);
+                if (json != null) detail.setClassDiagramJson(json); // ✅ 다이어그램 JSON 저장 무영 수정
                 detail.getClassDiagramFiles().addAll(metaList);
             }
+
             case "sequence" -> {
                 if (text != null) detail.setSequenceText(text);
                 detail.getSequenceFiles().addAll(metaList);
@@ -90,7 +91,7 @@ public class DesignDetailService {
                 detail.getUsecaseFiles().addAll(metaList);
             }
             case "class-diagram" -> {
-                if (json != null) detail.setClassDiagramText(json);
+                if (json != null) detail.setClassDiagramJson(json);
                 detail.getClassDiagramFiles().addAll(metaList);
             }
             case "sequence" -> {
@@ -161,7 +162,7 @@ public class DesignDetailService {
 
         return DesignAllResponseDto.builder()
                 .usecase(toItem(detail.getUsecaseText(), detail.getUsecaseFiles()))
-                .classDiagram(toItem(detail.getClassDiagramText(), detail.getClassDiagramFiles()))
+                .classDiagram(toItem(detail.getClassDiagramText(), detail.getClassDiagramJson(), detail.getClassDiagramFiles()))
                 .sequenceDiagram(toItem(detail.getSequenceText(), detail.getSequenceFiles()))
                 .uiDesign(toItem(detail.getUiDesignText(), detail.getUiDesignFiles()))
                 .erDiagram(toItem(detail.getErdText(), detail.getErdFiles()))
@@ -191,12 +192,20 @@ public class DesignDetailService {
                 .toList();
     }
 
-    private DesignItemDto toItem(String text, List<FileMeta> files) {
+    // 1. JSON 포함된 toItem //무영 수정
+    private DesignItemDto toItem(String text, String json, List<FileMeta> files) {
         List<FileMetaDto> fileDtos = files.stream()
                 .map(f -> new FileMetaDto(f.getUrl(), f.getUploadedAt()))
                 .toList();
-        return new DesignItemDto(text, fileDtos);
+        return new DesignItemDto(text, json, fileDtos);
     }
+
+    // 2. 기존 방식 (text만 있는 경우) //무영 수정
+    private DesignItemDto toItem(String text, List<FileMeta> files) {
+        return toItem(text, null, files); // json은 null로 전달
+    }
+
+
 
     private DesignDetailEntity getOrCreateDesignDetail(Long projectId) {
         ProjectEntity project = projectRepository.findById(projectId)

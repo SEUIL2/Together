@@ -1,18 +1,38 @@
 <template>
   <div class="notification-wrapper" ref="wrapperRef">
-    <img src="@/assets/bell.png" @click="toggleNotifications" class="notification-icon" />
+    <img
+        src="@/assets/bell.png"
+        @click="toggleNotifications"
+        class="notification-icon"
+        alt="알림 아이콘"
+    />
 
     <div v-if="showNotifications" class="notification-popup">
       <p v-if="notifications.length === 0">알림이 없습니다.</p>
       <ul v-else>
         <li
-          v-for="note in notifications"
-          :key="note.id"
-          :class="{ unread: !note.isRead }"
-          @click="markAsRead(note)"
+            v-for="note in notifications"
+            :key="note.id"
+            :class="{ unread: !note.isRead }"
         >
           <div class="message">{{ note.message }}</div>
           <div class="time">{{ formatDate(note.createdAt) }}</div>
+
+          <!-- 초대 알림인 경우에만 수락/거절 버튼 표시 -->
+          <div v-if="note.type === 'invitation'" class="actions">
+            <button
+                class="accept-btn"
+                @click.stop="acceptInvitation(note)"
+            >
+              수락
+            </button>
+            <button
+                class="reject-btn"
+                @click.stop="rejectInvitation(note)"
+            >
+              거절
+            </button>
+          </div>
         </li>
       </ul>
     </div>
@@ -20,22 +40,20 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, onUnmounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import axios from 'axios'
 
-// 공지사항 알림 API 호출에 필요한 로그인 사용자 ID (실제 로그인 사용자의 ID 사용)
-const currentUserId = 8
+const currentUserId = 8 // 실제 로그인한 사용자 ID로 교체하세요.
 
 const showNotifications = ref(false)
 const notifications = ref([])
 const wrapperRef = ref(null)
 let intervalId = null
 
-// 알림 팝업 토글: 열릴 때 두 API 호출 후 결과 병합
+// 공지 + 초대 알림 불러오기
 async function fetchNotifications() {
   try {
-    // 두 API를 병렬 호출 (공지사항 알림과 팀 초대 알림)
-    const [notiResponse, inviteResponse] = await Promise.all([
+    const [annResp, invResp] = await Promise.all([
       axios.get('/notifications/all', {
         params: { userId: currentUserId },
         withCredentials: true
@@ -45,87 +63,81 @@ async function fetchNotifications() {
       })
     ])
 
-    // 공지사항 알림: 각 알림 객체에 type 추가 ("announcement")
-    const announcementNotifications = notiResponse.data.map(noti => ({
-      ...noti,
-      type: 'announcement'
-    }))
-
-    // 팀 초대 알림: InvitationResponseDto 데이터를 알림 객체 형식으로 매핑, type은 "invitation"
-    const invitationNotifications = inviteResponse.data.map(invite => ({
-      id: invite.invitationId, // InvitationResponseDto에 맞게 수정
-      message: invite.message || '새로운 팀원 초대가 도착했습니다.',
-      createdAt: invite.createdAt,
-      isRead: invite.isRead || false,
+    const announcements = annResp.data.map(n => ({ ...n, type: 'announcement' }))
+    const invitations = invResp.data.map(inv => ({
+      id: inv.invitationId,
+      message: inv.message || '새로운 팀원 초대가 도착했습니다.',
+      createdAt: inv.createdAt,
+      isRead: inv.isRead || false,
       type: 'invitation'
     }))
 
-    // 두 배열을 병합한 후 생성 시간 순(내림차순)으로 정렬
-    const merged = [...announcementNotifications, ...invitationNotifications]
+    const merged = [...announcements, ...invitations]
     merged.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
     notifications.value = merged
-
   } catch (e) {
-    console.error('알림 데이터 가져오기 실패', e)
+    console.error('알림 가져오기 실패', e)
   }
 }
 
-// 알림 팝업 토글 함수: 팝업 열릴 때 알림 갱신 호출
 function toggleNotifications() {
   showNotifications.value = !showNotifications.value
-  if (showNotifications.value) {
-    fetchNotifications()
-  }
+  if (showNotifications.value) fetchNotifications()
 }
 
-// 외부 클릭 시 팝업 닫기
-function handleClickOutside(event) {
-  if (wrapperRef.value && !wrapperRef.value.contains(event.target)) {
+function handleClickOutside(e) {
+  if (wrapperRef.value && !wrapperRef.value.contains(e.target)) {
     showNotifications.value = false
   }
 }
 
-// 알림 읽음 처리: type에 따라 처리 분기
-async function markAsRead(notification) {
-  if (notification.isRead) return
-
-  // 공지사항 알림인 경우 API 호출
-  if (notification.type === 'announcement') {
-    try {
-      await axios.post(`/notifications/${notification.id}/read`, null, {
-        withCredentials: true
-      })
-    } catch (e) {
-      console.error('공지사항 알림 읽음 처리 실패', e)
-    }
+async function acceptInvitation(note) {
+  try {
+    await axios.post(
+        `/projects/invite/${note.id}/accept/`,
+        null,
+        { withCredentials: true }
+    )
+    // 프로젝트 멤버에 자동으로 추가됨
+  } catch (e) {
+    console.error('초대 수락 실패', e)
+  } finally {
+    // 알림 목록에서 제거
+    notifications.value = notifications.value.filter(n => n.id !== note.id)
   }
-  // 팀 초대 알림은 현재 로컬에서만 읽음 처리 (추후 서버 API가 있다면 추가)
-  notification.isRead = true
 }
 
-// 시간 포맷 함수: YYYY-MM-DD hh:mm 형식
+async function rejectInvitation(note) {
+  try {
+    await axios.post(
+        `/projects/invitations/${note.id}/reject`,
+        null,
+        { withCredentials: true }
+    )
+  } catch (e) {
+    console.error('초대 거절 실패', e)
+  } finally {
+    notifications.value = notifications.value.filter(n => n.id !== note.id)
+  }
+}
+
 function formatDate(dateStr) {
-  const date = new Date(dateStr)
-  const yyyy = date.getFullYear()
-  const mm = String(date.getMonth() + 1).padStart(2, '0')
-  const dd = String(date.getDate()).padStart(2, '0')
-  const hh = String(date.getHours()).padStart(2, '0')
-  const min = String(date.getMinutes()).padStart(2, '0')
-  return `${yyyy}-${mm}-${dd} ${hh}:${min}`
+  const d = new Date(dateStr)
+  const yyyy = d.getFullYear()
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  const hh = String(d.getHours()).padStart(2, '0')
+  const mi = String(d.getMinutes()).padStart(2, '0')
+  return `${yyyy}-${mm}-${dd} ${hh}:${mi}`
 }
 
-// 컴포넌트가 마운트될 때 외부 클릭 이벤트 등록 및 주기적 알림 갱신(예: 10초마다)
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
   intervalId = setInterval(() => {
-    // 팝업이 열려 있는 동안에만 알림 데이터를 주기적으로 새로고침
-    if (showNotifications.value) {
-      fetchNotifications()
-    }
+    if (showNotifications.value) fetchNotifications()
   }, 10000)
 })
 
-// 언마운트 시 이벤트 해제 및 타이머 정리
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleClickOutside)
   clearInterval(intervalId)
@@ -150,15 +162,15 @@ onBeforeUnmount(() => {
   position: absolute;
   top: 40px;
   right: 30px;
-  background: white;
+  background: #fff;
   border: 1px solid #ddd;
   padding: 10px;
   width: 400px;
   max-height: 300px;
   overflow-y: auto;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  z-index: 2000;
   border-radius: 10px;
+  z-index: 2000;
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
@@ -177,7 +189,6 @@ onBeforeUnmount(() => {
   padding: 8px 0;
   font-size: 12px;
   border-bottom: 1px solid #f0f0f0;
-  cursor: pointer;
 }
 
 .notification-popup li.unread {
@@ -186,11 +197,36 @@ onBeforeUnmount(() => {
 }
 
 .notification-popup .message {
-  margin-bottom: 2px;
+  margin-bottom: 4px;
 }
 
 .notification-popup .time {
   font-size: 10px;
   color: #999;
+}
+
+.actions {
+  margin-top: 6px;
+  display: flex;
+  gap: 8px;
+}
+
+.accept-btn,
+.reject-btn {
+  padding: 4px 8px;
+  font-size: 10px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.accept-btn {
+  background-color: #4caf50;
+  color: white;
+}
+
+.reject-btn {
+  background-color: #f44336;
+  color: white;
 }
 </style>

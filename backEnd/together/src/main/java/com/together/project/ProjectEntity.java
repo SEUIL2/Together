@@ -35,24 +35,18 @@ public class ProjectEntity {
     @Column(nullable = false)
     private String title; // 프로젝트 이름
 
-    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
+    @ManyToMany(mappedBy = "projects")
     private List<UserEntity> users = new ArrayList<>();
 
     // 프로젝트에 팀원 추가 메서드
     public void addUser(UserEntity user) {
-        users.add(user);
-        user.setProject(this);
+        users.add(user); // 내 프로젝트(users) 리스트에 유저 추가
+        user.getProjects().add(this); // 유저의 projects 리스트에도 이 프로젝트 추가
     }
 
     @OneToMany(mappedBy = "project")
     @JsonIgnore
     private List<MeetingEntity> meetings; //미팅
-
-    // 프로젝트에서 팀원 제거 메서드
-    public void removeUser(UserEntity user) {
-        users.remove(user);
-        user.setProject(null);
-    }
 
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL)
     private List<FileEntity> files = new ArrayList<>();  // 프로젝트에 속한 파일들

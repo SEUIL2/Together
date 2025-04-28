@@ -39,6 +39,8 @@ public class ProjectService {
         UserEntity user = userRepository.findByUserLoginId(loginId)
                 .orElseThrow(() -> new RuntimeException("로그인한 사용자를 찾을 수 없습니다."));
 
+
+
         // 2️⃣ 프로젝트 생성 및 유저 연결
         ProjectEntity project = new ProjectEntity();
         project.setTitle(title);

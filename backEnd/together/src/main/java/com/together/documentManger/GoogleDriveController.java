@@ -24,12 +24,12 @@ public class GoogleDriveController {
     // **파일 업로드 (Google Drive + DB 저장)**
     @PostMapping("/upload")
     public ResponseEntity<FileEntity> uploadFile(
-            @RequestParam("file") MultipartFile file,
-            @AuthenticationPrincipal UserDetailsImpl userDetails) throws IOException {
+            @RequestParam(required = false) Long projectId, //AOP 를 통해 교수일경우 불러오는값을 사용, 학생일 경우 자동 설정
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @RequestParam("file") MultipartFile file) throws IOException {
 
         //자동추출
         Long userId = userDetails.getUser().getUserId();
-        Long projectId = userDetails.getUser().getProject().getProjectId();
 
         FileEntity savedFile = googleDriveService.uploadFile(file, userId, projectId);
         return ResponseEntity.ok(savedFile);
@@ -37,8 +37,10 @@ public class GoogleDriveController {
 
     // **특정 프로젝트의 파일 조회**
     @GetMapping("/project")
-    public ResponseEntity<List<FileEntity>> getFilesByProject(@AuthenticationPrincipal UserDetailsImpl userDetails) {
-        Long projectId = userDetails.getUser().getProject().getProjectId();
+    public ResponseEntity<List<FileEntity>> getFilesByProject(
+            @RequestParam(required = false) Long projectId,
+            @AuthenticationPrincipal UserDetailsImpl userDetails) { //AOP 를 통해 교수일경우 불러오는값을 사용, 학생일 경우 자동 설정
+
         List<FileEntity> files = googleDriveService.getFilesByProject(projectId);
         return ResponseEntity.ok(files);
     }

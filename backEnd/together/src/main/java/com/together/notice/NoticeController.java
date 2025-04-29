@@ -19,10 +19,12 @@ public class NoticeController {
 
     // 공지사항 작성
     @PostMapping("/create")
-    public ResponseEntity<NoticeEntity> createNotice(@AuthenticationPrincipal UserDetailsImpl userDetails,
+    public ResponseEntity<NoticeEntity> createNotice(@RequestParam(required = false) Long projectId,//AOP 를 통해 교수일경우 불러오는값을 사용, 학생일 경우 자동 설정
+                                                     @AuthenticationPrincipal UserDetailsImpl userDetails,
                                                      @RequestBody NoticeDTO noticeDTO) {
+
         Long userId = userDetails.getUser().getUserId();
-        Long projectId = userDetails.getUser().getProject().getProjectId();
+
         NoticeEntity createdNotice = noticeService.createNotice(userId, projectId, noticeDTO);
         if (createdNotice != null) {
             return ResponseEntity.ok(createdNotice);
@@ -52,8 +54,10 @@ public class NoticeController {
 
     // 공지사항 조회
     @GetMapping("/all-notice")
-    public ResponseEntity<List<NoticeResponseDto>> getNoticesByProject(@AuthenticationPrincipal UserDetailsImpl userDetails) {
-        Long projectId = userDetails.getUser().getProject().getProjectId();
+    public ResponseEntity<List<NoticeResponseDto>> getNoticesByProject(
+            @RequestParam(required = false) Long projectId,
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {//AOP 를 통해 교수일경우 불러오는값을 사용, 학생일 경우 자동 설정
+
         return ResponseEntity.ok(noticeService.getNoticesByProject(projectId));
     }
 

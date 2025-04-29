@@ -10,6 +10,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
+@Table(name = "student_entity")
 @PrimaryKeyJoinColumn(name = "user_id") //UserEntity 상속
 public class StudentEntity extends UserEntity {
 

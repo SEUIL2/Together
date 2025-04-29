@@ -53,14 +53,15 @@ public class CommentController {
      */
     @PostMapping("/{type}/{targetId}")
     public ResponseEntity<?> createComment(
+            @RequestParam(required = false) Long projectId, //AOP 를 통해 교수일경우 불러오는값을 사용, 학생일 경우 자동 설정
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
             @PathVariable("type") CommentEntity.CommentType type,
             @PathVariable("targetId") Long targetId,
             @RequestParam(required = false) Long parentId,
-            @RequestBody String content,
-            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+            @RequestBody String content) {
 
-        Long projectId = userDetails.getUser().getProject().getProjectId();
         Long userId = userDetails.getUser().getUserId();
+
         commentService.createComment(content, userId, projectId, targetId, type, parentId);
         return ResponseEntity.ok("댓글이 등록되었습니다");
     }

@@ -9,6 +9,8 @@ import com.together.documentManger.FileEntity;
 import com.together.meeting.MeetingEntity;
 import com.together.notice.NoticeEntity;
 import com.together.user.UserEntity;
+import com.together.user.professor.ProfessorEntity;
+import com.together.user.student.StudentEntity;
 import com.together.vote.entity.VoteEntity;
 import jakarta.persistence.*;
 import lombok.*;
@@ -24,11 +26,10 @@ import java.util.List;
 @AllArgsConstructor
 @Entity
 @Table(name = "project_entity")
-public class ProjectEntity {
+public class ProjectEntity{
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-
     @Column(name = "project_id")
     private Long projectId; // PK
 
@@ -36,12 +37,23 @@ public class ProjectEntity {
     private String title; // 프로젝트 이름
 
     @ManyToMany(mappedBy = "projects")
-    private List<UserEntity> users = new ArrayList<>();
+    private List<ProfessorEntity> professors;  // 교수들과 연결
+
+    @OneToMany(mappedBy = "mainProject")
+    private List<StudentEntity> students;  // 학생들과 연결
 
     // 프로젝트에 팀원 추가 메서드
     public void addUser(UserEntity user) {
-        users.add(user); // 내 프로젝트(users) 리스트에 유저 추가
-        user.getProjects().add(this); // 유저의 projects 리스트에도 이 프로젝트 추가
+        if (user instanceof StudentEntity) { // 학생인 경우
+            students.add((StudentEntity) user); // 내 프로젝트(students) 리스트에 학생 추가
+
+            // 학생의 mainProject를 가져오고 해당 프로젝트에 학생을 추가
+            StudentEntity student = (StudentEntity) user;
+            ProjectEntity project = student.getMainProject(); // 학생의 mainProject를 가져오기
+
+            // 해당 프로젝트의 students 리스트에 학생을 추가
+            project.getStudents().add(student); // 학생을 해당 프로젝트의 학생 리스트에 추가
+        }
     }
 
     @OneToMany(mappedBy = "project")

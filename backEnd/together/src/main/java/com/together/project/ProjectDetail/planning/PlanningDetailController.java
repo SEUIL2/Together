@@ -25,6 +25,7 @@ public class PlanningDetailController {
     // 지원: text만 / files만 / 둘 다 전송 가능
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<PlanningDetailResponseDto> uploadPlanningItem(
+            @RequestParam(required = false) Long projectId, //AOP 를 통해 교수일경우 불러오는값을 사용, 학생일 경우 자동 설정
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @RequestPart("type") String type,  // 어떤 항목에 저장할지 지정 (ex: motivation, goal...)
             @RequestPart(value = "text", required = false) String text,
@@ -32,7 +33,6 @@ public class PlanningDetailController {
     ) throws IOException {
 
         // 🔑 로그인한 유저의 프로젝트 ID 및 유저 ID 가져오기
-        Long projectId = userDetails.getUser().getProject().getProjectId();
         Long userId = userDetails.getUser().getUserId();
 
         // 💾 서비스에 저장 위임
@@ -45,12 +45,12 @@ public class PlanningDetailController {
     // ✅ 기획 항목 수정 API (text + 새 파일 추가)
     @PutMapping(value = "/update", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<PlanningDetailResponseDto> updatePlanning(
+            @RequestParam(required = false) Long projectId, //AOP 를 통해 교수일경우 불러오는값을 사용, 학생일 경우 자동 설정
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @RequestParam("type") String type,
             @RequestParam(value = "text", required = false) String text,
             @RequestPart(value = "files", required = false) List<MultipartFile> files
     ) throws IOException {
-        Long projectId = userDetails.getUser().getProject().getProjectId();
         Long userId = userDetails.getUser().getUserId();
         return ResponseEntity.ok(service.updatePlanningItem(userId, projectId, type, text, files));
     }
@@ -58,11 +58,11 @@ public class PlanningDetailController {
     // ✅ 특정 기획 항목에 첨부된 파일 삭제 API
     @DeleteMapping("/delete-file")
     public ResponseEntity<Map<String, String>> deleteFile(
+            @RequestParam(required = false) Long projectId, //AOP 를 통해 교수일경우 불러오는값을 사용, 학생일 경우 자동 설정
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @RequestParam("type") String type,
             @RequestParam("fileUrl") String fileUrl
     ) {
-        Long projectId = userDetails.getUser().getProject().getProjectId();
         service.deletePlanningFile(projectId, type, fileUrl);
 
         return ResponseEntity.ok(Map.of(
@@ -78,9 +78,9 @@ public class PlanningDetailController {
      */
     @GetMapping("/all")
     public ResponseEntity<PlanningAllResponseDto> getAllPlanningDetails(
+            @RequestParam(required = false) Long projectId, //AOP 를 통해 교수일경우 불러오는값을 사용, 학생일 경우 자동 설정
             @AuthenticationPrincipal UserDetailsImpl userDetails
     ) {
-        Long projectId = userDetails.getUser().getProject().getProjectId();
         return ResponseEntity.ok(service.getAllDetails(projectId));
     }
 

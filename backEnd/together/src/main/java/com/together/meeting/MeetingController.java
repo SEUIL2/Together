@@ -33,14 +33,14 @@ public class MeetingController {
      */
     @PostMapping("/create")
     public ResponseEntity<MeetingEntity> createMeeting(
-            @RequestBody MeetingDto meetingDto,
-            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+            @RequestParam(required = false) Long projectId, //AOP 를 통해 교수일경우 불러오는값을 사용, 학생일 경우 자동 설정
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @RequestBody MeetingDto meetingDto) {
 
         Long user = userDetails.getUser().getUserId();
-        Long project = userDetails.getUser().getProject().getProjectId();
 
         // 회의 생성
-        MeetingEntity createdMeeting = meetingService.createMeeting(meetingDto, user, project);
+        MeetingEntity createdMeeting = meetingService.createMeeting(meetingDto, user, projectId);
 
         return ResponseEntity.ok(createdMeeting);
     }
@@ -56,8 +56,10 @@ public class MeetingController {
      * 2. 프론트에서 불러올때 projectId를 입력하게끔 수정 -> 해당 프로젝트에있는 회의만 출력됨
      */
     @GetMapping("/all-author")
-    public ResponseEntity<List<MeetingResponseDto>> getAllMeetings(@AuthenticationPrincipal UserDetailsImpl userDetails) {
-        Long projectId = userDetails.getUser().getProject().getProjectId();
+    public ResponseEntity<List<MeetingResponseDto>> getAllMeetings(
+            @RequestParam(required = false) Long projectId, //AOP 를 통해 교수일경우 불러오는값을 사용, 학생일 경우 자동 설정
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+
         return ResponseEntity.ok(meetingService.getAllMeetings(projectId));
     }
 

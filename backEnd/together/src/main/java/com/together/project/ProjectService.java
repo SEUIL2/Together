@@ -10,6 +10,7 @@ import com.together.project.ProjectDto.ProjectResponseDto;
 import com.together.user.UserEntity;
 import com.together.user.UserRepository;
 import com.together.user.dto.UserResponseDto;
+import com.together.user.student.StudentEntity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -39,17 +40,29 @@ public class ProjectService {
         UserEntity user = userRepository.findByUserLoginId(loginId)
                 .orElseThrow(() -> new RuntimeException("로그인한 사용자를 찾을 수 없습니다."));
 
+        // 2️⃣ 학생이 이미 프로젝트를 보유하고 있다면 예외 처리 (학생은 하나의 프로젝트만 가질 수 있다)
+        if (user instanceof StudentEntity) {
+            StudentEntity student = (StudentEntity) user;
+            if (student.getMainProject() != null) {
+                throw new RuntimeException("학생은 이미 하나의 프로젝트만 가질 수 있습니다.");
+            }
+        }
 
-
-        // 2️⃣ 프로젝트 생성 및 유저 연결
+        // 3️⃣ 프로젝트 생성 및 유저 연결
         ProjectEntity project = new ProjectEntity();
         project.setTitle(title);
         project.addUser(user); // ✅ 자동 연결
 
-        // 3️⃣ 저장
+        // 4️⃣ 저장
         ProjectEntity savedProject = projectRepository.save(project);
 
-        // 4️⃣ 응답 반환
+        // 5️⃣ 학생인 경우, mainProject로 설정
+        if (user instanceof StudentEntity) {
+            StudentEntity student = (StudentEntity) user;
+            student.setMainProject(savedProject);
+        }
+
+        // 6️⃣ 응답 반환
         return new ProjectResponseDto(
                 savedProject.getProjectId(),
                 savedProject.getTitle()
@@ -90,12 +103,21 @@ public class ProjectService {
     // ✅ 팀원 초대
     @Transactional
     public boolean inviteUserToProject(Long projectId, String email) {
+        // 프로젝트와 유저 조회
         ProjectEntity project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new RuntimeException("프로젝트 없음"));
         UserEntity user = userRepository.findByUserEmail(email)
                 .orElseThrow(() -> new RuntimeException("사용자 없음"));
 
-        // 중복 초대 체크
+        // 1️⃣ 학생인 경우, 이미 mainProject가 설정되어 있으면 초대할 수 없음
+        if (user instanceof StudentEntity) {
+            StudentEntity student = (StudentEntity) user;
+            if (student.getMainProject() != null) {
+                throw new RuntimeException("학생은 이미 하나의 프로젝트에만 속할 수 있습니다.");
+            }
+        }
+
+        // 2️⃣ 중복 초대 체크
         Optional<InvitationEntity> existing = invitationRepository.findByProjectAndUser(project, user);
         if (existing.isPresent()) {
             String status = existing.get().getStatus();
@@ -109,16 +131,16 @@ public class ProjectService {
             return false;
         }
 
-        // 새로운 초대
+        // 3️⃣ 새로운 초대 생성
         InvitationEntity invitation = new InvitationEntity();
         invitation.setProject(project);
         invitation.setUser(user);
         invitation.setStatus("PENDING");
         invitationRepository.save(invitation);
 
-        // 알림 전송
+        // 4️⃣ 알림 전송
         String message = String.format("%s님이 사용자를 %s 프로젝트에 초대하였습니다.",
-                project.getUsers().get(0).getUserName(), project.getTitle());
+                project.getStudents().get(0).getUserName(), project.getTitle());
         notificationService.sendNotification(user.getUserId(), message, "/projects");
 
         return true;
@@ -154,7 +176,7 @@ public class ProjectService {
         UserEntity user = invitation.getUser();
 
         // 프로젝트에 사용자 추가
-        if (!project.getUsers().contains(user)) {
+        if (!project.getStudents().contains(user)) {
             project.addUser(user);
             projectRepository.save(project);
         }
@@ -180,7 +202,7 @@ public class ProjectService {
         ProjectEntity project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new RuntimeException("프로젝트를 찾을 수 없습니다."));
 
-        return project.getUsers().stream()
+        return project.getStudents().stream()
                 .map(user -> new TeamMemberDto(
                         user.getUserId(),
                         user.getUserName(),

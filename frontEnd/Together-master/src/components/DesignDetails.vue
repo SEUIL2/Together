@@ -145,8 +145,13 @@ function toggleEdit(index) {
     router.push("/DiagramPage");
     return;
   }
+  if (item.name === "ER 다이어그램") {
+    router.push("/ErdDiagramPage");
+    return;
+  }
   item.editing = !item.editing;
 }
+
 
 function handleFileUpload(event, index) {
   const selectedFiles = event.target.files;

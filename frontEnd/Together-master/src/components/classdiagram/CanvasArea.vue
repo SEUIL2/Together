@@ -1,10 +1,5 @@
 <template>
-  <div
-    class="canvas-container"
-    ref="container"
-    @click="hideContextMenu"
-    @contextmenu.prevent
-  >
+  <div class="canvas-container" ref="container" @contextmenu.prevent>
     <v-stage :config="stageConfig" @wheel="handleWheel">
       <v-layer>
         <ClassBox
@@ -13,26 +8,34 @@
           :cls="cls"
           :selected="selectedClassId === cls.id"
           :scale="scale"
+          :selectedMethod="selectedMethod"
+          :selectedAttribute="selectedAttribute"
+          :editing="isEditing(cls.id)"
           @dragmove="updatePosition"
           @edit="startEdit"
           @add-item="addItem"
           @contextmenu="onRightClick"
           @box-selected="selectClass"
           @anchor-click="handleAnchorClick"
+          @update-size="onUpdateClassSize"
+          @select-method="onSelectMethod"
+          @rightclick-method="onRightClickMethod"
+          @select-attribute="onSelectAttribute"
+          @rightclick-attribute="onRightClickAttribute"
+          
         />
       </v-layer>
 
       <v-layer>
         <RelationshipArrow
-  v-for="rel in relationships"
-  :key="rel.id + '-' + rel.fromType + '-' + rel.toType + '-' + rel.lineType"
-  :rel="rel"
-  :classes="classes"
-  :selected="rel.id === selectedRelationshipId"
-  @select="selectRelationship"
-  @open-menu="openRelationshipMenu"
-/>
-
+          v-for="rel in relationships"
+          :key="rel.id + '-' + rel.fromType + '-' + rel.toType + '-' + rel.lineType"
+          :rel="rel"
+          :classes="classes"
+          :selected="rel.id === selectedRelationshipId"
+          @select="selectRelationship"
+          @open-menu="openRelationshipMenu"
+        />
       </v-layer>
     </v-stage>
 
@@ -61,7 +64,7 @@
       :style="{ top: arrowContextMenuPos.y + 'px', left: arrowContextMenuPos.x + 'px' }"
       @click.stop
     >
-      <label>좌측 도형
+      <label>  좌
         <select :value="selectedRelationship?.fromType || 'none'" @change="onDropdownChange('fromType', $event.target.value)">
           <option v-for="type in shapeTypes" :key="type.key" :value="type.key">
             {{ type.label }}
@@ -69,7 +72,7 @@
         </select>
       </label>
 
-      <label>중간 선
+      <label>  선
         <select :value="selectedRelationship?.lineType || 'solid'" @change="onDropdownChange('lineType', $event.target.value)">
           <option v-for="type in lineTypes" :key="type.key" :value="type.key">
             {{ type.label }}
@@ -77,7 +80,7 @@
         </select>
       </label>
 
-      <label>우측 도형
+      <label>  우
         <select :value="selectedRelationship?.toType || 'none'" @change="onDropdownChange('toType', $event.target.value)">
           <option v-for="type in shapeTypes" :key="type.key" :value="type.key">
             {{ type.label }}
@@ -87,11 +90,29 @@
 
       <button @click="deleteCurrentRelationship">삭제</button>
     </div>
+
+    <div
+      v-if="methodMenuVisible"
+      class="context-menu"
+      :style="{ top: methodMenuPos.y + 'px', left: methodMenuPos.x + 'px' }"
+      @click.stop
+    >
+      <button @click="deleteSelectedMethod">메서드 삭제</button>
+    </div>
+
+    <div
+      v-if="attrMenuVisible"
+      class="context-menu"
+      :style="{ top: attrMenuPos.y + 'px', left: attrMenuPos.x + 'px' }"
+      @click.stop
+    >
+      <button @click="deleteSelectedAttribute">속성 삭제</button>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, nextTick } from 'vue';
+import { ref, computed, nextTick, onMounted, onBeforeUnmount } from 'vue';
 import ClassBox from './ClassBox.vue';
 import RelationshipArrow from './RelationshipArrow.vue';
 
@@ -107,7 +128,7 @@ const emit = defineEmits([
   'delete-class',
   'delete-relationship',
   'add-relationship',
-  'update-relationship' // ✅ 핵심 추가
+  'update-relationship'
 ]);
 
 const shapeTypes = [
@@ -147,29 +168,43 @@ const selectedClassId = ref(null);
 const anchorStartClassId = ref(null);
 const anchorStartDirection = ref(null);
 
-// CanvasArea.vue or DiagramPage.vue
+const selectedMethod = ref({ clsId: null, index: null });
+const methodMenuVisible = ref(false);
+const methodMenuPos = ref({ x: 0, y: 0 });
+
+const selectedAttribute = ref({ clsId: null, index: null });
+const attrMenuVisible = ref(false);
+const attrMenuPos = ref({ x: 0, y: 0 });
+
+function handleClickOutside() {
+  contextMenuVisible.value = false;
+  contextClassId.value = null;
+  arrowContextMenuVisible.value = false;
+  selectedRelationship.value = null;
+  selectedRelationshipId.value = null;
+  methodMenuVisible.value = false;
+  selectedMethod.value = { clsId: null, index: null };
+  attrMenuVisible.value = false;
+  selectedAttribute.value = { clsId: null, index: null };
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside);
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleClickOutside);
+});
+
 function onDropdownChange(type, value) {
   if (!selectedRelationship.value) return;
-
-  // 관계선 객체를 업데이트
   const updatedRel = { ...selectedRelationship.value };
-
-  // 드롭다운 타입에 따라 변경
-  if (type === 'fromType') {
-    updatedRel.fromType = value;
-  } else if (type === 'toType') {
-    updatedRel.toType = value;
-  } else if (type === 'lineType') {
-    updatedRel.lineType = value;  // 'dashed' 또는 'solid'
-  }
-
-  // 상위 컴포넌트로 업데이트된 관계선 값 전송
+  if (type === 'fromType') updatedRel.fromType = value;
+  else if (type === 'toType') updatedRel.toType = value;
+  else if (type === 'lineType') updatedRel.lineType = value;
   emit('update-relationship', updatedRel);
   selectedRelationship.value = updatedRel;
 }
-
-
-
 
 function updatePosition(payload) { emit('update-position', payload); }
 function startEdit({ cls, region, index, event }) {
@@ -181,11 +216,22 @@ function startEdit({ cls, region, index, event }) {
   editingPos.value = { x: cls.x + 10, y: cls.y + 10 };
   nextTick(() => { document.querySelector('.text-input')?.focus(); });
 }
-function finishEdit() { emit('update-text', { id: editingClassId.value, region: editingRegion.value, index: editingIndex.value, newText: editingText.value }); editingClassId.value = null; }
+function finishEdit() {
+  emit('update-text', {
+    id: editingClassId.value,
+    region: editingRegion.value,
+    index: editingIndex.value,
+    newText: editingText.value
+  });
+  editingClassId.value = null;
+}
 function addItem(region, id) { emit('add-item', { id, region }); }
-function onRightClick(e, cls) { e.evt.preventDefault(); contextMenuPos.value = { x: e.evt.clientX, y: e.evt.clientY }; contextClassId.value = cls.id; contextMenuVisible.value = true; }
-function hideContextMenu() { contextMenuVisible.value = false; contextClassId.value = null; arrowContextMenuVisible.value = false; selectedRelationship.value = null; selectedRelationshipId.value = null; }
-function deleteCurrentClass() { emit('delete-class', contextClassId.value); hideContextMenu(); }
+function onRightClick(e, cls) {
+  e.evt.preventDefault();
+  contextMenuPos.value = { x: e.evt.clientX + 2, y: e.evt.clientY + 8 };
+  contextClassId.value = cls.id;
+  contextMenuVisible.value = true;
+}
 function selectClass(cls) { selectedClassId.value = cls.id; }
 function handleAnchorClick({ id, direction }) {
   if (!anchorStartClassId.value) {
@@ -210,16 +256,63 @@ function handleAnchorClick({ id, direction }) {
 function selectRelationship({ rel, event }) {
   selectedRelationship.value = rel;
   selectedRelationshipId.value = rel.id;
-  arrowContextMenuPos.value = { x: event.evt?.clientX || 0, y: event.evt?.clientY || 0 };
+  arrowContextMenuPos.value = { x: event.evt?.clientX + 2 || 0, y: event.evt?.clientY + 8 || 0 };
   arrowContextMenuVisible.value = true;
 }
 function openRelationshipMenu({ rel, event }) { selectRelationship({ rel, event }); }
-function deleteCurrentRelationship() { emit('delete-relationship', selectedRelationship.value); hideContextMenu(); }
+function deleteCurrentClass() { emit('delete-class', contextClassId.value); handleClickOutside(); }
+function deleteCurrentRelationship() { emit('delete-relationship', selectedRelationship.value); handleClickOutside(); }
+function deleteSelectedMethod() {
+  const cls = props.classes.find(c => c.id === selectedMethod.value.clsId);
+  if (cls && selectedMethod.value.index !== null) {
+    cls.methods.splice(selectedMethod.value.index, 1);
+  }
+  handleClickOutside();
+}
+function deleteSelectedAttribute() {
+  const cls = props.classes.find(c => c.id === selectedAttribute.value.clsId);
+  if (cls && selectedAttribute.value.index !== null) {
+    cls.attributes.splice(selectedAttribute.value.index, 1);
+  }
+  handleClickOutside();
+}
+function onSelectMethod({ clsId, index }) {
+  selectedMethod.value = { clsId, index };
+  methodMenuVisible.value = false;
+}
+function onRightClickMethod({ clsId, index, event }) {
+  const stage = event.target.getStage();
+  const pointerPos = stage.getPointerPosition();
+  selectedMethod.value = { clsId, index };
+  methodMenuPos.value = { x: pointerPos.x + 10, y: pointerPos.y + 5 };
+  methodMenuVisible.value = true;
+}
+function onSelectAttribute({ clsId, index }) {
+  selectedAttribute.value = { clsId, index };
+  attrMenuVisible.value = false;
+}
+function onRightClickAttribute({ clsId, index, event }) {
+  const stage = event.target.getStage();
+  const pointerPos = stage.getPointerPosition();
+  selectedAttribute.value = { clsId, index };
+  attrMenuPos.value = { x: pointerPos.x + 10, y: pointerPos.y + 5 };
+  attrMenuVisible.value = true;
+}
 function handleWheel(e) {
   e.evt.preventDefault();
   const oldScale = scale.value.x;
   const newScale = e.evt.deltaY > 0 ? oldScale * 0.9 : oldScale * 1.1;
   scale.value = { x: newScale, y: newScale };
+}
+function onUpdateClassSize({ id, width, height }) {
+  const cls = props.classes.find(c => c.id === id);
+  if (cls) {
+    cls.width = width;
+    cls.height = height;
+  }
+}
+function isEditing(id) {
+  return editingClassId.value === id;
 }
 </script>
 

@@ -146,6 +146,12 @@ onMounted(async () => {
 
 
 <style scoped>
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;  /* ✅ 페이지 전체 스크롤 제거 */
+  height: 100%;
+}
 .project-container {
   display: flex;
   width: 100vw;

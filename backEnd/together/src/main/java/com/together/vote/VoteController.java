@@ -1,6 +1,7 @@
 package com.together.vote;
 
 import com.together.systemConfig.UserDetailsImpl;
+import com.together.util.customAnnotation.CurrentProject;
 import com.together.vote.DTO.VoteDTO;
 import com.together.vote.DTO.VoteResponseDTO;
 import com.together.vote.entity.VoteEntity;
@@ -33,10 +34,11 @@ public class VoteController {
      * @return ResponseEntity<VoteEntity> - 생성된 투표 객체 반환
      */
     @PostMapping("/create")
-    public ResponseEntity<VoteEntity> createVote(@AuthenticationPrincipal UserDetailsImpl userDetails,
-                                                 @RequestBody VoteDTO voteDTO) {
+    public ResponseEntity<VoteEntity> createVote(
+            @CurrentProject(required = false) Long projectId,
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @RequestBody VoteDTO voteDTO) {
         Long userId = userDetails.getUser().getUserId();
-        Long projectId = userDetails.getUser().getProject().getProjectId();
 
         VoteEntity createdVote = voteService.createVote(userId, projectId, voteDTO);
         if (createdVote != null) {
@@ -52,8 +54,10 @@ public class VoteController {
      * @return ResponseEntity<List<VoteEntity>> - 프로젝트에 속한 모든 투표 리스트 반환
      */
     @GetMapping("/project")
-    public ResponseEntity<List<VoteEntity>> getVotesByProject(@AuthenticationPrincipal UserDetailsImpl userDetails) {
-        Long projectId = userDetails.getUser().getProject().getProjectId();
+    public ResponseEntity<List<VoteEntity>> getVotesByProject(
+            @CurrentProject(required = false) Long projectId,
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+
         List<VoteEntity> votes = voteService.getVotesByProject(projectId);
         return ResponseEntity.ok(votes);  // 투표 목록 반환
     }

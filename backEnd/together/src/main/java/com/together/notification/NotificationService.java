@@ -49,9 +49,6 @@ public class NotificationService {
      */
     public List<NotificationEntity> getUnreadNotifications(Long userId) {
 
-        
-
-
         return notificationRepository.findByReceiverUserIdAndIsReadFalse(userId);
     }
 

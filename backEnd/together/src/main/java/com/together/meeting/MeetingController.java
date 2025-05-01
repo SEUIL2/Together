@@ -2,6 +2,7 @@ package com.together.meeting;
 
 import com.together.systemConfig.UserDetailsImpl;
 import com.together.project.ProjectRepository;
+import com.together.util.customAnnotation.CurrentProject;
 import com.together.user.UserEntity;
 import com.together.user.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -33,14 +34,14 @@ public class MeetingController {
      */
     @PostMapping("/create")
     public ResponseEntity<MeetingEntity> createMeeting(
-            @RequestBody MeetingDto meetingDto,
-            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+            @CurrentProject(required = false) Long projectId,
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @RequestBody MeetingDto meetingDto) {
 
         Long user = userDetails.getUser().getUserId();
-        Long project = userDetails.getUser().getProject().getProjectId();
 
         // 회의 생성
-        MeetingEntity createdMeeting = meetingService.createMeeting(meetingDto, user, project);
+        MeetingEntity createdMeeting = meetingService.createMeeting(meetingDto, user, projectId);
 
         return ResponseEntity.ok(createdMeeting);
     }
@@ -56,8 +57,10 @@ public class MeetingController {
      * 2. 프론트에서 불러올때 projectId를 입력하게끔 수정 -> 해당 프로젝트에있는 회의만 출력됨
      */
     @GetMapping("/all-author")
-    public ResponseEntity<List<MeetingResponseDto>> getAllMeetings(@AuthenticationPrincipal UserDetailsImpl userDetails) {
-        Long projectId = userDetails.getUser().getProject().getProjectId();
+    public ResponseEntity<List<MeetingResponseDto>> getAllMeetings(
+            @CurrentProject(required = false) Long projectId,
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+
         return ResponseEntity.ok(meetingService.getAllMeetings(projectId));
     }
 

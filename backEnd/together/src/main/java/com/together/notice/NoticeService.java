@@ -5,12 +5,15 @@ import com.together.project.ProjectEntity;
 import com.together.project.ProjectRepository;
 import com.together.user.UserEntity;
 import com.together.user.UserRepository;
+import com.together.user.professor.ProfessorEntity;
+import com.together.user.student.StudentEntity;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.Builder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -46,7 +49,7 @@ public class NoticeService {
             notice.setProject(project);
 
             // ⭐ 알림 전송 코드 추가
-            List<UserEntity> projectUsers = project.getUsers();
+            List<StudentEntity> projectUsers = project.getStudents();
             if (projectUsers != null) {
                 for (UserEntity notificationUser : projectUsers) {
                     notificationService.sendNotification(

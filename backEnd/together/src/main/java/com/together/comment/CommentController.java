@@ -1,6 +1,7 @@
 package com.together.comment;
 
 import com.together.systemConfig.UserDetailsImpl;
+import com.together.util.customAnnotation.CurrentProject;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -53,14 +54,15 @@ public class CommentController {
      */
     @PostMapping("/{type}/{targetId}")
     public ResponseEntity<?> createComment(
+            @CurrentProject(required = false) Long projectId,
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
             @PathVariable("type") CommentEntity.CommentType type,
             @PathVariable("targetId") Long targetId,
             @RequestParam(required = false) Long parentId,
-            @RequestBody String content,
-            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+            @RequestBody String content) {
 
-        Long projectId = userDetails.getUser().getProject().getProjectId();
         Long userId = userDetails.getUser().getUserId();
+
         commentService.createComment(content, userId, projectId, targetId, type, parentId);
         return ResponseEntity.ok("댓글이 등록되었습니다");
     }

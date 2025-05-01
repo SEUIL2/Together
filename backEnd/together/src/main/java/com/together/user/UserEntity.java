@@ -57,10 +57,6 @@ public class UserEntity {
         STUDENT, PROFESSOR
     }
 
-    @ManyToOne
-    @JoinColumn(name = "project_id")
-    private ProjectEntity project;
-
     @OneToMany(mappedBy = "users")
     @JsonIgnore
     private List<MeetingEntity> meetings;

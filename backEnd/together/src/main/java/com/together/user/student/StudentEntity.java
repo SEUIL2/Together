@@ -17,7 +17,7 @@ public class StudentEntity extends UserEntity {
     @Column(unique = true)
     private String studentNumber; //학번
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "main_project_id")
     private ProjectEntity mainProject; //대표 프로젝트
 

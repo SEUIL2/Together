@@ -37,28 +37,35 @@ public class ProjectEntity{
     private String title; // 프로젝트 이름
 
     @ManyToMany(mappedBy = "projects")
-    private List<ProfessorEntity> professors;  // 교수들과 연결
+    private List<ProfessorEntity> professors = new ArrayList<>();  // 교수들과 연결
 
-    @OneToMany(mappedBy = "mainProject")
-    private List<StudentEntity> students;  // 학생들과 연결
+    @OneToMany(mappedBy = "mainProject", cascade = CascadeType.ALL)
+    private List<StudentEntity> students = new ArrayList<>();  // 학생들과 연결
 
     // 프로젝트에 팀원 추가 메서드
     public void addUser(UserEntity user) {
-        if (user instanceof StudentEntity) { // 학생인 경우
-            students.add((StudentEntity) user); // 내 프로젝트(students) 리스트에 학생 추가
-
-            // 학생의 mainProject를 가져오고 해당 프로젝트에 학생을 추가
+        if (user instanceof StudentEntity) {
             StudentEntity student = (StudentEntity) user;
-            ProjectEntity project = student.getMainProject(); // 학생의 mainProject를 가져오기
 
-            // 해당 프로젝트의 students 리스트에 학생을 추가
-            project.getStudents().add(student); // 학생을 해당 프로젝트의 학생 리스트에 추가
+            // ✅ null 방지 처리
+            if (this.getStudents() == null) this.setStudents(new ArrayList<>());
+            this.getStudents().add(student);
+
+            // ✅ 역방향 연결도 여기서 처리
+            if (student.getMainProject() == null) {
+                student.setMainProject(this);
+            }
+
+        } else if (user instanceof ProfessorEntity) {
+            ProfessorEntity professor = (ProfessorEntity) user;
+            this.getProfessors().add(professor);
+            professor.getProjects().add(this);
         }
     }
 
     @OneToMany(mappedBy = "project")
     @JsonIgnore
-    private List<MeetingEntity> meetings; //미팅
+    private List<MeetingEntity> meetings = new ArrayList<>(); //미팅
 
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL)
     private List<FileEntity> files = new ArrayList<>();  // 프로젝트에 속한 파일들

@@ -3,6 +3,7 @@ package com.together.project.ProjectDetail.design;
 import com.together.project.ProjectDetail.design.dto.DesignAllResponseDto;
 import com.together.project.ProjectDetail.design.dto.DesignDetailResponseDto;
 import com.together.systemConfig.UserDetailsImpl;
+import com.together.util.customAnnotation.CurrentProject;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -24,7 +25,7 @@ public class DesignDetailController {
     // ✅ 설계 항목 저장 API (텍스트 + 파일 또는 JSON 포함)
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<DesignDetailResponseDto> uploadDesignItem(
-            @RequestParam(required = false) Long projectId, //AOP 를 통해 교수일경우 불러오는값을 사용, 학생일 경우 자동 설정
+            @CurrentProject(required = false) Long projectId,
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @RequestPart("type") String type,  // 어떤 항목인지 지정 (ex: usecase, class-diagram, ...)
             @RequestPart(value = "text", required = false) String text,
@@ -41,8 +42,8 @@ public class DesignDetailController {
     // ✅ 설계 항목 수정 API
     @PutMapping(value = "/update", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<DesignDetailResponseDto> updateDesignItem(
-            @RequestParam(required = false) Long projectId,
-            @AuthenticationPrincipal UserDetailsImpl userDetails,//AOP 를 통해 교수일경우 불러오는값을 사용, 학생일 경우 자동 설정
+            @CurrentProject(required = false) Long projectId,
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
             @RequestParam("type") String type,
             @RequestParam(value = "text", required = false) String text,
             @RequestParam(value = "json", required = false) String json,
@@ -58,8 +59,8 @@ public class DesignDetailController {
     // ✅ 설계 파일 삭제 API
     @DeleteMapping("/delete-file")
     public ResponseEntity<Map<String, String>> deleteDesignFile(
-            @RequestParam(required = false) Long projectId,
-            @AuthenticationPrincipal UserDetailsImpl userDetails, //AOP 를 통해 교수일경우 불러오는값을 사용, 학생일 경우 자동 설정
+            @CurrentProject(required = false) Long projectId,
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
             @RequestParam("type") String type,
             @RequestParam("fileUrl") String fileUrl
     ) {
@@ -74,7 +75,7 @@ public class DesignDetailController {
     // ✅ 전체 설계 항목 조회 API
     @GetMapping("/all")
     public ResponseEntity<DesignAllResponseDto> getAllDesignDetails(
-            @RequestParam(required = false) Long projectId, //AOP 를 통해 교수일경우 불러오는값을 사용, 학생일 경우 자동 설정
+            @CurrentProject(required = false) Long projectId,
             @AuthenticationPrincipal UserDetailsImpl userDetails
     ) {
         return ResponseEntity.ok(service.getAllDesignDetails(projectId));

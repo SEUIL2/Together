@@ -1,9 +1,8 @@
-package com.together.user.student;
+package com.together.user.professor;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface StudentRepository extends JpaRepository<StudentEntity, Long> {
-
+public interface ProfessorRepository extends JpaRepository<ProfessorEntity, Long> {
 }

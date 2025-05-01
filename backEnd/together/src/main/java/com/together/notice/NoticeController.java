@@ -1,6 +1,7 @@
 package com.together.notice;
 
 import com.together.systemConfig.UserDetailsImpl;
+import com.together.util.customAnnotation.CurrentProject;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -19,7 +20,7 @@ public class NoticeController {
 
     // 공지사항 작성
     @PostMapping("/create")
-    public ResponseEntity<NoticeEntity> createNotice(@RequestParam(required = false) Long projectId,//AOP 를 통해 교수일경우 불러오는값을 사용, 학생일 경우 자동 설정
+    public ResponseEntity<NoticeEntity> createNotice(@CurrentProject(required = false) Long projectId,
                                                      @AuthenticationPrincipal UserDetailsImpl userDetails,
                                                      @RequestBody NoticeDTO noticeDTO) {
 
@@ -55,8 +56,8 @@ public class NoticeController {
     // 공지사항 조회
     @GetMapping("/all-notice")
     public ResponseEntity<List<NoticeResponseDto>> getNoticesByProject(
-            @RequestParam(required = false) Long projectId,
-            @AuthenticationPrincipal UserDetailsImpl userDetails) {//AOP 를 통해 교수일경우 불러오는값을 사용, 학생일 경우 자동 설정
+            @CurrentProject(required = false) Long projectId,
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {
 
         return ResponseEntity.ok(noticeService.getNoticesByProject(projectId));
     }

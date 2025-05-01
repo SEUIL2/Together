@@ -2,6 +2,7 @@ package com.together.meeting;
 
 import com.together.systemConfig.UserDetailsImpl;
 import com.together.project.ProjectRepository;
+import com.together.util.customAnnotation.CurrentProject;
 import com.together.user.UserEntity;
 import com.together.user.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -33,7 +34,7 @@ public class MeetingController {
      */
     @PostMapping("/create")
     public ResponseEntity<MeetingEntity> createMeeting(
-            @RequestParam(required = false) Long projectId, //AOP 를 통해 교수일경우 불러오는값을 사용, 학생일 경우 자동 설정
+            @CurrentProject(required = false) Long projectId,
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @RequestBody MeetingDto meetingDto) {
 
@@ -57,7 +58,7 @@ public class MeetingController {
      */
     @GetMapping("/all-author")
     public ResponseEntity<List<MeetingResponseDto>> getAllMeetings(
-            @RequestParam(required = false) Long projectId, //AOP 를 통해 교수일경우 불러오는값을 사용, 학생일 경우 자동 설정
+            @CurrentProject(required = false) Long projectId,
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
 
         return ResponseEntity.ok(meetingService.getAllMeetings(projectId));

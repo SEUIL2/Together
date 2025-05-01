@@ -5,6 +5,7 @@ import com.together.project.ProjectEntity;
 import com.together.project.ProjectRepository;
 import com.together.user.UserEntity;
 import com.together.user.UserRepository;
+import com.together.user.student.StudentEntity;
 import com.together.vote.DTO.VoteDTO;
 import com.together.vote.entity.VoteEntity;
 import com.together.vote.entity.VoteItemEntity;
@@ -68,7 +69,7 @@ public class VoteService {
             }
 
             // ⭐ 알림 전송 코드 추가
-            List<UserEntity> projectUsers = project.getUsers();
+            List<StudentEntity> projectUsers = project.getStudents();
             for (UserEntity notificationUser : projectUsers) {
                 notificationService.sendNotification(
                         notificationUser.getUserId(),

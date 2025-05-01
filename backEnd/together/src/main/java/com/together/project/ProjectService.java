@@ -138,10 +138,13 @@ public class ProjectService {
         invitation.setStatus("PENDING");
         invitationRepository.save(invitation);
 
-        // 4️⃣ 알림 전송
+        // ⭐ 알림 전송 코드 추가
         String message = String.format("%s님이 사용자를 %s 프로젝트에 초대하였습니다.",
                 project.getStudents().get(0).getUserName(), project.getTitle());
-        notificationService.sendNotification(user.getUserId(), message, "/projects");
+        notificationService.sendNotification(
+                user.getUserId(),
+                message,
+                "/projects");
 
         return true;
     }
@@ -177,6 +180,9 @@ public class ProjectService {
 
         // 프로젝트에 사용자 추가
         if (!project.getStudents().contains(user)) {
+            project.addUser(user);
+            projectRepository.save(project);
+        } else if (!project.getProfessors().contains(user)) {
             project.addUser(user);
             projectRepository.save(project);
         }

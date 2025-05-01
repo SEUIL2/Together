@@ -3,6 +3,7 @@ package com.together.project.ProjectDetail.planning;
 import com.together.project.ProjectDetail.planning.dto.PlanningAllResponseDto;
 import com.together.project.ProjectDetail.planning.dto.PlanningDetailResponseDto;
 import com.together.systemConfig.UserDetailsImpl;
+import com.together.util.customAnnotation.CurrentProject;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -25,7 +26,7 @@ public class PlanningDetailController {
     // 지원: text만 / files만 / 둘 다 전송 가능
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<PlanningDetailResponseDto> uploadPlanningItem(
-            @RequestParam(required = false) Long projectId, //AOP 를 통해 교수일경우 불러오는값을 사용, 학생일 경우 자동 설정
+            @CurrentProject(required = false) Long projectId,
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @RequestPart("type") String type,  // 어떤 항목에 저장할지 지정 (ex: motivation, goal...)
             @RequestPart(value = "text", required = false) String text,
@@ -45,7 +46,7 @@ public class PlanningDetailController {
     // ✅ 기획 항목 수정 API (text + 새 파일 추가)
     @PutMapping(value = "/update", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<PlanningDetailResponseDto> updatePlanning(
-            @RequestParam(required = false) Long projectId, //AOP 를 통해 교수일경우 불러오는값을 사용, 학생일 경우 자동 설정
+            @CurrentProject(required = false) Long projectId,
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @RequestParam("type") String type,
             @RequestParam(value = "text", required = false) String text,
@@ -58,7 +59,7 @@ public class PlanningDetailController {
     // ✅ 특정 기획 항목에 첨부된 파일 삭제 API
     @DeleteMapping("/delete-file")
     public ResponseEntity<Map<String, String>> deleteFile(
-            @RequestParam(required = false) Long projectId, //AOP 를 통해 교수일경우 불러오는값을 사용, 학생일 경우 자동 설정
+            @CurrentProject(required = false) Long projectId,
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @RequestParam("type") String type,
             @RequestParam("fileUrl") String fileUrl
@@ -78,7 +79,7 @@ public class PlanningDetailController {
      */
     @GetMapping("/all")
     public ResponseEntity<PlanningAllResponseDto> getAllPlanningDetails(
-            @RequestParam(required = false) Long projectId, //AOP 를 통해 교수일경우 불러오는값을 사용, 학생일 경우 자동 설정
+            @CurrentProject(required = false) Long projectId,
             @AuthenticationPrincipal UserDetailsImpl userDetails
     ) {
         return ResponseEntity.ok(service.getAllDetails(projectId));

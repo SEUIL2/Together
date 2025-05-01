@@ -1,6 +1,7 @@
 package com.together.comment;
 
 import com.together.systemConfig.UserDetailsImpl;
+import com.together.util.customAnnotation.CurrentProject;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -53,7 +54,7 @@ public class CommentController {
      */
     @PostMapping("/{type}/{targetId}")
     public ResponseEntity<?> createComment(
-            @RequestParam(required = false) Long projectId, //AOP 를 통해 교수일경우 불러오는값을 사용, 학생일 경우 자동 설정
+            @CurrentProject(required = false) Long projectId,
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @PathVariable("type") CommentEntity.CommentType type,
             @PathVariable("targetId") Long targetId,

@@ -5,11 +5,13 @@ import com.together.project.Invitation.dto.InvitationResponseDto;
 import com.together.project.Invitation.dto.TeamMemberDto;
 import com.together.project.ProjectDto.ProjectResponseDto;
 import com.together.project.ProjectDto.ProjectTitleUpdateRequestDto;
+import com.together.util.customAnnotation.CurrentProject;
 import com.together.systemConfig.UserDetailsImpl;
-import com.together.user.UserEntity;
 import com.together.user.UserRepository;
 import com.together.user.dto.UserResponseDto;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -17,10 +19,10 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.server.ResponseStatusException;
 
 
+@Slf4j
 @RestController
 @RequestMapping("/projects")
 @RequiredArgsConstructor
@@ -30,6 +32,7 @@ public class ProjectController {
 
     private final UserRepository userRepository;
     private final InvitationRepository invitationRepository;
+    private final ProjectRepository projectRepository;
 
     //프로젝트 생성
     @PostMapping("/create")
@@ -50,17 +53,19 @@ public class ProjectController {
     }
     //프로젝트 불러오기
     @GetMapping("/my")
-    public ResponseEntity<ProjectResponseDto> getMyProject() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String loginId = auth.getName();
+    public ResponseEntity<ProjectResponseDto> getMyProject(
+            @CurrentProject(required = false) Long projectId,
+            @AuthenticationPrincipal UserDetailsImpl userDetails
+    ) {// AOP가 실행되면서 projectId가 자동으로 설정됨
 
-        UserEntity user = userRepository.findByUserLoginId(loginId)
-                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
-
-        ProjectEntity project = user.getProject(); // 유저가 속한 프로젝트 하나
-        if (project == null) {
-            return ResponseEntity.status(404).body(null); // 프로젝트 없음
+        if (projectId == null) {
+            log.info("getMyProject: projectId가 Null 이다 ");
+            return ResponseEntity.status(400).body(null); // AOP가 실패했거나 프론트에서 안 줬을 경우 방어
         }
+
+        ProjectEntity project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "프로젝트를 찾을 수 없습니다.")); // 유저 타입에 따라 프로젝트 가져오기
+
 
         return ResponseEntity.ok(new ProjectResponseDto(
                 project.getProjectId(),
@@ -105,10 +110,10 @@ public class ProjectController {
     // ✅ 팀원 초대 API
     @PostMapping("/invite")
     public ResponseEntity<String> inviteUser(
+            @CurrentProject(required = false) Long projectId, //커스템 어노테이션 사용
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @RequestParam String email
     ) {
-        Long projectId = userDetails.getUser().getProject().getProjectId();
         boolean success = projectService.inviteUserToProject(projectId, email);
 
         if (success) {
@@ -117,16 +122,17 @@ public class ProjectController {
             return ResponseEntity.badRequest().body("이미 초대 중이거나 실패했습니다.");
         }
     }
-        //초대확인
-        @GetMapping("/invitations")
-        public ResponseEntity<List<InvitationResponseDto>> getMyInvitations(
-                @AuthenticationPrincipal UserDetailsImpl userDetails
-        ) {
-            List<InvitationResponseDto> responses = projectService.getUserInvitations(userDetails.getUser().getUserId());
-            return ResponseEntity.ok(responses);
-        }
-        //초대수락
-    @PostMapping("/invite/{invitationId}/accept/")
+
+    //초대확인
+    @GetMapping("/invitations")
+    public ResponseEntity<List<InvitationResponseDto>> getMyInvitations(
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+        List<InvitationResponseDto> responses = projectService.getUserInvitations(userDetails.getUser().getUserId());
+        return ResponseEntity.ok(responses);
+    }
+
+    //초대수락
+    @PostMapping("/invite/{invitationId}/accept")
     public ResponseEntity<String> acceptInvitation(@PathVariable Long invitationId) {
         boolean success = projectService.acceptInvitation(invitationId);
         if (success) {
@@ -150,9 +156,9 @@ public class ProjectController {
     // ✅ 프로젝트 팀원 조회
     @GetMapping("/members")
     public ResponseEntity<List<TeamMemberDto>> getProjectMembers(
+            @CurrentProject(required = false) Long projectId,
             @AuthenticationPrincipal UserDetailsImpl userDetails
     ) {
-        Long projectId = userDetails.getUser().getProject().getProjectId();
         List<TeamMemberDto> members = projectService.getProjectMembers(projectId);
         return ResponseEntity.ok(members);
     }

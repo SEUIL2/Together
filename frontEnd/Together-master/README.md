@@ -6,3 +6,6 @@ Learn more about IDE Support for Vue in the [Vue Docs Scaling up Guide](https://
 
 # 실행하는 방법 
 `npm run dev`
+
+2025-04-17
+npm install lodash

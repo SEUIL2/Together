@@ -24,6 +24,7 @@
     "dhtmlx-gantt": "^9.0.6",
     "file-saver": "^2.0.5",
     "konva": "^9.3.20",
+    "lodash": "^4.17.21",
     "moment": "^2.30.1",
     "prismjs": "^1.30.0",
     "tailwindcss": "^4.0.14",

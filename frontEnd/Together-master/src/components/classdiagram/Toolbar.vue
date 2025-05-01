@@ -1,15 +1,12 @@
 <template>
   <div class="toolbar">
     <button @click="$emit('add-class')">+ 클래스 추가</button>
-    <button @click="$emit('export-json')">저장</button>
-    <button @click="$emit('import-json')">불러오기</button>
-    <button @click="$emit('clear-all')">전체삭제</button>
+    <button @click="$emit('save-diagram')">저장하기</button>
   </div>
 </template>
 
 <script setup>
-// Toolbar.vue - 상태는 상위(CanvasArea.vue)에서 관리
-// 여기서는 필요한 이벤트만 emit 처리
+// Toolbar.vue는 emit만 전달
 </script>
 
 <style scoped>
@@ -22,16 +19,17 @@
   align-items: center;
 }
 
-.arrow-icon {
-  cursor: grab;
-  font-size: 20px;
-  padding: 4px 8px;
-  background: #444;
+button {
+  background-color: #444;
+  border: none;
+  padding: 6px 12px;
   border-radius: 4px;
-  user-select: none;
+  cursor: pointer;
+  color: white;
+  font-size: 14px;
 }
 
-.arrow-icon:hover {
-  background: #666;
+button:hover {
+  background-color: #666;
 }
 </style>

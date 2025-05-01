@@ -15,6 +15,7 @@ import MeetingPage from '../views/MeetingPage.vue'
 import TeamManagement from "@/views/TeamManagement.vue";
 import EmailVerification from "@/views/account/EmailVerificationPage.vue";
 import SignupDetails from "@/views/account/SignupDetailsPage.vue";
+import ErdDiagramPage from '../views/ErdDiagramPage.vue'
 const routes = [
   {
     path: '/',
@@ -91,6 +92,11 @@ const routes = [
     path: '/SignupDetails',
     name: 'SignupDetails',
     component: SignupDetails,
+  },
+  {
+    path: '/ErdDiagramPage',
+    name: 'ErdDiagramPage',
+    component: ErdDiagramPage,
   },
   
   

@@ -79,7 +79,7 @@ const router = useRouter()
 // 페이지 이동 함수
 const goMyProject = () => router.push('/MyProject')
 const goMyDashBoard = () => router.push('/DashBoard')
-const goSchedule = () => router.push('/Schedule')
+const goSchedule = () => router.push('/Scheduletest')
 const goMeeting = () => router.push('/MeetingPage')
 const goTeam = () => router.push('/TeamManagement')
 

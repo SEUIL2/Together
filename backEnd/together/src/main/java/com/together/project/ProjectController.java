@@ -5,6 +5,7 @@ import com.together.project.Invitation.dto.InvitationResponseDto;
 import com.together.project.Invitation.dto.TeamMemberDto;
 import com.together.project.ProjectDto.ProjectResponseDto;
 import com.together.project.ProjectDto.ProjectTitleUpdateRequestDto;
+import com.together.user.professor.ProfessorResponseDto;
 import com.together.util.customAnnotation.CurrentProject;
 import com.together.systemConfig.UserDetailsImpl;
 import com.together.user.UserRepository;
@@ -56,16 +57,14 @@ public class ProjectController {
     public ResponseEntity<ProjectResponseDto> getMyProject(
             @CurrentProject(required = false) Long projectId,
             @AuthenticationPrincipal UserDetailsImpl userDetails
-    ) {// AOP가 실행되면서 projectId가 자동으로 설정됨
-
+    ) {
         if (projectId == null) {
             log.info("getMyProject: projectId가 Null 이다 ");
-            return ResponseEntity.status(400).body(null); // AOP가 실패했거나 프론트에서 안 줬을 경우 방어
+            return ResponseEntity.status(400).body(null);
         }
 
         ProjectEntity project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "프로젝트를 찾을 수 없습니다.")); // 유저 타입에 따라 프로젝트 가져오기
-
 
         return ResponseEntity.ok(new ProjectResponseDto(
                 project.getProjectId(),
@@ -154,6 +153,7 @@ public class ProjectController {
     }
 
     // ✅ 프로젝트 팀원 조회
+    // 학생이 학생 조회 가능 , 교수가 학생 조회가능 , 학생이 교수 조회기능은 getProfessorsByProject() 에서 해야됌
     @GetMapping("/members")
     public ResponseEntity<List<TeamMemberDto>> getProjectMembers(
             @CurrentProject(required = false) Long projectId,
@@ -161,6 +161,14 @@ public class ProjectController {
     ) {
         List<TeamMemberDto> members = projectService.getProjectMembers(projectId);
         return ResponseEntity.ok(members);
+    }
+
+    // 해당 팀의 교수 조회
+    @GetMapping("/members/{projectId}")
+    public ResponseEntity<List<ProfessorResponseDto>> getProfessorsByProject(
+            @PathVariable Long projectId) {
+        List<ProfessorResponseDto> professors = projectService.getProfessorsByProject(projectId);
+        return ResponseEntity.ok(professors);
     }
 
     // 프로젝트 삭제

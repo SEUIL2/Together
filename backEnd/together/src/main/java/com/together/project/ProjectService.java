@@ -10,6 +10,8 @@ import com.together.project.ProjectDto.ProjectResponseDto;
 import com.together.user.UserEntity;
 import com.together.user.UserRepository;
 import com.together.user.dto.UserResponseDto;
+import com.together.user.professor.ProfessorEntity;
+import com.together.user.professor.ProfessorResponseDto;
 import com.together.user.student.StudentEntity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
@@ -20,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -60,6 +63,9 @@ public class ProjectService {
         if (user instanceof StudentEntity) {
             StudentEntity student = (StudentEntity) user;
             student.setMainProject(savedProject);
+        } else if (user instanceof ProfessorEntity) {
+            ProfessorEntity professor = (ProfessorEntity) user;
+            professor.setProjects((List<ProjectEntity>) savedProject);
         }
 
         // 6️⃣ 응답 반환
@@ -178,13 +184,20 @@ public class ProjectService {
         ProjectEntity project = invitation.getProject();
         UserEntity user = invitation.getUser();
 
-        // 프로젝트에 사용자 추가
-        if (!project.getStudents().contains(user)) {
-            project.addUser(user);
+        if (user instanceof StudentEntity student) {
+            if (student.getMainProject() == null || !student.getMainProject().equals(project)) {
+                student.setMainProject(project); // 메인 프로젝트 지정
+            }
+            // optional: 양방향 연관관계 유지 (선택)
+            project.addUser(student);
             projectRepository.save(project);
-        } else if (!project.getProfessors().contains(user)) {
-            project.addUser(user);
-            projectRepository.save(project);
+
+        } else if (user instanceof ProfessorEntity) {// 교수인 경우: ManyToMany 관계로 주입
+            ProfessorEntity professor = (ProfessorEntity) user;
+            if (!project.getProfessors().contains(professor)) {
+                project.addProfessor(professor);
+                projectRepository.save(project);
+            }
         }
 
         invitationRepository.save(invitation);
@@ -217,6 +230,21 @@ public class ProjectService {
                 ))
                 .toList();
     }
+
+    // 교수 조회
+    public List<ProfessorResponseDto> getProfessorsByProject(Long projectId) {
+        ProjectEntity project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new IllegalArgumentException("프로젝트를 찾을 수 없습니다."));
+
+        return project.getProfessors().stream()
+                .map(professor -> new ProfessorResponseDto(
+                        professor.getUserId(),
+                        professor.getUserName(),
+                        professor.getUserEmail()
+                ))
+                .collect(Collectors.toList());
+    }
+
     // 프로젝트 삭제
     @Transactional
     public void deleteProject(Long projectId) {

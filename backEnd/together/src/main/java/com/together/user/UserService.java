@@ -1,6 +1,8 @@
 package com.together.user;
 
 import com.together.user.dto.UserSignUpRequestDto;
+import com.together.user.professor.ProfessorEntity;
+import com.together.user.professor.ProfessorRepository;
 import com.together.user.student.StudentEntity;
 import com.together.user.student.StudentRepository;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +19,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final StudentRepository studentRepository;
+    private final ProfessorRepository professorRepository;
 
 
     /** 회원가입
@@ -55,15 +58,6 @@ public class UserService {
             throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
         }
 
-        /*// 이메일 인증 여부 확인
-        UserEntity existingUser = userRepository.findByUserEmail(requestDto.getUserEmail())
-                .orElseThrow(() -> new IllegalArgumentException("이메일을 찾을 수 없습니다."));
-
-        // 이메일 인증되지 않았을 경우 회원가입 막기
-        if (!existingUser.isEmailVerified()) {
-            throw new IllegalArgumentException("이메일 인증이 완료되지 않았습니다.");
-        }*/
-
         // 비밀번호 암호화
         String encodedPassword = passwordEncoder.encode(requestDto.getPassword());
 
@@ -86,7 +80,7 @@ public class UserService {
 
             studentRepository.save(student);
         } else if ("PROFESSOR".equals(requestDto.getUserRole())) {
-            UserEntity professor = new UserEntity();
+            ProfessorEntity professor = new ProfessorEntity();
             professor.setUserName(requestDto.getUserName());
             professor.setUserEmail(requestDto.getUserEmail());
             professor.setUserLoginId((requestDto.getUserLoginId()));
@@ -95,7 +89,7 @@ public class UserService {
 //            professor.setEmailVerified(false); //이메일 인증여부 false
             professor.setEmailVerified(requestDto.isEmailVerified()); // <-- 수정 무영 추가
 
-            userRepository.save(professor);
+            professorRepository.save(professor);
         } else {
             throw new IllegalArgumentException("올바른 사용자 유형이 아닙니다.");
         }

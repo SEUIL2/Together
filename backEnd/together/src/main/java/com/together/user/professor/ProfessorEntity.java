@@ -3,10 +3,7 @@ package com.together.user.professor;
 import com.together.project.ProjectEntity;
 import com.together.user.UserEntity;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,12 +17,14 @@ import java.util.List;
 @PrimaryKeyJoinColumn(name = "user_id") //UserEntity 상속
 public class ProfessorEntity extends UserEntity {
 
-    @ManyToMany
-    @JoinTable(
-            name = "user_project", // 중간 테이블 이름
-            joinColumns = @JoinColumn(name = "user_id"), // 현재 Entity(UserEntity)쪽 FK
-            inverseJoinColumns = @JoinColumn(name = "project_id") // 반대쪽 Entity(ProjectEntity) FK
-    ) //여러 프로젝트
+    @ManyToMany//여러 프로젝트
     private List<ProjectEntity> projects = new ArrayList<>();
+
+    public void addProject(ProjectEntity project) {
+        this.projects.add(project);
+        if (!project.getProfessors().contains(this)) {
+            project.getProfessors().add(this); // 🔁 양방향 유지
+        }
+    }
 
 }

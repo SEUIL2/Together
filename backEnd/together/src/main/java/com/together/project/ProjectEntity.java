@@ -36,8 +36,20 @@ public class ProjectEntity{
     @Column(nullable = false)
     private String title; // 프로젝트 이름
 
-    @ManyToMany(mappedBy = "projects")
+    @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    @JoinTable(
+            name = "user_project",
+            joinColumns = @JoinColumn(name = "project_id"),
+            inverseJoinColumns = @JoinColumn(name = "user_id")
+    )
     private List<ProfessorEntity> professors = new ArrayList<>();  // 교수들과 연결
+
+    public void addProfessor(ProfessorEntity professor) {
+        this.professors.add(professor);
+        if (!professor.getProjects().contains(this)) {
+            professor.getProjects().add(this); // 🔁 양방향 유지
+        }
+    }
 
     @OneToMany(mappedBy = "mainProject", cascade = CascadeType.ALL)
     private List<StudentEntity> students = new ArrayList<>();  // 학생들과 연결

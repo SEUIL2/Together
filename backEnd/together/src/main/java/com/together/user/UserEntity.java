@@ -80,4 +80,8 @@ public class UserEntity {
     @JsonIgnore
     private List<CommentEntity> commentEntities = new ArrayList<>();
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "project_id", nullable = true)
+    private ProjectEntity project;
+
 }

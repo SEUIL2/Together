@@ -81,9 +81,7 @@ public class UserEntity {
     @JsonIgnore
     private List<CommentEntity> commentEntities = new ArrayList<>();
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = true)
-    @JoinColumn(name = "project_id", nullable = true)
-    private ProjectEntity project;
+
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<UserKeywordHistoryEntity> userKeywordHistoryEntities = new ArrayList<>();

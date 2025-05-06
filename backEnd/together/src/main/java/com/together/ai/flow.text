@@ -1,0 +1,17 @@
+[클라이언트]
+|
+| (GET) /api/ai/keywords
+v
+[Backend Controller] → AiKeywordGenerator → OpenAiService → OpenAI API
+|
+| (OpenAI로부터 키워드 응답)
+v
+[클라이언트가 키워드 선택 후 전송]
+|
+| (POST) /api/ai/topics
+v
+[Backend Controller] → AiTopicGenerator → OpenAiService → OpenAI API
+|
+| (OpenAI로부터 주제 응답)
+v
+[클라이언트에 주제 반환]

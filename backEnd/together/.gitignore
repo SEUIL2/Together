@@ -82,3 +82,6 @@ Thumbs.db
 
 # .gitignore 파일에 추가
 src/main/resources/google-drive-credentials.json
+
+# OpenAI API 키 파일 제외
+src/main/resources/application-openai.properties

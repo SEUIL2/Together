@@ -1,6 +1,7 @@
 package com.together.user;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.together.ai.UserKeywordHistoryEntity;
 import com.together.comment.CommentEntity;
 import com.together.documentManger.FileEntity;
 import com.together.meeting.MeetingEntity;
@@ -83,5 +84,8 @@ public class UserEntity {
     @ManyToOne(fetch = FetchType.LAZY, optional = true)
     @JoinColumn(name = "project_id", nullable = true)
     private ProjectEntity project;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private List<UserKeywordHistoryEntity> userKeywordHistoryEntities = new ArrayList<>();
 
 }

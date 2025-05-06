@@ -23,7 +23,6 @@ public class AiTopicGenerator {
         return Arrays.stream(response.split("\\n"))
                 .map(s -> s.replaceAll("^\\d+[.\\)]\\s*", "")) // "1. 주제" -> "주제"
                 .filter(s -> !s.isBlank())
-                .limit(5)
                 .toList();
     }
 

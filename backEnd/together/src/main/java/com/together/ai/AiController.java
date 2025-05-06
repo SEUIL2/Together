@@ -3,8 +3,10 @@ package com.together.ai;
 import com.together.ai.dto.KeywordsRequestDto;
 import com.together.ai.service.AiKeywordGenerator;
 import com.together.ai.service.AiTopicGenerator;
+import com.together.systemConfig.UserDetailsImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,8 +21,8 @@ public class AiController {
 
     // 1. 키워드 추천 요청
     @GetMapping("/keywords")
-    public ResponseEntity<List<String>> getKeywords() {
-        List<String> keywords = keywordGenerator.generateKeywords(8);
+    public ResponseEntity<List<String>> getKeywords(@AuthenticationPrincipal UserDetailsImpl userDetails) {
+        List<String> keywords = keywordGenerator.generateKeywords(userDetails.getUser());
         return ResponseEntity.ok(keywords);
     }
 

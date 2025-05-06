@@ -55,13 +55,14 @@
 ---
 
 ### 알림기능 
-1. 프로젝트 초대 _ ProjectService.java -> inviteUserToProject() _ 테스트완료
-2. 공지사항 등록 _ NoticeService.java -> createNotice() _ 테스트 완료
-3. 투표 등록 _ VoteService.java -> createVote()
-4. 작업 할당 (예정된 자동알림)
-5. 교수 피드백 (예정된 자동알림)
+1. 프로젝트 초대 _ ProjectService.java -> inviteUserToProject() **(테스트완료)**
+2. 공지사항 등록 _ NoticeService.java -> createNotice() **(테스트완료)**
+3. 투표 등록 _ VoteService.java -> createVote() **(테스트완료)**
+4. 작업 할당 (예정)
+5. 교수 피드백 (예정)
 
 ---
 
 ### AI 기능 
-1. 
+1. 키워드 8개 출력 **(테스트완료)**
+2. 키워드 5개 입력하면 주제 추천 **(테스트완료)**

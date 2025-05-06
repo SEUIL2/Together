@@ -1,6 +1,7 @@
 package com.together.user;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.together.ai.UserKeywordHistoryEntity;
 import com.together.comment.CommentEntity;
 import com.together.documentManger.FileEntity;
 import com.together.meeting.MeetingEntity;
@@ -80,6 +81,7 @@ public class UserEntity {
     @JsonIgnore
     private List<CommentEntity> commentEntities = new ArrayList<>();
 
-
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private List<UserKeywordHistoryEntity> userKeywordHistoryEntities = new ArrayList<>();
 
 }

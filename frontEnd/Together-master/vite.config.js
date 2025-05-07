@@ -40,6 +40,11 @@ export default defineConfig({
         target: 'http://localhost:8081',
         changeOrigin: true,
         secure: false
+      },
+      '/work-tasks': {
+        target: 'http://localhost:8081',
+        changeOrigin: true,
+        secure: false
       }
     }
   }

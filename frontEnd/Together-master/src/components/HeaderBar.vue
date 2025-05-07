@@ -25,7 +25,7 @@
             대시보드
           </button>
         </li>
-        <li><button><span>작업</span></button></li>
+        <li><button @click="goMyTask">작업</button></li>
         <li><button @click="goSchedule">일정 관리</button></li>
         <li>
           <button 
@@ -82,6 +82,7 @@ const goMyDashBoard = () => router.push('/DashBoard')
 const goSchedule = () => router.push('/Scheduletest')
 const goMeeting = () => router.push('/MeetingPage')
 const goTeam = () => router.push('/TeamManagement')
+const goMyTask = () => router.push('/TaskPage')
 
 // 로그인 상태 & 설정 팝업 표시 여부
 const isLoggedIn = ref(false)

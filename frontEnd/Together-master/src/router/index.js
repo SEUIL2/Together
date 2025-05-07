@@ -12,10 +12,11 @@ import SignUpForm from '../views/test/SignupForm.vue'
 import Scheduletest from '../views/test/Scheduletest.vue'
 import DiagramPage from '../views/DiagramPage.vue'
 import MeetingPage from '../views/MeetingPage.vue'
-import TeamManagement from "@/views/TeamManagement.vue";
-import EmailVerification from "@/views/account/EmailVerificationPage.vue";
-import SignupDetails from "@/views/account/SignupDetailsPage.vue";
+import TeamManagement from "@/views/TeamManagement.vue"
+import EmailVerification from "@/views/account/EmailVerificationPage.vue"
+import SignupDetails from "@/views/account/SignupDetailsPage.vue"
 import ErdDiagramPage from '../views/ErdDiagramPage.vue'
+import TaskPage from '../views/TaskPage.vue'
 const routes = [
   {
     path: '/',
@@ -98,7 +99,11 @@ const routes = [
     name: 'ErdDiagramPage',
     component: ErdDiagramPage,
   },
-  
+  {
+    path: '/TaskPage',
+    name: 'TaskPage',
+    component: TaskPage,
+  },
   
 ]
 

@@ -7,6 +7,7 @@ import com.together.project.worktask.dto.ScheduleUpdateDto;
 import com.together.project.worktask.dto.WorkTaskRequestDto;
 import com.together.project.worktask.dto.WorkTaskResponseDto;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,6 +17,7 @@ import java.util.List;
 /**
  * WorkTask 관련 HTTP 요청을 처리하는 컨트롤러 클래스
  */
+@Slf4j
 @RestController
 @RequestMapping("/work-tasks")
 @RequiredArgsConstructor

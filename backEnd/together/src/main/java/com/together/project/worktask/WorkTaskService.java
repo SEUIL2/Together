@@ -1,15 +1,19 @@
 package com.together.project.worktask;
 
+import com.together.notification.NotificationService;
 import com.together.project.ProjectEntity;
 import com.together.project.worktask.dto.ScheduleUpdateDto;
 import com.together.project.worktask.dto.WorkTaskRequestDto;
 import com.together.project.worktask.dto.WorkTaskResponseDto;
+import com.together.systemConfig.UserDetailsImpl;
 import com.together.user.UserEntity;
 import com.together.user.UserRepository;
 import com.together.user.professor.ProfessorEntity;
 import com.together.user.student.StudentEntity;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,12 +21,14 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class WorkTaskService {
 
     private final WorkTaskRepository workTaskRepo;
     private final UserRepository userRepo;
+    private final NotificationService notificationService;
 
     /** 작업 생성 */
     @Transactional
@@ -81,6 +87,27 @@ public class WorkTaskService {
         var now = LocalDateTime.now();
         task.setCreatedAt(now);
         task.setUpdatedAt(now);
+
+
+        // ⭐ 알림 전송 코드 추가
+        UserDetailsImpl userDetails = (UserDetailsImpl) SecurityContextHolder // SecurityContextHolder : 로그인한 사용자 정보를 보관하는 Spring Security 의 전역 컨텍스트
+                .getContext()
+                .getAuthentication()
+                .getPrincipal(); // 현재 로그인한 사용자의 인증 객체를 가져옴
+        UserEntity currentUser = userDetails.getUser(); // 현재 로그인된 사용자의 UserEntity 객체를 가져옴, 알림 보낼 때 "본인 제외" 처리를 위해 사용됨
+        List<StudentEntity> projectStudents = project.getStudents(); // 작업이 속한 ProjectEntity 에서 연결된 학생 리스트 (List<StudentEntity>)를 가져옴
+
+        if (projectStudents != null) {
+            for (UserEntity notificationUser : projectStudents) { // 프로젝트에 소속된 모든 학생들에 대해 반복문 시작
+                if (!notificationUser.getUserId().equals(currentUser.getUserId())) { // 현재 로그인한 사용자와 동일하지 않은 경우에만 아래 알림을 보냄
+                    notificationService.sendNotification(
+                            notificationUser.getUserId(),
+                            "작업 생성",
+                            task.getTitle() + " 작업이 생성되었습니다."
+                    );
+                }
+            }
+        }
 
         return mapToDto(workTaskRepo.save(task));
     }

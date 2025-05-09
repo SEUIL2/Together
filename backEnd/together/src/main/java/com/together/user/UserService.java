@@ -102,4 +102,9 @@ public class UserService {
     public Optional<UserEntity> findUserByEmail(String userEmail){
         return userRepository.findByUserEmail(userEmail);
     }
+
+    public boolean isLoginIdDuplicated(String loginId) {
+        return userRepository.existsByUserLoginId(loginId);
+
+    }
 }

@@ -127,6 +127,13 @@ public class UserController {
         return ResponseEntity.ok(userInfo);
     }
 
+    //회원가입할때 로그인아이디 중복여부 확인 : true=이미 존재함 , false = 사용가능
+    @GetMapping("check-id")
+    public ResponseEntity<Boolean> checkLoginIdDuplicate(@RequestParam String loginId) {
+        boolean isDuplicate = userService.isLoginIdDuplicated(loginId);
+        return ResponseEntity.ok(isDuplicate);
+    }
+
     // 아이디 찾기 요청 (이메일로 인증 코드 전송)
     @PostMapping("/find-id")
     public ResponseEntity<String> findUserId(@RequestParam String email) throws MessagingException {

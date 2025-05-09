@@ -36,7 +36,8 @@ public class SecurityConfig {
                                 "/auth/find-id",
                                 "/auth/find-id/verify",
                                 "/auth/find-password",
-                                "/auth/reset-password"
+                                "/auth/reset-password",
+                                "/auth/check-id"
                         ).permitAll()
                         //그 외 요청은 인증 필요
                         .anyRequest().authenticated()

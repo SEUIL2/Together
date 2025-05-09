@@ -115,14 +115,16 @@ public class UserController {
      * }
      */
     @GetMapping("/me")
-    public ResponseEntity<?> getCurrentUser(@AuthenticationPrincipal UserDetails userDetails) {
+    public ResponseEntity<?> getCurrentUser(@AuthenticationPrincipal UserDetailsImpl userDetails) {
         if (userDetails == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("인증되지 않은 사용자입니다.");
         }
         log.info("현재 사용자: {}", userDetails.getUsername());
+
         Map<String, Object> userInfo = new HashMap<>();
-        userInfo.put("username", userDetails.getUsername());
+        userInfo.put("userId", userDetails.getUsername());
         userInfo.put("roles", userDetails.getAuthorities());
+        userInfo.put("userName", userDetails.getUserAuthName());
 
         return ResponseEntity.ok(userInfo);
     }

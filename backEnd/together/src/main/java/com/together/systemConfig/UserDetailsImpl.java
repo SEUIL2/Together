@@ -29,8 +29,12 @@ public class UserDetailsImpl implements UserDetails {
     }
 
     @Override
-    public String getUsername() {
+    public String getUsername() { //유저 로그인 아이디 반환
         return user.getUserLoginId();
+    }
+
+    public String getUserAuthName(){ //유저 이름 반환
+        return user.getUserName();
     }
 
     @Override

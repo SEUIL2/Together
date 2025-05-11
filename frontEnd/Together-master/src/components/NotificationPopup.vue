@@ -8,27 +8,27 @@
     />
 
     <div v-if="showNotifications" class="notification-popup">
-      <p v-if="notifications.length === 0">알림이 없습니다.</p>
+      <p v-if="invitations.length === 0">초대 알림이 없습니다.</p>
       <ul v-else>
         <li
-            v-for="note in notifications"
-            :key="note.id"
-            :class="{ unread: !note.isRead }"
+            v-for="invite in invitations"
+            :key="invite.invitationId"
+            class="invitation-item"
         >
-          <div class="message">{{ note.message }}</div>
-          <div class="time">{{ formatDate(note.createdAt) }}</div>
-
-          <!-- 초대 알림인 경우에만 수락/거절 버튼 표시 -->
-          <div v-if="note.type === 'invitation'" class="actions">
+          <div class="message">
+            {{ invite.projectTitle }} 프로젝트에 초대되었습니다.
+          </div>
+          <div class="time">{{ formatTime(invite.createdAt) }}</div>
+          <div class="actions">
             <button
                 class="accept-btn"
-                @click.stop="acceptInvitation(note)"
+                @click.stop="accept(invite.invitationId)"
             >
               수락
             </button>
             <button
                 class="reject-btn"
-                @click.stop="rejectInvitation(note)"
+                @click.stop="reject(invite.invitationId)"
             >
               거절
             </button>
@@ -43,46 +43,70 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import axios from 'axios'
 
-const currentUserId = 8 // 실제 로그인한 사용자 ID로 교체하세요.
-
 const showNotifications = ref(false)
-const notifications = ref([])
+const invitations = ref([])
 const wrapperRef = ref(null)
-let intervalId = null
-
-// 공지 + 초대 알림 불러오기
-async function fetchNotifications() {
-  try {
-    const [annResp, invResp] = await Promise.all([
-      axios.get('/notifications/all', {
-        params: { userId: currentUserId },
-        withCredentials: true
-      }),
-      axios.get('/projects/invitations', {
-        withCredentials: true
-      })
-    ])
-
-    const announcements = annResp.data.map(n => ({ ...n, type: 'announcement' }))
-    const invitations = invResp.data.map(inv => ({
-      id: inv.invitationId,
-      message: inv.message || '새로운 팀원 초대가 도착했습니다.',
-      createdAt: inv.createdAt,
-      isRead: inv.isRead || false,
-      type: 'invitation'
-    }))
-
-    const merged = [...announcements, ...invitations]
-    merged.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-    notifications.value = merged
-  } catch (e) {
-    console.error('알림 가져오기 실패', e)
-  }
-}
 
 function toggleNotifications() {
   showNotifications.value = !showNotifications.value
-  if (showNotifications.value) fetchNotifications()
+  if (showNotifications.value) fetchInvitations()
+}
+
+async function fetchInvitations() {
+  try {
+    const resp = await axios.get('/projects/invitations', {
+      withCredentials: true
+    })
+    const list = Array.isArray(resp.data) ? resp.data : []
+    invitations.value = list
+        .filter(inv => inv.status === 'PENDING')
+        .map(inv => ({
+          ...inv,
+          // createdAt 또는 createdDate 필드 중 사용 가능한 값으로 설정
+          createdAt: inv.createdAt || inv.createdDate
+        }))
+  } catch (e) {
+    console.error('초대 목록 조회 실패', e)
+  }
+}
+
+async function accept(invitationId) {
+  try {
+    await axios.post(
+        `/projects/invite/${invitationId}/accept`,
+        null,
+        { withCredentials: true }
+    )
+    invitations.value = invitations.value.filter(
+        inv => inv.invitationId !== invitationId
+    )
+  } catch (e) {
+    console.error('초대 수락 실패', e)
+  }
+}
+
+async function reject(invitationId) {
+  try {
+    await axios.post(
+        `/projects/invitations/${invitationId}/reject`,
+        null,
+        { withCredentials: true }
+    )
+    invitations.value = invitations.value.filter(
+        inv => inv.invitationId !== invitationId
+    )
+  } catch (e) {
+    console.error('초대 거절 실패', e)
+  }
+}
+
+function formatTime(dateStr) {
+  if (!dateStr) return ''
+  const d = new Date(dateStr)
+  if (isNaN(d)) return ''
+  const hh = String(d.getHours()).padStart(2, '0')
+  const mm = String(d.getMinutes()).padStart(2, '0')
+  return `${hh}:${mm}`
 }
 
 function handleClickOutside(e) {
@@ -91,56 +115,12 @@ function handleClickOutside(e) {
   }
 }
 
-async function acceptInvitation(note) {
-  try {
-    await axios.post(
-        `/projects/invite/${note.id}/accept/`,
-        null,
-        { withCredentials: true }
-    )
-    // 프로젝트 멤버에 자동으로 추가됨
-  } catch (e) {
-    console.error('초대 수락 실패', e)
-  } finally {
-    // 알림 목록에서 제거
-    notifications.value = notifications.value.filter(n => n.id !== note.id)
-  }
-}
-
-async function rejectInvitation(note) {
-  try {
-    await axios.post(
-        `/projects/invitations/${note.id}/reject`,
-        null,
-        { withCredentials: true }
-    )
-  } catch (e) {
-    console.error('초대 거절 실패', e)
-  } finally {
-    notifications.value = notifications.value.filter(n => n.id !== note.id)
-  }
-}
-
-function formatDate(dateStr) {
-  const d = new Date(dateStr)
-  const yyyy = d.getFullYear()
-  const mm = String(d.getMonth() + 1).padStart(2, '0')
-  const dd = String(d.getDate()).padStart(2, '0')
-  const hh = String(d.getHours()).padStart(2, '0')
-  const mi = String(d.getMinutes()).padStart(2, '0')
-  return `${yyyy}-${mm}-${dd} ${hh}:${mi}`
-}
-
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
-  intervalId = setInterval(() => {
-    if (showNotifications.value) fetchNotifications()
-  }, 10000)
 })
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleClickOutside)
-  clearInterval(intervalId)
 })
 </script>
 
@@ -154,29 +134,21 @@ onBeforeUnmount(() => {
 .notification-icon {
   width: 24px;
   height: 24px;
-  margin-right: 50px;
   cursor: pointer;
 }
 
 .notification-popup {
   position: absolute;
-  top: 40px;
-  right: 30px;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
   background: #fff;
   border: 1px solid #ddd;
-  padding: 10px;
-  width: 400px;
-  max-height: 300px;
-  overflow-y: auto;
+  padding: 12px;
+  width: 320px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border-radius: 10px;
-  z-index: 2000;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-.notification-popup::-webkit-scrollbar {
-  display: none;
+  border-radius: 8px;
+  z-index: 1000;
 }
 
 .notification-popup ul {
@@ -185,36 +157,38 @@ onBeforeUnmount(() => {
   margin: 0;
 }
 
-.notification-popup li {
+.invitation-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   padding: 8px 0;
-  font-size: 12px;
   border-bottom: 1px solid #f0f0f0;
 }
 
-.notification-popup li.unread {
-  font-weight: bold;
-  color: #3f8efc;
+.invitation-item:last-child {
+  border-bottom: none;
 }
 
-.notification-popup .message {
-  margin-bottom: 4px;
+.message {
+  font-size: 14px;
+  color: #333;
 }
 
-.notification-popup .time {
-  font-size: 10px;
-  color: #999;
+.time {
+  font-size: 12px;
+  color: #666;
 }
 
 .actions {
-  margin-top: 6px;
   display: flex;
   gap: 8px;
 }
 
 .accept-btn,
 .reject-btn {
-  padding: 4px 8px;
-  font-size: 10px;
+  flex: 1;
+  padding: 6px 0;
+  font-size: 12px;
   border: none;
   border-radius: 4px;
   cursor: pointer;
@@ -222,11 +196,11 @@ onBeforeUnmount(() => {
 
 .accept-btn {
   background-color: #4caf50;
-  color: white;
+  color: #fff;
 }
 
 .reject-btn {
   background-color: #f44336;
-  color: white;
+  color: #fff;
 }
 </style>

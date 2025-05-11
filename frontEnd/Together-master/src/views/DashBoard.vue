@@ -1,76 +1,98 @@
 <template>
-    <div class="dashboard-container">
-      <!-- 상단 정보: 하나의 박스로 통합 -->
-      <div class="dashboard-top-card">
-        <div class="info-section">
-          <div class="info-content">
-            <span class="highlight">55%</span>
-            <span class="label">작업 진행도</span>
-            <div class="progress-bar">
-              <div class="progress-fill" :style="{ width: '55%' }"></div>
-            </div>
-          </div>
-        </div>
-  
-        <div class="info-section">
-          <img src="@/assets/bellicon.png" alt="bell" />
-          <div class="info-content">
-            <span class="highlight">3개</span>
-            <span class="label">새로운 공지사항</span>
-          </div>
-        </div>
-  
-        <div class="info-section no-border">
-          <img src="@/assets/todo.png" alt="todo" />
-          <div class="info-content">
-            <span class="highlight">13개</span>
-            <span class="label">남은 작업</span>
+  <div class="dashboard-container">
+    <!-- 상단 정보: 하나의 박스로 통합 -->
+    <div class="dashboard-top-card">
+      <div class="info-section">
+        <div class="info-content">
+          <span class="highlight">{{ progress }}%</span>
+          <span class="label">작업 진행도</span>
+          <div class="progress-bar">
+            <div class="progress-fill" :style="{ width: progress + '%' }"></div>
           </div>
         </div>
       </div>
-  
-      <!-- 중간 작업 정보 -->
-      <div class="dashboard-mid">
-        <div class="card">모든 작업 카드 넣을 자리</div>
-        <div class="card">내 작업 카드 넣을 자리</div>
+
+      <div class="info-section">
+        <img src="@/assets/bellicon.png" alt="bell" />
+        <div class="info-content">
+          <span class="highlight">3개</span>
+          <span class="label">새로운 공지사항</span>
+        </div>
       </div>
-  
-      <!-- 하단 공지사항, 투표, 활동 -->
-      <div class="dashboard-bottom">
-        <div class="card wide">
-          <DashboardNotice />
-        </div>
-        <div class="card">
-          <h3>투표</h3>
-          <p>투표 카드 예시</p>
-        </div>
-        <div class="card">
-          <h3>최근 활동</h3>
-          <p>최근 활동 예시</p>
+
+      <div class="info-section no-border">
+        <img src="@/assets/todo.png" alt="todo" />
+        <div class="info-content">
+          <span class="highlight">{{ remainingTasks }}개</span>
+          <span class="label">남은 작업</span>
         </div>
       </div>
     </div>
-  </template>
-  
-  <script setup>
-  import { ref, onMounted } from 'vue'
-  import axios from 'axios'
-  import DashboardNotice from '@/components/dashboard/DashboardNotice.vue'
-  
-  const userId = ref(null)
-  const projectId = ref(null)
-  
-  onMounted(async () => {
-    try {
-      const res = await axios.get('/auth/me', { withCredentials: true })
-      userId.value = res.data.userId
-      projectId.value = res.data.projectId
-    } catch (e) {
-      console.error('유저 정보 불러오기 실패', e)
-    }
-  })
-  </script>
-  
+
+    <!-- 중간 작업 정보 -->
+    <div class="dashboard-mid">
+      <div class="card">모든 작업 카드 넣을 자리</div>
+      <div class="card">내 작업 카드 넣을 자리</div>
+    </div>
+
+    <!-- 하단 공지사항, 투표, 활동 -->
+    <div class="dashboard-bottom">
+      <div class="card wide">
+        <DashboardNotice />
+      </div>
+      <div class="card">
+        <h3>투표</h3>
+        <p>투표 카드 예시</p>
+      </div>
+      <div class="card">
+        <h3>최근 활동</h3>
+        <p>최근 활동 예시</p>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, onMounted, computed } from 'vue'
+import axios from 'axios'
+import DashboardNotice from '@/components/dashboard/DashboardNotice.vue'
+
+const userId = ref(null)
+const projectId = ref(null)
+const tasks = ref([])
+
+const progress = computed(() => {
+  const total = tasks.value.length
+  const done = tasks.value.filter(t => t.status === 'COMPLETED').length
+  return total ? Math.round((done / total) * 100) : 0
+})
+
+const remainingTasks = computed(() => {
+  return tasks.value.filter(t => t.status !== 'COMPLETED').length
+})
+
+onMounted(async () => {
+  try {
+    // 사용자 및 프로젝트 정보 불러오기
+    const res = await axios.get('/auth/me', { withCredentials: true })
+    userId.value = res.data.userId
+    projectId.value = res.data.projectId
+
+    // 작업 목록 불러오기
+    const taskRes = await axios.get('/work-tasks/project', {
+      headers: {
+        Authorization: localStorage.getItem('authHeader'),
+      },
+      withCredentials: true
+    })
+    tasks.value = taskRes.data
+
+  } catch (e) {
+    console.error('❌ 작업 불러오기 실패:', e)
+  }
+})
+</script>
+
   
   <style scoped>
 .dashboard-container {

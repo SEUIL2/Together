@@ -130,13 +130,12 @@ function formatDate(dateString) {
 async function saveItem(index) {
   const item = planningItems.value[index]
   const formData = new FormData()
+
   formData.append("type", item.type)
-  if (item.content.trim() !== "") {
-    formData.append("text", item.content)
-  }
+  formData.append("text", item.content) // ← 빈 문자열도 전송
 
   try {
-    await axios.post("/planning/upload", formData, {
+    await axios.put("/planning/update", formData, {
       headers: { Authorization: localStorage.getItem("authHeader") },
       withCredentials: true
     })
@@ -145,6 +144,7 @@ async function saveItem(index) {
     alert(`${item.name} 저장 중 오류 발생`)
   }
 }
+
 
 onMounted(async () => {
   try {

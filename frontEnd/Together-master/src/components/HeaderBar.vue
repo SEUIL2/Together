@@ -10,38 +10,25 @@
     <nav>
       <ul>
         <li>
-          <button 
-            :class="{ active: $route.path === '/MyProject' }" 
-            @click="goMyProject"
-          >
-            내 프로젝트
-          </button>
+          <button :class="{ active: $route.path === '/MyProject' }" @click="goMyProject" >내 프로젝트</button>
         </li>
         <li>
-          <button 
-            :class="{ active: $route.path === '/DashBoard' }"
-            @click="goMyDashBoard"
-          >
-            대시보드
-          </button>
-        </li>
-        <li><button @click="goMyTask">작업</button></li>
-        <li><button @click="goSchedule">일정 관리</button></li>
-        <li>
-          <button 
-            :class="{ active: $route.path === '/TeamManagement' }"
-            @click="goTeam"
-          >
-            팀원 관리
-          </button>
+          <button :class="{ active: $route.path === '/DashBoard' }" @click="goMyDashBoard">대시보드</button>
         </li>
         <li>
-          <button 
-            :class="{ active: $route.path === '/MeetingPage' }"
-            @click="goMeeting"
-          >
-            회의
-          </button>
+        <button :class="{ active: $route.path === '/TaskPage' }" @click="goMyTask">작업</button>
+        </li>
+        <li>
+          <button :class="{ active: $route.path === '/Scheduletest' }" @click="goSchedule">일정 관리</button>
+          </li>
+        <li>
+          <button :class="{ active: $route.path === '/TeamManagement' }" @click="goTeam">팀원 관리</button>
+        </li>
+        <li>
+          <button :class="{ active: $route.path === '/MeetingPage' }" @click="goMeeting">회의</button>
+        </li>
+                <li>
+          <button :class="{ active: $route.path === '/' }" @click="goMeeting">도움말</button>
         </li>
       </ul>
     </nav>

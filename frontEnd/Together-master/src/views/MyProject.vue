@@ -1,7 +1,5 @@
 <template>
   <div class="project-container">
-    <Sidebar />
-
     <main class="main-content">
       <!-- 프로젝트 상단 정보 -->
       <section class="project-header">
@@ -17,7 +15,11 @@
             class="project-description"
             placeholder="프로젝트에 대한 설명을 적어주세요"
           ></textarea>
-          <button class="save-btn" @click="saveProjectInfo">저장</button>
+          <div class="team-list">
+  <span class="member" v-for="member in teamMembers" :key="member.id">
+    {{ member.name }}
+  </span>
+</div>
         </div>
         <div class="vertical-line"></div>
         <div class="progress-container">
@@ -56,19 +58,21 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import axios from 'axios'
-import Sidebar from '@/components/Sidebar.vue'
+import { debounce } from 'lodash'
+
 import PlanningDetails from '@/components/PlanningDetails.vue'
 import DesignDetails from '@/components/DesignDetails.vue'
 import DevelopmentDetails from '@/components/DevelopmentDetails.vue'
 import TestingDetails from '@/components/TestingDetails.vue'
 
-const projectId          = ref(null)
-const projectName        = ref('로딩 중...')
+const projectId = ref(null)
+const projectName = ref('로딩 중...')
 const projectDescription = ref('')
+const teamMembers = ref([])
 
-// 기존 단계 정보
+// 단계 목록
 const steps = ref([
   { name: '기획', current: 0, total: 5 },
   { name: '설계', current: 1, total: 8 },
@@ -77,13 +81,12 @@ const steps = ref([
 ])
 const selectedStep = ref('기획')
 
-// **할 일 목록**을 불러와서 progress 계산
-// status 필드가 'PENDING' 또는 'COMPLETED' 라고 가정
+// 작업 목록
 const tasks = ref([])
 
 const progress = computed(() => {
-  const total       = tasks.value.length
-  const completed   = tasks.value.filter(t => t.status === 'COMPLETED').length
+  const total = tasks.value.length
+  const completed = tasks.value.filter(t => t.status === 'COMPLETED').length
   return total ? Math.round((completed / total) * 100) : 0
 })
 
@@ -93,84 +96,87 @@ function selectStep(stepName) {
 
 const currentDetailComponent = computed(() => {
   switch (selectedStep.value) {
-    case '기획':   return PlanningDetails
-    case '설계':   return DesignDetails
-    case '개발':   return DevelopmentDetails
+    case '기획': return PlanningDetails
+    case '설계': return DesignDetails
+    case '개발': return DevelopmentDetails
     case '테스트': return TestingDetails
-    default:       return null
+    default: return null
   }
 })
 
-// 자식 컴포넌트에서 완료 개수 업데이트
 function updatePlanningProgress(count) {
   const step = steps.value.find(s => s.name === selectedStep.value)
   if (step) step.current = count
 }
 
-// 프로젝트 제목/설명 저장
-const saveProjectInfo = async () => {
-  if (!projectId.value) {
-    alert('프로젝트 ID를 불러오지 못했습니다.')
-    return
-  }
+// ✅ 자동 저장 함수 (debounce 적용)
+const autoSaveProjectInfo = debounce(async () => {
+  if (!projectId.value) return
+
   try {
+    // 제목 저장
     await axios.put(
       `/projects/${projectId.value}/update-title`,
       { newTitle: projectName.value },
       { headers: { Authorization: localStorage.getItem('authHeader') }, withCredentials: true }
     )
+
+    // 설명 저장
     const formData = new FormData()
     formData.append('type', 'description')
     formData.append('text', projectDescription.value)
-    await axios.post(
-      '/planning/upload',
+
+    await axios.put(
+      '/planning/update',
       formData,
       { headers: { Authorization: localStorage.getItem('authHeader') }, withCredentials: true }
     )
-    alert('프로젝트 제목과 설명이 저장되었습니다.')
   } catch (err) {
-    console.error('❌ 저장 오류:', err)
-    alert('저장 중 오류가 발생했습니다.')
+    console.error('❌ 자동 저장 실패:', err)
+  }
+}, 800)
+
+// ✅ 입력 변경 감지 시 자동 저장
+watch([projectName, projectDescription], autoSaveProjectInfo, { flush: 'post' })
+
+async function fetchTeamMembers() {
+  try {
+    const { data } = await axios.get('/projects/members', {
+      headers: { Authorization: localStorage.getItem('authHeader') },
+      withCredentials: true
+    })
+    teamMembers.value = data.map(member => ({
+      name: member.userName, // 이걸 기준으로 출력 가능하게 만듦
+      id: member.userId
+    }))
+  } catch (err) {
+    console.error('❌ 팀원 정보 불러오기 실패:', err)
   }
 }
 
-// 초기 로드: 프로젝트 + tasks
+
 onMounted(async () => {
   try {
-    // ✅ 1단계: 내 프로젝트 정보 가져오기
     const projectRes = await axios.get('/projects/my', {
-      headers: {
-        Authorization: localStorage.getItem('authHeader'),
-      },
+      headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true,
     })
 
-    // 프로젝트 ID와 이름 설정
     projectId.value = projectRes.data.projectId
     projectName.value = projectRes.data.title
 
-    // ✅ 2단계: 프로젝트 설명 가져오기
     const detailRes = await axios.get('/planning/all', {
-      headers: {
-        Authorization: localStorage.getItem('authHeader'),
-      },
+      headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true,
     })
     projectDescription.value = detailRes.data.description?.text || ''
 
-    // ✅ 3단계: 프로젝트 ID가 설정된 다음에 tasks 불러오기!
     if (projectId.value) {
-const taskRes = await axios.get('/work-tasks/project', {
-  headers: {
-    Authorization: localStorage.getItem('authHeader'),
-  },
-  withCredentials: true
-})
-
-
-      tasks.value = taskRes.data // 여기서 [{ id, title, status: 'PENDING'|'COMPLETED' }, ...]
-    } else {
-      console.warn('⚠️ 프로젝트 ID가 없습니다. tasks를 불러올 수 없습니다.')
+      const taskRes = await axios.get('/work-tasks/project', {
+        headers: { Authorization: localStorage.getItem('authHeader') },
+        withCredentials: true
+      })
+      tasks.value = taskRes.data
     }
   } catch (err) {
     console.error('❌ 데이터 로딩 실패:', err)
@@ -178,34 +184,35 @@ const taskRes = await axios.get('/work-tasks/project', {
       alert('작업 목록을 불러올 수 없습니다. 접근 권한이 없거나 로그인 상태가 만료되었을 수 있습니다.')
     }
   }
+  await fetchTeamMembers()
 })
-
 </script>
-
 
 
 <style scoped>
 html, body {
   margin: 0;
   padding: 0;
-  overflow: hidden;  /* ✅ 페이지 전체 스크롤 제거 */
   height: 100%;
+  overflow: auto;  /* ← ✅ 여기에만 스크롤 허용 */
 }
+
 .project-container {
-  display: flex;
-  width: 100vw;
-  height: 100vh;
-  overflow: hidden;
+  display: block;
+  width: 100%;
   background-color: #fafafa;
 }
 
+
 .main-content {
-  margin-left: 220px;
-  margin-right: 18px;
-  flex: 1;
-  overflow-y: auto;
+  margin: 0 auto;
   padding: 20px;
+  max-width: 1100px;
+  width: 100%;
+  /* overflow-y: auto; ← ❌ 이거 지워 */
 }
+
+
 
 .project-header {
   display: flex;
@@ -235,26 +242,28 @@ html, body {
   background: none;
 }
 .project-description {
-  height: 50px;
+  height: 20px;
   border: none;
   outline: none;
   background: none;
   resize: none;
 }
-.save-btn {
-  align-self: flex-start;
-  background-color: #3f8efc;
-  color: white;
-  border: none;
+
+.team-list {
+  margin-top: 10px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.member {
+  background-color: #eef4ff;
+  color: #3f8efc;
   padding: 6px 12px;
-  margin-top: 8px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.9rem;
+  border-radius: 20px;
+  font-size: 0.7rem;
 }
-.save-btn:hover {
-  background-color: #2e6fd8;
-}
+
 .vertical-line {
   width: 1px;
   height: 80px;

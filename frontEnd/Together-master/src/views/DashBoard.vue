@@ -1,6 +1,6 @@
 <template>
   <div class="dashboard-container">
-    <!-- 상단 정보: 하나의 박스로 통합 -->
+    <!-- 상단 정보 -->
     <div class="dashboard-top-card">
       <div class="info-section">
         <div class="info-content">
@@ -15,7 +15,7 @@
       <div class="info-section">
         <img src="@/assets/bellicon.png" alt="bell" />
         <div class="info-content">
-          <span class="highlight">3개</span>
+          <span class="highlight">2개</span>
           <span class="label">새로운 공지사항</span>
         </div>
       </div>
@@ -29,13 +29,22 @@
       </div>
     </div>
 
-    <!-- 중간 작업 정보 -->
+    <!-- 중간 작업 카드 -->
     <div class="dashboard-mid">
-      <div class="card">모든 작업 카드 넣을 자리</div>
-      <div class="card">내 작업 카드 넣을 자리</div>
+      <div class="card">
+        <AllTasksCard :tasks="tasks" />
+      </div>
+      <div class="card">
+<MyTasksCard
+  :tasks="tasks"
+  :currentUserName="currentUserName"
+/>
+
+
+      </div>
     </div>
 
-    <!-- 하단 공지사항, 투표, 활동 -->
+    <!-- 하단 영역 -->
     <div class="dashboard-bottom">
       <div class="card wide">
         <DashboardNotice />
@@ -53,11 +62,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watchEffect } from 'vue'
 import axios from 'axios'
 import DashboardNotice from '@/components/dashboard/DashboardNotice.vue'
+import AllTasksCard from '@/components/dashboard/AllTasksCard.vue'
+import MyTasksCard from '@/components/dashboard/MyTasksCard.vue'
 
-const userId = ref(null)
+const currentUserName = ref('')  // 사용자 한글 이름 (ex: 테스트01)
+const currentUserId = ref('')    // 로그인 ID (ex: test01)
 const projectId = ref(null)
 const tasks = ref([])
 
@@ -71,32 +83,35 @@ const remainingTasks = computed(() => {
   return tasks.value.filter(t => t.status !== 'COMPLETED').length
 })
 
+
 onMounted(async () => {
   try {
-    // 사용자 및 프로젝트 정보 불러오기
-    const res = await axios.get('/auth/me', { withCredentials: true })
-    userId.value = res.data.userId
-    projectId.value = res.data.projectId
+    const { data } = await axios.get('/auth/me', { withCredentials: true })
+    console.log('✅ /auth/me 응답:', data)
 
-    // 작업 목록 불러오기
+    currentUserName.value = data.userName?.trim()  // ex: 테스트01
+    currentUserId.value = data.userId              // ex: test01
+    projectId.value = data.projectId
+
     const taskRes = await axios.get('/work-tasks/project', {
-      headers: {
-        Authorization: localStorage.getItem('authHeader'),
-      },
+      headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true
     })
     tasks.value = taskRes.data
-
   } catch (e) {
-    console.error('❌ 작업 불러오기 실패:', e)
+    console.error('❌ 작업 또는 사용자 정보 불러오기 실패:', e)
   }
+})
+watchEffect(() => {
+  console.log('✅ [대시보드] currentUserName.value:', currentUserName.value)
+  console.log('✅ [대시보드] tasks:', tasks.value.map(t => t.assignedUserName))
 })
 </script>
 
   
   <style scoped>
 .dashboard-container {
-  padding: 24px;
+  padding: 30px;
   display: flex;
   flex-direction: column;
   gap: 24px;

@@ -1,5 +1,6 @@
 package com.together.user.profile;
 
+import com.together.documentManger.GoogleDriveService;
 import com.together.user.UserEntity;
 import com.together.user.UserRepository;
 import com.together.user.profile.dto.UserProfileUpdateRequestDto;
@@ -7,6 +8,8 @@ import com.together.user.profile.dto.UserProfileResponseDto;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+
+import java.io.IOException;
 
 /**
  * 사용자 프로필 관련 서비스 로직
@@ -16,6 +19,7 @@ import org.springframework.stereotype.Service;
 public class profileService {
 
     private final UserRepository userRepository;
+    private final GoogleDriveService googleDriveService;
 
     /**
      * 사용자 프로필 수정
@@ -62,6 +66,28 @@ public class profileService {
                 .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
 
         user.setProfileImageUrl(imageUrl);
+        userRepository.save(user);
+    }
+
+    //이미지 삭제
+
+    @Transactional
+    public void deleteUserProfileImage(Long userId) {
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
+        String imageUrl = user.getProfileImageUrl();
+        if (imageUrl != null && !imageUrl.isEmpty()) {
+            String fileId = googleDriveService.extractDriveFileId(imageUrl);
+
+            try {
+                googleDriveService.deleteFile(fileId);  // ✅ IOException 처리
+            } catch (IOException e) {
+                throw new RuntimeException("Google Drive 이미지 삭제 실패", e);
+            }
+        }
+
+        user.setProfileImageUrl(null);
         userRepository.save(user);
     }
 }

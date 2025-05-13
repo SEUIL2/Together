@@ -65,4 +65,16 @@ public class profileController {
             return ResponseEntity.status(500).body("이미지 업로드 실패: " + e.getMessage());
         }
     }
+    //이미지삭제
+    @DeleteMapping("/profile/image")
+    public ResponseEntity<String> deleteProfileImage(
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+
+        try {
+            profileService.deleteUserProfileImage(userDetails.getUser().getUserId());
+            return ResponseEntity.ok("프로필 이미지가 삭제되었습니다.");
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("이미지 삭제 실패: " + e.getMessage());
+        }
+    }
 }

@@ -1,13 +1,15 @@
 package com.together.user;
 
+import com.together.documentManger.GoogleDriveService;
 import com.together.project.ProjectEntity;
 import com.together.systemConfig.UserDetailsImpl;
+import com.together.user.profile.dto.UserProfileResponseDto;
+import com.together.user.profile.dto.UserProfileUpdateRequestDto;
 import com.together.user.dto.UserSignUpRequestDto;
 import com.together.user.email.EmailService;
 import com.together.user.email.VerificationCodeService;
 import com.together.user.professor.ProfessorEntity;
 import com.together.user.student.StudentEntity;
-import com.together.util.customAnnotation.CurrentProject;
 import jakarta.mail.MessagingException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -15,14 +17,15 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.HashMap;
 import java.util.List;
@@ -199,4 +202,6 @@ public class UserController {
         userRepository.save(user);
         return ResponseEntity.ok("비밀번호가 성공적으로 변경되었습니다.");
     }
+
+
 }

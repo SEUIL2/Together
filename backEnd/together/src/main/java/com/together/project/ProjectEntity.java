@@ -34,7 +34,10 @@ public class ProjectEntity{
     private Long projectId; // PK
 
     @Column(nullable = false)
-    private String title; // 프로젝트 이름
+    private String title; // 프로젝트
+
+    @Column(name = "image_url")
+    private String imageUrl;  // Google Drive 공유 이미지 URL (nullable)
 
     @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinTable(

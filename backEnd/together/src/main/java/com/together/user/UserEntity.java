@@ -84,4 +84,28 @@ public class UserEntity {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<UserKeywordHistoryEntity> userKeywordHistoryEntities = new ArrayList<>();
 
+
+    /**
+     * 프로필 사진 (Google Drive URL 등)
+     */
+    @Column(name = "profile_image_url", nullable = true)
+    private String profileImageUrl;
+
+    /**
+     * 자기소개 (한 줄 소개 등)
+     */
+    @Column(name = "bio", length = 200)
+    private String bio;
+
+    /**
+     * 사용자 테마 (어두운 테마 / 밝은 테마)
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "theme", nullable = false)
+    private ThemeOption theme = ThemeOption.LIGHT; // 기본값
+
+    public enum ThemeOption {
+        LIGHT,
+        DARK
+    }
 }

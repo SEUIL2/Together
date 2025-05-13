@@ -1,9 +1,13 @@
 package com.together.user;
 
+import com.together.project.ProjectEntity;
 import com.together.systemConfig.UserDetailsImpl;
 import com.together.user.dto.UserSignUpRequestDto;
 import com.together.user.email.EmailService;
 import com.together.user.email.VerificationCodeService;
+import com.together.user.professor.ProfessorEntity;
+import com.together.user.student.StudentEntity;
+import com.together.util.customAnnotation.CurrentProject;
 import jakarta.mail.MessagingException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -21,6 +25,7 @@ import org.springframework.security.web.authentication.logout.SecurityContextLog
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -125,6 +130,13 @@ public class UserController {
         userInfo.put("userId", userDetails.getUsername());
         userInfo.put("roles", userDetails.getAuthorities());
         userInfo.put("userName", userDetails.getUserAuthName());
+        if (userDetails.getUser() instanceof ProfessorEntity professor) {
+            List<Map<String, Object>> projectList = userService.getProfessorProjectSummaries(userDetails.getUser().getUserId());
+            userInfo.put("projectId", projectList);
+        } else if(userDetails.getUser() instanceof StudentEntity student){
+            ProjectEntity project = student.getMainProject();
+            userInfo.put("projectId", project);
+        }
 
         return ResponseEntity.ok(userInfo);
     }

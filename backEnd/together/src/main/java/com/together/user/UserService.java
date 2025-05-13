@@ -1,15 +1,20 @@
 package com.together.user;
 
+import com.together.project.ProjectEntity;
 import com.together.user.dto.UserSignUpRequestDto;
 import com.together.user.professor.ProfessorEntity;
 import com.together.user.professor.ProfessorRepository;
 import com.together.user.student.StudentEntity;
 import com.together.user.student.StudentRepository;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -103,8 +108,26 @@ public class UserService {
         return userRepository.findByUserEmail(userEmail);
     }
 
+    //회원가입할때 로그인아이디 중복여부 확인
     public boolean isLoginIdDuplicated(String loginId) {
         return userRepository.existsByUserLoginId(loginId);
+    }
 
+    //교수 프로젝트 아이디 반환
+    public List<Map<String, Object>> getProfessorProjectSummaries(Long userId) {
+        ProfessorEntity professor = professorRepository.findById(userId).get();
+        if (professor == null) {
+            throw new EntityNotFoundException("교수님을 찾을수 없습니다.");
+        }
+
+        List<ProjectEntity> projects = professor.getProjects();
+
+        List<Map<String, Object>> projectList = projects.stream().map(project -> {
+            Map<String, Object> p = new HashMap<>();
+            p.put("projectId", project.getProjectId());
+            return p;
+        }).toList();
+
+        return projectList;
     }
 }

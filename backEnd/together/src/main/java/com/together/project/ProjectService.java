@@ -1,5 +1,6 @@
 package com.together.project;
 
+import com.together.documentManger.GoogleDriveService;
 import com.together.notification.NotificationService;
 import com.together.project.Invitation.InvitationEntity;
 import com.together.project.Invitation.InvitationRepository;
@@ -19,6 +20,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+
+import java.io.IOException;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -32,18 +35,55 @@ public class ProjectService {
     private final UserRepository userRepository;
     private final InvitationRepository invitationRepository;
     private final NotificationService notificationService;
+    private final GoogleDriveService googleDriveService;
 
-    // 프로젝트 생성
+
+    /**
+     * 이미지 없이 프로젝트 생성 (title만 받음)
+     */
     @Transactional
     public ProjectResponseDto createProject(String title) {
-        // 1️⃣ 현재 로그인한 사용자 조회
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String loginId = authentication.getName();
 
         UserEntity user = userRepository.findByUserLoginId(loginId)
                 .orElseThrow(() -> new RuntimeException("로그인한 사용자를 찾을 수 없습니다."));
 
-        // 2️⃣ 학생이 이미 프로젝트를 보유하고 있다면 예외 처리 (학생은 하나의 프로젝트만 가질 수 있다)
+        if (user instanceof StudentEntity student && student.getMainProject() != null) {
+            throw new RuntimeException("학생은 이미 하나의 프로젝트만 가질 수 있습니다.");
+        }
+
+        ProjectEntity project = new ProjectEntity();
+        project.setTitle(title);
+        project.setImageUrl(null); // ✅ 이미지 없이 생성
+        project.addUser(user);
+
+        ProjectEntity savedProject = projectRepository.save(project);
+
+        if (user instanceof StudentEntity) {
+            ((StudentEntity) user).setMainProject(savedProject);
+        } else if (user instanceof ProfessorEntity) {
+            ((ProfessorEntity) user).getProjects().add(savedProject);
+        }
+
+        return new ProjectResponseDto(
+                savedProject.getProjectId(),
+                savedProject.getTitle(),
+                null  // imageUrl 없이 반환
+        );
+    }
+
+    // 이미지 포함한 프로젝트 생성 (오버로딩된 메서드)
+    @Transactional
+    public ProjectResponseDto createProject(String title, String imageUrl) {
+        // 현재 로그인 사용자 조회
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String loginId = authentication.getName();
+
+        UserEntity user = userRepository.findByUserLoginId(loginId)
+                .orElseThrow(() -> new RuntimeException("로그인한 사용자를 찾을 수 없습니다."));
+
+        // 학생이 이미 프로젝트를 보유하고 있다면 예외 처리
         if (user instanceof StudentEntity) {
             StudentEntity student = (StudentEntity) user;
             if (student.getMainProject() != null) {
@@ -51,27 +91,26 @@ public class ProjectService {
             }
         }
 
-        // 3️⃣ 프로젝트 생성 및 유저 연결
+        // 프로젝트 생성 및 유저 연결
         ProjectEntity project = new ProjectEntity();
         project.setTitle(title);
-        project.addUser(user); // ✅ 자동 연결
+        project.setImageUrl(imageUrl); // ✅ 이미지 URL 설정
+        project.addUser(user);
 
-        // 4️⃣ 저장
         ProjectEntity savedProject = projectRepository.save(project);
 
-        // 5️⃣ 학생인 경우, mainProject로 설정
-        if (user instanceof StudentEntity) {
-            StudentEntity student = (StudentEntity) user;
+        // 학생 또는 교수 연관 설정
+        if (user instanceof StudentEntity student) {
             student.setMainProject(savedProject);
-        } else if (user instanceof ProfessorEntity) {
-            ProfessorEntity professor = (ProfessorEntity) user;
-            professor.setProjects((List<ProjectEntity>) savedProject);
+        } else if (user instanceof ProfessorEntity professor) {
+            professor.getProjects().add(savedProject);
         }
 
-        // 6️⃣ 응답 반환
+        // DTO 반환
         return new ProjectResponseDto(
                 savedProject.getProjectId(),
-                savedProject.getTitle()
+                savedProject.getTitle(),
+                savedProject.getImageUrl() // ✅ DTO에 포함
         );
     }
     //제목수정
@@ -85,8 +124,49 @@ public class ProjectService {
 
         return new ProjectResponseDto(
                 updatedProject.getProjectId(),
-                updatedProject.getTitle()
+                updatedProject.getTitle(),
+                updatedProject.getImageUrl()
         );
+    }
+
+    /**
+     * 프로젝트 이미지 업로드 후 imageUrl 저장
+     *
+     * @param projectId 대상 프로젝트 ID
+     * @param imageUrl Google Drive에 업로드된 이미지 URL
+     */
+    @Transactional
+    public void updateProjectImage(Long projectId, String imageUrl) {
+        ProjectEntity project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new RuntimeException("프로젝트를 찾을 수 없습니다."));
+
+        project.setImageUrl(imageUrl); // ✅ URL 업데이트
+        projectRepository.save(project);
+    }
+    /**
+     * 프로젝트에 등록된 이미지 URL을 제거하고
+     * 해당 이미지 파일을 Google Drive에서도 삭제한다
+     *
+     * @param projectId 삭제할 이미지가 속한 프로젝트의 ID
+     */
+    @Transactional
+    public void deleteProjectImage(Long projectId) {
+        ProjectEntity project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new RuntimeException("프로젝트를 찾을 수 없습니다."));
+
+        String imageUrl = project.getImageUrl();
+        if (imageUrl != null && !imageUrl.isEmpty()) {
+            String fileId = googleDriveService.extractDriveFileId(imageUrl);
+
+            try {
+                googleDriveService.deleteFile(fileId);  // ✅ 예외 처리
+            } catch (IOException e) {
+                throw new RuntimeException("Google Drive 이미지 삭제 중 오류 발생", e);
+            }
+        }
+
+        project.setImageUrl(null);
+        projectRepository.save(project);
     }
     // 사용자 검색
     public List<UserResponseDto> searchUserByEmail(String email) {
@@ -226,7 +306,8 @@ public class ProjectService {
                         user.getUserId(),
                         user.getUserName(),
                         user.getUserEmail(),
-                        user.getRole().name()
+                        user.getRole().name(),
+                        user.getUserColor()
                 ))
                 .toList();
     }
@@ -249,6 +330,46 @@ public class ProjectService {
     @Transactional
     public void deleteProject(Long projectId) {
         projectRepository.deleteById(projectId);
+    }
+
+    //프로젝트 나가기
+    @Transactional
+    public void leaveProject(Long userId, Long projectId) {
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
+        ProjectEntity project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new RuntimeException("프로젝트를 찾을 수 없습니다."));
+
+        if (!(user instanceof StudentEntity student)) {
+            throw new RuntimeException("학생만 프로젝트를 나갈 수 있습니다.");
+        }
+
+        if (!project.equals(student.getMainProject())) {
+            throw new RuntimeException("해당 프로젝트에 속해 있지 않습니다.");
+        }
+
+        student.setMainProject(null);
+        student.setUserColor(null);
+        userRepository.save(student);
+    }
+
+    //유저 색상지정
+    @Transactional
+    public void updateUserColor(Long userId, String colorHex) {
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
+        if (!(user instanceof StudentEntity student)) {
+            throw new RuntimeException("학생만 색상을 지정할 수 있습니다.");
+        }
+
+        if (student.getMainProject() == null) {
+            throw new RuntimeException("이 학생은 현재 프로젝트에 속해있지 않습니다.");
+        }
+
+        student.setUserColor(colorHex);
+        userRepository.save(student);
     }
 }
 

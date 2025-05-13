@@ -21,4 +21,6 @@ public class StudentEntity extends UserEntity {
     @JoinColumn(name = "main_project_id")
     private ProjectEntity mainProject; //대표 프로젝트
 
+    @Column(name = "user_color", nullable = true)
+    private String userColor; //유저 색 프로젝트 나가면 NULL초기화
 }

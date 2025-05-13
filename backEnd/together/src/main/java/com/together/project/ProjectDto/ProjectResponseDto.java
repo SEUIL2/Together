@@ -11,5 +11,6 @@ import java.util.Date;
 @AllArgsConstructor
 public class ProjectResponseDto {
     private Long projectId;
-    private String title;
+    private String title; //제목
+    private String imageUrl; //이미지
 }

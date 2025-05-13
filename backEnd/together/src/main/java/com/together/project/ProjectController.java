@@ -1,5 +1,6 @@
 package com.together.project;
 
+import com.together.documentManger.GoogleDriveService;
 import com.together.project.Invitation.InvitationRepository;
 import com.together.project.Invitation.dto.InvitationResponseDto;
 import com.together.project.Invitation.dto.TeamMemberDto;
@@ -13,13 +14,15 @@ import com.together.user.dto.UserResponseDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
+import com.together.documentManger.GoogleDriveService;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 
@@ -30,12 +33,15 @@ import org.springframework.web.server.ResponseStatusException;
 public class ProjectController {
 
     private final ProjectService projectService;
-
+    private final GoogleDriveService googleDriveService;
     private final UserRepository userRepository;
     private final InvitationRepository invitationRepository;
     private final ProjectRepository projectRepository;
 
-    //프로젝트 생성
+
+    /**
+     * 이미지 없이 프로젝트를 생성하는 API (title만 JSON으로 받음)
+     */
     @PostMapping("/create")
     public ResponseEntity<ProjectResponseDto> createProject(@RequestBody Map<String, Object> request) {
         try {
@@ -45,11 +51,70 @@ public class ProjectController {
                 return ResponseEntity.badRequest().body(null);
             }
 
-            ProjectResponseDto project = projectService.createProject(title);
+            ProjectResponseDto project = projectService.createProject(title);  // ✅ imageUrl 없이
             return ResponseEntity.ok(project);
         } catch (Exception e) {
-            System.err.println("Error creating project: " + e.getMessage());
+            log.error("프로젝트 생성 실패", e);
             return ResponseEntity.status(500).body(null);
+        }
+    }
+
+    //프로젝트 생성 이미지업로드
+    @PostMapping(value = "/create-with-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ProjectResponseDto> createProjectWithImage(
+            @RequestParam("title") String title,
+            @RequestPart(value = "image", required = false) MultipartFile imageFile,
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+
+        try {
+            String imageUrl = null;
+            if (imageFile != null && !imageFile.isEmpty()) {
+                imageUrl = googleDriveService.uploadImageToGoogleDrive(imageFile);
+            }
+
+            ProjectResponseDto project = projectService.createProject(title, imageUrl);
+            return ResponseEntity.ok(project);
+        } catch (Exception e) {
+            log.error("프로젝트 생성 실패", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+    @PutMapping("/image")
+    public ResponseEntity<String> updateProjectImage(
+            @CurrentProject(required = false) Long projectId,
+            @RequestPart("image") MultipartFile imageFile) {
+
+        if (projectId == null) {
+            return ResponseEntity.badRequest().body("프로젝트 ID가 없습니다.");
+        }
+
+        try {
+            String imageUrl = googleDriveService.uploadImageToGoogleDrive(imageFile);
+            projectService.updateProjectImage(projectId, imageUrl);
+            return ResponseEntity.ok(imageUrl);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("이미지 업로드 실패");
+        }
+    }
+
+    /**
+     * 현재 로그인한 사용자의 프로젝트에서 이미지 삭제
+     * - 프로젝트의 imageUrl을 null로 초기화
+     * - Google Drive에서도 실제 파일 삭제
+     */
+    @DeleteMapping("/image")
+    public ResponseEntity<String> deleteProjectImage(
+            @CurrentProject(required = false) Long projectId
+    ) {
+        if (projectId == null) {
+            return ResponseEntity.badRequest().body("프로젝트 ID가 없습니다.");
+        }
+
+        try {
+            projectService.deleteProjectImage(projectId);
+            return ResponseEntity.ok("이미지 삭제 완료");
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("이미지 삭제 실패: " + e.getMessage());
         }
     }
     //프로젝트 불러오기
@@ -68,7 +133,8 @@ public class ProjectController {
 
         return ResponseEntity.ok(new ProjectResponseDto(
                 project.getProjectId(),
-                project.getTitle()
+                project.getTitle(),
+                project.getImageUrl()
         ));
     }
 
@@ -171,11 +237,35 @@ public class ProjectController {
         return ResponseEntity.ok(professors);
     }
 
+    //프로젝트 나가기
+    @DeleteMapping("/leave")
+    public ResponseEntity<String> leaveProject(
+            @CurrentProject(required = false) Long projectId,
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+
+        if (projectId == null) {
+            return ResponseEntity.badRequest().body("프로젝트 ID가 없습니다.");
+        }
+
+        projectService.leaveProject(userDetails.getUser().getUserId(), projectId);
+        return ResponseEntity.ok("프로젝트에서 성공적으로 나갔습니다.");
+    }
+
     // 프로젝트 삭제
     @DeleteMapping("/{projectId}")
     public ResponseEntity<String> deleteProject(@PathVariable Long projectId) {
         projectService.deleteProject(projectId);
         return ResponseEntity.ok("프로젝트가 삭제되었습니다.");
+    }
+
+    //색상지정
+    @PutMapping("/members/{userId}/color")
+    public ResponseEntity<String> updateUserColor(
+            @PathVariable Long userId,
+            @RequestParam String colorHex) {
+
+        projectService.updateUserColor(userId, colorHex);
+        return ResponseEntity.ok("색상 업데이트 완료");
     }
 
 }

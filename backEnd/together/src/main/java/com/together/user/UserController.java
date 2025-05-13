@@ -135,9 +135,9 @@ public class UserController {
             userInfo.put("projectId", projectList);
         } else if(userDetails.getUser() instanceof StudentEntity student){
             ProjectEntity project = student.getMainProject();
-            userInfo.put("projectId", project);
+            Long projectInfo = project.getProjectId();
+            userInfo.put("projectId", projectInfo);
         }
-
         return ResponseEntity.ok(userInfo);
     }
 

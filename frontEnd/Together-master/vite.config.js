@@ -45,6 +45,11 @@ export default defineConfig({
         target: 'http://localhost:8081',
         changeOrigin: true,
         secure: false
+      },
+      '/votes': {
+        target: 'http://localhost:8081',
+        changeOrigin: true,
+        secure: false
       }
     }
   }

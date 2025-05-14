@@ -35,12 +35,10 @@
         <AllTasksCard :tasks="tasks" />
       </div>
       <div class="card">
-<MyTasksCard
-  :tasks="tasks"
-  :currentUserName="currentUserName"
-/>
-
-
+        <MyTasksCard
+          :tasks="tasks"
+          :currentUserName="currentUserName"
+        />
       </div>
     </div>
 
@@ -49,10 +47,12 @@
       <div class="card wide">
         <DashboardNotice />
       </div>
+
+      <!-- 여기를 VotingList로 대체 -->
       <div class="card">
-        <h3>투표</h3>
-        <p>투표 카드 예시</p>
+        <VotingList />
       </div>
+
       <div class="card">
         <h3>최근 활동</h3>
         <p>최근 활동 예시</p>
@@ -67,9 +67,10 @@ import axios from 'axios'
 import DashboardNotice from '@/components/dashboard/DashboardNotice.vue'
 import AllTasksCard from '@/components/dashboard/AllTasksCard.vue'
 import MyTasksCard from '@/components/dashboard/MyTasksCard.vue'
+import VotingList from '@/components/dashboard/VotingList.vue'  // 추가
 
-const currentUserName = ref('')  // 사용자 한글 이름 (ex: 테스트01)
-const currentUserId = ref('')    // 로그인 ID (ex: test01)
+const currentUserName = ref('')  
+const currentUserId = ref('')
 const projectId = ref(null)
 const tasks = ref([])
 
@@ -83,14 +84,11 @@ const remainingTasks = computed(() => {
   return tasks.value.filter(t => t.status !== 'COMPLETED').length
 })
 
-
 onMounted(async () => {
   try {
     const { data } = await axios.get('/auth/me', { withCredentials: true })
-    console.log('✅ /auth/me 응답:', data)
-
-    currentUserName.value = data.userName?.trim()  // ex: 테스트01
-    currentUserId.value = data.userId              // ex: test01
+    currentUserName.value = data.userName?.trim()
+    currentUserId.value = data.userId
     projectId.value = data.projectId
 
     const taskRes = await axios.get('/work-tasks/project', {
@@ -102,12 +100,12 @@ onMounted(async () => {
     console.error('❌ 작업 또는 사용자 정보 불러오기 실패:', e)
   }
 })
+
 watchEffect(() => {
-  console.log('✅ [대시보드] currentUserName.value:', currentUserName.value)
-  console.log('✅ [대시보드] tasks:', tasks.value.map(t => t.assignedUserName))
+  console.log('✅ [대시보드] currentUserName:', currentUserName.value)
+  console.log('✅ [대시보드] tasks:', tasks.value)
 })
 </script>
-
   
   <style scoped>
 .dashboard-container {

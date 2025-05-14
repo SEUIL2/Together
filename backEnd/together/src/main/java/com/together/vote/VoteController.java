@@ -15,7 +15,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-
+import com.together.vote.DTO.VoteListDTO;
 @Slf4j
 @RestController
 @RequestMapping("/votes")  // "/votes" 경로로 들어오는 모든 요청을 처리
@@ -54,13 +54,31 @@ public class VoteController {
      * AuthenticationPrincipal - 자동 추출
      * @return ResponseEntity<List<VoteEntity>> - 프로젝트에 속한 모든 투표 리스트 반환
      */
+//    @GetMapping("/project")
+//    public ResponseEntity<List<VoteEntity>> getVotesByProject(
+//            @CurrentProject(required = false) Long projectId,
+//            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+//
+//        List<VoteEntity> votes = voteService.getVotesByProject(projectId);
+//        return ResponseEntity.ok(votes);  // 투표 목록 반환
+//    }
     @GetMapping("/project")
-    public ResponseEntity<List<VoteEntity>> getVotesByProject(
+    public ResponseEntity<List<VoteListDTO>> getVotesByProject(
             @CurrentProject(required = false) Long projectId,
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
 
-        List<VoteEntity> votes = voteService.getVotesByProject(projectId);
-        return ResponseEntity.ok(votes);  // 투표 목록 반환
+        List<VoteListDTO> dto = voteService.getVotesByProject(projectId).stream()
+                .map(v -> {
+                    VoteListDTO d = new VoteListDTO();
+                    d.setVoteId(v.getVoteId());
+                    d.setTitle(v.getTitle());
+                    d.setCreatedDate(v.getCreatedDate());
+                    d.setUserName(v.getUser().getUserName());
+                    return d;
+                })
+                .toList();
+
+        return ResponseEntity.ok(dto);
     }
 
     /**
@@ -119,19 +137,45 @@ public class VoteController {
      * @return ResponseEntity<?> - 생성된 응답 객체 반환
      * 중복 응답시 409
      */
+//    @PostMapping("/{voteId}/response")
+//    public ResponseEntity<?> createVoteResponse(@PathVariable Long voteId, @RequestBody VoteResponseDTO voteResponseDTO) {
+//        try {
+//            VoteResponseEntity voteResponse = voteService.createVoteResponse(voteResponseDTO.getUserId(), voteId, voteResponseDTO.getVoteItemId());
+//            if (voteResponse != null) {
+//                log.info("투표 응답 성공");
+//                return ResponseEntity.ok(voteResponse);  // 응답 생성 성공
+//            }
+//        }catch (IllegalStateException e){
+//            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage()); // 409 Conflict
+//        }
+//        return ResponseEntity.badRequest().body(null);  // 응답 생성 실패
+//    }
     @PostMapping("/{voteId}/response")
-    public ResponseEntity<?> createVoteResponse(@PathVariable Long voteId, @RequestBody VoteResponseDTO voteResponseDTO) {
+    public ResponseEntity<?> createVoteResponse(
+            @PathVariable Long voteId,
+            @AuthenticationPrincipal UserDetailsImpl userDetails,    // 인증된 사용자 정보 주입
+            @RequestBody VoteResponseDTO voteResponseDTO
+    ) {
+        Long userId = userDetails.getUser().getUserId();         // 실제 userId 꺼내기
         try {
-            VoteResponseEntity voteResponse = voteService.createVoteResponse(voteResponseDTO.getUserId(), voteId, voteResponseDTO.getVoteItemId());
+            VoteResponseEntity voteResponse =
+                    voteService.createVoteResponse(
+                            userId,                                      // 여기 userId를 직접 넘김
+                            voteId,
+                            voteResponseDTO.getVoteItemId()
+                    );
             if (voteResponse != null) {
                 log.info("투표 응답 성공");
-                return ResponseEntity.ok(voteResponse);  // 응답 생성 성공
+                return ResponseEntity.ok(voteResponse);
             }
-        }catch (IllegalStateException e){
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage()); // 409 Conflict
+        } catch (IllegalStateException e) {
+            return ResponseEntity
+                    .status(HttpStatus.CONFLICT)
+                    .body(e.getMessage());
         }
-        return ResponseEntity.badRequest().body(null);  // 응답 생성 실패
+        return ResponseEntity.badRequest().body(null);
     }
+
 
     /**
      * 투표 상세 정보 + 응답 수 포함 조회 API

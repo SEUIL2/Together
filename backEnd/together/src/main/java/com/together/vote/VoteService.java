@@ -7,6 +7,8 @@ import com.together.user.UserEntity;
 import com.together.user.UserRepository;
 import com.together.user.student.StudentEntity;
 import com.together.vote.DTO.VoteDTO;
+import com.together.vote.DTO.VoteDetailDTO;
+import com.together.vote.DTO.VoteItemResultDTO;
 import com.together.vote.entity.VoteEntity;
 import com.together.vote.entity.VoteItemEntity;
 import com.together.vote.entity.VoteResponseEntity;
@@ -157,6 +159,33 @@ public class VoteService {
         }
 
         return null;  // 사용자, 투표 또는 항목이 존재하지 않으면 null 반환
+    }
+
+    //투표 상세정보 반환
+    public VoteDetailDTO getVoteWithResponses(Long voteId) {
+        Optional<VoteEntity> voteOptional = voteRepository.findById(voteId);
+
+        if (voteOptional.isPresent()) {
+            VoteEntity vote = voteOptional.get();
+
+            VoteDetailDTO voteDetailDTO = new VoteDetailDTO();
+            voteDetailDTO.setVoteId(vote.getVoteId());
+            voteDetailDTO.setTitle(vote.getTitle());
+
+            List<VoteItemResultDTO> itemResults = vote.getVoteItems().stream().map(item -> {
+                VoteItemResultDTO dto = new VoteItemResultDTO();
+                dto.setVoteItemId(item.getVoteItemId());
+                dto.setOptions(item.getOptions());
+                dto.setResponseCount(item.getVoteResponse().size());  // 응답 수
+                return dto;
+            }).toList();
+
+            voteDetailDTO.setItems(itemResults);
+
+            return voteDetailDTO;
+        }
+
+        return null;
     }
 
 }

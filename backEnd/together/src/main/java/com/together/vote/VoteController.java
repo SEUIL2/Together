@@ -3,6 +3,7 @@ package com.together.vote;
 import com.together.systemConfig.UserDetailsImpl;
 import com.together.util.customAnnotation.CurrentProject;
 import com.together.vote.DTO.VoteDTO;
+import com.together.vote.DTO.VoteDetailDTO;
 import com.together.vote.DTO.VoteResponseDTO;
 import com.together.vote.entity.VoteEntity;
 import com.together.vote.entity.VoteResponseEntity;
@@ -131,4 +132,19 @@ public class VoteController {
         }
         return ResponseEntity.badRequest().body(null);  // 응답 생성 실패
     }
+
+    /**
+     * 투표 상세 정보 + 응답 수 포함 조회 API
+     * @param voteId - 조회할 투표 ID
+     * @return VoteDetailDTO - 항목별 응답 수 포함한 상세 정보
+     */
+    @GetMapping("/{voteId}/detail")
+    public ResponseEntity<VoteDetailDTO> getVoteWithResponses(@PathVariable Long voteId) {
+        VoteDetailDTO detail = voteService.getVoteWithResponses(voteId);
+        if (detail != null) {
+            return ResponseEntity.ok(detail);
+        }
+        return ResponseEntity.notFound().build();
+    }
+
 }

@@ -41,7 +41,7 @@
 
       <!-- ⚙️ 설정 아이콘 -->
       <div ref="settingsRef">
-        <button @click="toggleMenu">
+        <button class="icon-button" @click="toggleMenu">
           <img src="@/assets/settings.png" alt="Settings" class="settings-img" />
         </button>
 
@@ -240,7 +240,9 @@ nav ul li button.active::after {
   position: relative;
   display: flex;
   align-items: center;
+  gap: 1rem;        /* ← 여기에서 간격을 조절하세요 (예: 1rem = 16px) */
 }
+
 
 .settings-img {
   width: 24px;
@@ -255,8 +257,11 @@ nav ul li button.active::after {
   border: 1px solid #ddd;
   border-radius: 6px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  padding: 8px 12px;
+  padding: 8px 0;           /* 위아래 패딩만 */
+  min-width: 120px;         /* ← 최소 넓이 지정 */
+  white-space: nowrap;      /* ← 줄바꿈 방지 */
 }
+
 
 .popup-btn {
   background: none;
@@ -266,10 +271,22 @@ nav ul li button.active::after {
   cursor: pointer;
   display: block;
   width: 100%;
+  padding: 8px 12px;        /* ← 좌우 패딩 추가 */
   text-align: left;
 }
 
+
 .popup-btn:hover {
   color: #3f8efc;
+}
+.icon-button {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+}
+.icon-button:focus {
+  outline: none;
 }
 </style>

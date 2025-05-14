@@ -171,6 +171,7 @@ public class VoteService {
             VoteDetailDTO voteDetailDTO = new VoteDetailDTO();
             voteDetailDTO.setVoteId(vote.getVoteId());
             voteDetailDTO.setTitle(vote.getTitle());
+            voteDetailDTO.setCreatedDate(vote.getCreatedDate());
 
             List<VoteItemResultDTO> itemResults = vote.getVoteItems().stream().map(item -> {
                 VoteItemResultDTO dto = new VoteItemResultDTO();

@@ -13,7 +13,7 @@
           <th>학번</th>
           <th>이름</th>
           <th>역할</th>
-          <th>평가</th>
+          <th>메모</th>
         </tr>
         </thead>
         <tbody>
@@ -44,7 +44,7 @@
           </td>
           <td>{{ member.role }}</td>
           <td>
-            <button class="evaluate-btn" @click="evaluateMember(member)">평가하기</button>
+            <button class="evaluate-btn" @click="evaluateMember(member)">메모</button>
           </td>
         </tr>
         </tbody>
@@ -55,6 +55,14 @@
           @close="showInviteModal = false"
           @invite="handleInvite"
       />
+      <MemoModal
+            v-if="showMemoModal"
+            :member="memoTarget"
+            :currentUser="currentUser"
+            :projectId="projectId"
+          @close="showMemoModal = false"
+          @saved="onMemoSaved"
+      />
     </main>
   </div>
 </template>
@@ -62,11 +70,30 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
+import { useRoute } from 'vue-router'        // <-- 추가
 import InviteModal from './InviteModal.vue'
+import MemoModal   from './MemoModal.vue'
+
+//메모관련코드
+const route      = useRoute()
+const projectId  = Number(route.params.projectId)
+const currentUser = ref({})
 
 const availableColors = ['#FF8C00', '#F44336', '#2196F3', '#4CAF50', '#9C27B0']
 const teamMembers = ref([])
 const showInviteModal = ref(false)
+const showMemoModal = ref(false)
+const memoTarget    = ref(null)
+
+    // 내 정보 API
+async function fetchCurrentUser() {
+    try {
+        const { data } = await axios.get('/users/profile', { withCredentials: true })
+        currentUser.value = data
+          } catch (e) {
+        console.error('내 정보 조회 실패', e)
+      }
+  }
 
 function openInviteModal() {
   showInviteModal.value = true
@@ -82,7 +109,8 @@ function handleInvite(invitedPerson) {
 }
 
 function evaluateMember(member) {
-  alert(`'${member.name}' 님을 평가합니다.`)
+  memoTarget.value = member
+  showMemoModal.value = true
 }
 
 function toggleColorPicker(idx) {
@@ -118,9 +146,10 @@ async function fetchTeamMembers() {
   }
 }
 
-onMounted(() => {
-  fetchTeamMembers()
-})
+onMounted(async () => {
+    await fetchCurrentUser()
+    await fetchTeamMembers()
+  })
 </script>
 
 <style scoped>

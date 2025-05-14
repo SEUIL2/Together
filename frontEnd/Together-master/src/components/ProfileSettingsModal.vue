@@ -40,6 +40,26 @@
             <small>다른 사람들에게 표시될 자기소개입니다.</small>
           </div>
 
+          <!-- 색상 선택 -->
+          <div class="form-group color-picker-section">
+            <label>테마 색상</label>
+            <div
+                class="color-circle"
+                :style="{ backgroundColor: theme }"
+                @click="toggleColorMenu"
+            ></div>
+            <div v-if="showColorMenu" class="color-menu">
+              <div
+                  v-for="color in availableColors"
+                  :key="color"
+                  class="color-option"
+                  :style="{ backgroundColor: color }"
+                  @click="selectColor(color)"
+              ></div>
+            </div>
+            <small>프로필에 적용할 테마 색상을 선택하세요.</small>
+          </div>
+
           <button class="btn-save" @click="saveProfile">저장</button>
         </div>
 
@@ -78,54 +98,59 @@ const props = defineProps({
 })
 const emit = defineEmits(['close', 'updated'])
 
-// 백엔드 기본 URL 설정
+// Axios 기본 설정
 const API_URL = 'http://localhost:8081'
 axios.defaults.baseURL = API_URL
-// 쿠키 및 세션 기반 인증 사용 시 필요
 axios.defaults.withCredentials = true
-// 토큰 기반 인증 시
 const authHeader = localStorage.getItem('authHeader')
 if (authHeader) axios.defaults.headers.common['Authorization'] = authHeader
 
-// form data
+// reactive data
+const userId = ref(null)
 const userName = ref('')
 const userEmail = ref('')
 const bio = ref('')
 const profileImageUrl = ref('')
-const theme = ref(null)
+const theme = ref('#cccccc')
 const defaultImage = '/default-profile.png'
 const fileInput = ref(null)
 
+// 색상 옵션
+const availableColors = ['#FF5733', '#33FF57', '#3357FF', '#FFD133', '#33FFF2']
+const showColorMenu = ref(false)
+
+// 모달 닫기
 function closeModal() {
   emit('close')
 }
 
+// 프로필 조회 및 userId 설정
 async function fetchProfile() {
   try {
     const res = await axios.get('/users/profile')
     const data = res.data
+    // Backend가 반환하는 사용자 ID 필드에 맞춰 userId 설정
+    userId.value = data.userId ?? data.id
     userName.value = data.userName
     userEmail.value = data.userEmail
     bio.value = data.bio
     profileImageUrl.value = data.profileImageUrl
-    theme.value = data.theme
+    theme.value = data.theme || theme.value
   } catch (err) {
     console.error('프로필 조회 실패', err)
     alert('프로필 정보를 불러오는 중 오류가 발생했습니다.')
   }
 }
 
+// 프로필 저장
 async function saveProfile() {
   try {
-    await axios.put(
-        '/users/profile',
-        {
-          userName: userName.value,
-          bio: bio.value,
-          profileImageUrl: profileImageUrl.value,
-          theme: theme.value
-        }
-    )
+    await axios.put('/users/profile', {
+      userName: userName.value,
+      bio: bio.value,
+      profileImageUrl: profileImageUrl.value,
+      theme: theme.value
+    })
     alert('프로필이 성공적으로 저장되었습니다.')
     emit('updated')
     closeModal()
@@ -135,20 +160,19 @@ async function saveProfile() {
   }
 }
 
+// 이미지 업로드 트리거
 function triggerFileInput() {
   fileInput.value.click()
 }
 
+// 파일 변경 시 이미지 업로드
 async function onFileChange(e) {
   const file = e.target.files[0]
   if (!file) return
   const formData = new FormData()
   formData.append('image', file)
   try {
-    const res = await axios.put(
-        '/users/profile/image',
-        formData
-    )
+    const res = await axios.put('/users/profile/image', formData)
     profileImageUrl.value = res.data
     alert('프로필 이미지가 업데이트되었습니다.')
   } catch (err) {
@@ -157,7 +181,33 @@ async function onFileChange(e) {
   }
 }
 
-// visible prop이 true가 될 때마다 프로필 로드
+// 색상 메뉴 토글
+function toggleColorMenu() {
+  showColorMenu.value = !showColorMenu.value
+}
+
+// 색상 선택 및 서버 저장
+async function selectColor(color) {
+  if (!userId.value) {
+    alert('사용자 정보를 불러오는 중입니다. 잠시만 기다려주세요.')
+    return
+  }
+  try {
+    await axios.put(
+        `/members/${userId.value}/color`,
+        null,
+        { params: { colorHex: color } }
+    )
+    theme.value = color
+    showColorMenu.value = false
+    alert('색상이 성공적으로 저장되었습니다.')
+  } catch (err) {
+    console.error('색상 저장 실패', err)
+    alert('색상 저장 중 오류가 발생했습니다.')
+  }
+}
+
+// 모달 visible 변경 시 프로필 다시 로드
 watch(() => props.visible, (newVal) => {
   if (newVal) fetchProfile()
 })
@@ -224,6 +274,30 @@ onMounted(() => {
   padding: 8px;
   border: 1px solid #ccc;
   border-radius: 4px;
+}
+.color-picker-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.color-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 1px solid #ccc;
+}
+.color-menu {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+.color-option {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 1px solid #ccc;
 }
 .form-group small {
   display: block;

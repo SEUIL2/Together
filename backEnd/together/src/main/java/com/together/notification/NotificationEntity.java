@@ -14,7 +14,7 @@ import java.util.Date;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class NotificationEntity {
+public class NotificationEntity { //알림
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

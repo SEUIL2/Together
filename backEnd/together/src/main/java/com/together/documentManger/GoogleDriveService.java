@@ -73,6 +73,9 @@ public class GoogleDriveService {
         // 🌍 업로드한 파일을 공개로 설정
         makeFilePublic(uploadedFile.getId());
 
+
+
+
         // 🗃️ DB에 파일 메타데이터 저장
         FileEntity fileEntity = FileEntity.builder()
                 .googleDriveFileId(uploadedFile.getId())
@@ -142,7 +145,8 @@ public class GoogleDriveService {
         makeFilePublic(uploadedFile.getId());
 
         // 🔹 Google Drive URL 반환
-        return uploadedFile.getWebViewLink();
+        return "https://drive.google.com/thumbnail?id=" + uploadedFile.getId(); //무영 수정
+
     }
 
     public String extractDriveFileId(String fileUrl) {

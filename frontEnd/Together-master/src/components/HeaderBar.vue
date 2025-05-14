@@ -1,4 +1,5 @@
 <template>
+  <!-- 헤더 바 -->
   <header class="header-bar">
     <!-- 로고 영역 -->
     <div class="logo">
@@ -10,25 +11,25 @@
     <nav>
       <ul>
         <li>
-          <button :class="{ active: $route.path === '/MyProject' }" @click="goMyProject" >내 프로젝트</button>
+          <button :class="{ active: $route.path === '/MyProject' }" @click="goMyProject">내 프로젝트</button>
         </li>
         <li>
           <button :class="{ active: $route.path === '/DashBoard' }" @click="goMyDashBoard">대시보드</button>
         </li>
         <li>
-        <button :class="{ active: $route.path === '/TaskPage' }" @click="goMyTask">작업</button>
+          <button :class="{ active: $route.path === '/TaskPage' }" @click="goMyTask">작업</button>
         </li>
         <li>
           <button :class="{ active: $route.path === '/Scheduletest' }" @click="goSchedule">일정 관리</button>
-          </li>
+        </li>
         <li>
           <button :class="{ active: $route.path === '/TeamManagement' }" @click="goTeam">팀원 관리</button>
         </li>
         <li>
           <button :class="{ active: $route.path === '/MeetingPage' }" @click="goMeeting">회의</button>
         </li>
-                <li>
-          <button :class="{ active: $route.path === '/' }" @click="goMeeting">도움말</button>
+        <li>
+          <button :class="{ active: $route.path === '/Help' }" @click="goHelp">도움말</button>
         </li>
       </ul>
     </nav>
@@ -46,6 +47,9 @@
 
         <!-- 설정 팝업 메뉴 -->
         <div v-if="showMenu" class="settings-popup">
+          <!-- 프로필 메뉴 -->
+          <button class="popup-btn" @click="openProfile">프로필</button>
+          <!-- 로그아웃/로그인 메뉴 -->
           <button class="popup-btn" @click="handleAuth">
             {{ isLoggedIn ? '로그아웃' : '로그인' }}
           </button>
@@ -53,6 +57,13 @@
       </div>
     </div>
   </header>
+
+  <!-- 프로필 설정 모달 -->
+  <ProfileSettingsModal
+      :visible="showProfileModal"
+      @close="showProfileModal = false"
+      @updated="onProfileUpdated"
+  />
 </template>
 
 <script setup>
@@ -60,88 +71,99 @@ import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import NotificationPopup from '@/components/NotificationPopup.vue'
+import ProfileSettingsModal from '@/components/ProfileSettingsModal.vue'
+
+const API_URL = 'http://localhost:8081'
+axios.defaults.baseURL = API_URL
+axios.defaults.withCredentials = true
 
 const router = useRouter()
 
 // 페이지 이동 함수
 const goMyProject = () => router.push('/MyProject')
 const goMyDashBoard = () => router.push('/DashBoard')
-const goSchedule = () => router.push('/Scheduletest')
-const goMeeting = () => router.push('/MeetingPage')
-const goTeam = () => router.push('/TeamManagement')
 const goMyTask = () => router.push('/TaskPage')
+const goSchedule = () => router.push('/Scheduletest')
+const goTeam = () => router.push('/TeamManagement')
+const goMeeting = () => router.push('/MeetingPage')
+const goHelp = () => router.push('/Help')
 
-// 로그인 상태 & 설정 팝업 표시 여부
+// 로그인 상태, 팝업 표시
 const isLoggedIn = ref(false)
 const showMenu = ref(false)
-
-// 팝업 DOM 참조
+const showProfileModal = ref(false)
 const settingsRef = ref(null)
 
-// 설정 팝업 토글
-function toggleMenu() {
-  showMenu.value = !showMenu.value
+// 토글
+const toggleMenu = () => showMenu.value = !showMenu.value
+const openProfile = () => {
+  showProfileModal.value = true
+  showMenu.value = false
+}
+const onProfileUpdated = () => {
+  checkLoginStatus()
 }
 
-// 외부 클릭 시 설정 팝업 닫기
-function handleClickOutside(event) {
-  if (
-    showMenu.value &&
-    settingsRef.value &&
-    !settingsRef.value.contains(event.target)
-  ) {
-    showMenu.value = false
-  }
+const authHeader = localStorage.getItem('authHeader')
+if (authHeader) {
+  axios.defaults.headers.common['Authorization'] = authHeader
 }
 
-// 로그인/로그아웃 버튼 처리
-async function handleAuth() {
+// 로그인/로그아웃 핸들러
+const handleAuth = async () => {
+  showMenu.value = false
   if (isLoggedIn.value) {
     try {
-      await axios.post('/auth/logout', null, { withCredentials: true })
+      // (2) 전역 세팅이 아니라면, 여기에 직접 헤더 추가
+      await axios.post(
+          '/auth/logout',
+          null,
+          { headers: { Authorization: localStorage.getItem('authHeader') } }
+      )
       localStorage.removeItem('authHeader')
+      delete axios.defaults.headers.common['Authorization']
       isLoggedIn.value = false
       alert('로그아웃 되었습니다.')
       window.location.href = '/'
     } catch (e) {
+      console.error(e)
       alert('로그아웃 중 오류가 발생했습니다.')
     }
   } else {
     router.push('/login')
   }
-  showMenu.value = false
 }
+
+
 
 // 로그인 상태 확인
 const checkLoginStatus = async () => {
   try {
-    const response = await axios.get('/auth/me', {
-      headers: {
-        Authorization: localStorage.getItem('authHeader'),
-      },
+    await axios.get('/auth/me', {
+      headers: {Authorization: localStorage.getItem('authHeader')},
       withCredentials: true,
     })
-    if (response.status === 200) {
-      isLoggedIn.value = true
-    }
-  } catch (err) {
+    isLoggedIn.value = true
+  } catch {
     isLoggedIn.value = false
   }
 }
 
-// 마운트 시 실행
+// 외부 클릭 시 팝업 닫기
+const handleClickOutside = (e) => {
+  if (showMenu.value && settingsRef.value && !settingsRef.value.contains(e.target)) {
+    showMenu.value = false
+  }
+}
+
 onMounted(() => {
   checkLoginStatus()
-  window.addEventListener('login-success', checkLoginStatus)
   document.addEventListener('click', handleClickOutside)
 })
-
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleClickOutside)
 })
 </script>
-
-
 
 <style scoped>
 .header-bar {
@@ -155,7 +177,7 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   padding: 0 2rem;
   height: 60px;
-  background-color: #ffffff;
+  background-color: #fff;
   border-bottom: 1px solid #eee;
 }
 
@@ -181,7 +203,6 @@ nav ul {
   margin: 0;
   padding: 0;
   gap: 4rem;
-  margin-left: -20rem;
 }
 
 nav ul li button {
@@ -191,12 +212,8 @@ nav ul li button {
   cursor: pointer;
   color: #000;
   padding: 0;
-  transition: color 0.3s;
   position: relative;
   height: 60px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 nav ul li button:hover {
@@ -223,20 +240,11 @@ nav ul li button.active::after {
   position: relative;
   display: flex;
   align-items: center;
-  justify-content: center;
-}
-
-.settings-icon button {
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
 }
 
 .settings-img {
   width: 24px;
   height: 24px;
-  object-fit: contain;
 }
 
 .settings-popup {
@@ -246,9 +254,8 @@ nav ul li button.active::after {
   background: #fff;
   border: 1px solid #ddd;
   border-radius: 6px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   padding: 8px 12px;
-  z-index: 2000;
 }
 
 .popup-btn {
@@ -257,7 +264,9 @@ nav ul li button.active::after {
   font-size: 14px;
   color: #333;
   cursor: pointer;
-  white-space: nowrap;
+  display: block;
+  width: 100%;
+  text-align: left;
 }
 
 .popup-btn:hover {

@@ -3,7 +3,26 @@
     <main class="main-content">
       <!-- 프로젝트 상단 정보 -->
       <section class="project-header">
-        <img src="@/assets/togetherlogo.png" alt="프로젝트 로고" class="project-logo" />
+        <!-- 이미지 업로드 -->
+        <input
+          type="file"
+          ref="fileInput"
+          accept="image/*"
+          style="display: none"
+          @change="handleImageChange"
+        />
+<img
+  :src="projectImageUrl || defaultLogo"
+  :key="projectImageUrl"
+  alt="프로젝트 로고"
+  class="project-logo"
+  @click="triggerImageUpload"
+  referrerpolicy="no-referrer"
+/>
+
+
+
+
         <div class="project-info">
           <input
             v-model="projectName"
@@ -15,13 +34,16 @@
             class="project-description"
             placeholder="프로젝트에 대한 설명을 적어주세요"
           ></textarea>
+
           <div class="team-list">
-  <span class="member" v-for="member in teamMembers" :key="member.id">
-    {{ member.name }}
-  </span>
-</div>
+            <span class="member" v-for="member in teamMembers" :key="member.id">
+              {{ member.name }}
+            </span>
+          </div>
         </div>
+
         <div class="vertical-line"></div>
+
         <div class="progress-container">
           <div class="progress-number">{{ progress }}%</div>
           <div class="progress-row">
@@ -66,11 +88,46 @@ import PlanningDetails from '@/components/PlanningDetails.vue'
 import DesignDetails from '@/components/DesignDetails.vue'
 import DevelopmentDetails from '@/components/DevelopmentDetails.vue'
 import TestingDetails from '@/components/TestingDetails.vue'
+import defaultLogo from '@/assets/togetherlogo.png'
 
+// 기본 데이터
 const projectId = ref(null)
 const projectName = ref('로딩 중...')
 const projectDescription = ref('')
+const projectImageUrl = ref('')
 const teamMembers = ref([])
+const fileInput = ref(null)
+
+// 이미지 클릭 시 파일 선택창 열기
+function triggerImageUpload() {
+  fileInput.value.click()
+}
+
+// 이미지 변경 처리
+async function handleImageChange(event) {
+  const file = event.target.files[0]
+  if (!file || !projectId.value) return
+
+  try {
+    const formData = new FormData()
+    formData.append('image', file)
+
+    const { data } = await axios.put('/projects/image', formData, {
+      headers: {
+        Authorization: localStorage.getItem('authHeader'),
+        'Content-Type': 'multipart/form-data',
+      },
+      withCredentials: true,
+    })
+
+    console.log('✅ 업로드된 이미지 URL:', data)  // 👉 콘솔 출력
+    projectImageUrl.value = data
+  } catch (err) {
+    console.error('❌ 이미지 업로드 실패:', err)
+    alert('이미지 업로드 중 오류가 발생했습니다.')
+  }
+}
+
 
 // 단계 목록
 const steps = ref([
@@ -84,16 +141,19 @@ const selectedStep = ref('기획')
 // 작업 목록
 const tasks = ref([])
 
+// 진행도 계산
 const progress = computed(() => {
   const total = tasks.value.length
   const completed = tasks.value.filter(t => t.status === 'COMPLETED').length
   return total ? Math.round((completed / total) * 100) : 0
 })
 
+// 현재 선택된 단계 처리
 function selectStep(stepName) {
   selectedStep.value = stepName
 }
 
+// 상세 컴포넌트 선택
 const currentDetailComponent = computed(() => {
   switch (selectedStep.value) {
     case '기획': return PlanningDetails
@@ -104,24 +164,23 @@ const currentDetailComponent = computed(() => {
   }
 })
 
+// 단계별 진행도 수동 업데이트
 function updatePlanningProgress(count) {
   const step = steps.value.find(s => s.name === selectedStep.value)
   if (step) step.current = count
 }
 
-// ✅ 자동 저장 함수 (debounce 적용)
+// 제목 및 설명 자동 저장
 const autoSaveProjectInfo = debounce(async () => {
   if (!projectId.value) return
 
   try {
-    // 제목 저장
     await axios.put(
       `/projects/${projectId.value}/update-title`,
       { newTitle: projectName.value },
       { headers: { Authorization: localStorage.getItem('authHeader') }, withCredentials: true }
     )
 
-    // 설명 저장
     const formData = new FormData()
     formData.append('type', 'description')
     formData.append('text', projectDescription.value)
@@ -136,9 +195,9 @@ const autoSaveProjectInfo = debounce(async () => {
   }
 }, 800)
 
-// ✅ 입력 변경 감지 시 자동 저장
 watch([projectName, projectDescription], autoSaveProjectInfo, { flush: 'post' })
 
+// 팀원 목록 불러오기
 async function fetchTeamMembers() {
   try {
     const { data } = await axios.get('/projects/members', {
@@ -146,7 +205,7 @@ async function fetchTeamMembers() {
       withCredentials: true
     })
     teamMembers.value = data.map(member => ({
-      name: member.userName, // 이걸 기준으로 출력 가능하게 만듦
+      name: member.userName,
       id: member.userId
     }))
   } catch (err) {
@@ -154,7 +213,7 @@ async function fetchTeamMembers() {
   }
 }
 
-
+// 전체 프로젝트 정보 로딩
 onMounted(async () => {
   try {
     const projectRes = await axios.get('/projects/my', {
@@ -164,6 +223,7 @@ onMounted(async () => {
 
     projectId.value = projectRes.data.projectId
     projectName.value = projectRes.data.title
+    projectImageUrl.value = projectRes.data.imageUrl || ''
 
     const detailRes = await axios.get('/planning/all', {
       headers: { Authorization: localStorage.getItem('authHeader') },
@@ -184,9 +244,11 @@ onMounted(async () => {
       alert('작업 목록을 불러올 수 없습니다. 접근 권한이 없거나 로그인 상태가 만료되었을 수 있습니다.')
     }
   }
+
   await fetchTeamMembers()
 })
 </script>
+
 
 
 <style scoped>
@@ -382,4 +444,18 @@ html, body {
   font-size: 0.8rem;
   margin-top: 5px;
 }
+.project-logo {
+  width: 60px;
+  height: 60px;
+  border-radius: 10px;
+  object-fit: cover;
+  cursor: pointer;
+  transition: 0.2s;
+  padding: 5px;
+}
+
+.project-logo:hover {
+  opacity: 0.8;
+}
+
 </style>

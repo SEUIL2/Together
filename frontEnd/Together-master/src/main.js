@@ -4,7 +4,18 @@ import router from './router'
 
 // ✅ 인증 쿠키 포함 설정
 import axios from 'axios'
-axios.defaults.withCredentials = true
+axios.defaults.withCredentials    = true
+
+
+async function fetchCsrfToken() {
+    try {
+        // 이 GET 호출이 CsrfFilter를 타며 Set-Cookie 헤더를 내려줍니다
+        await axios.get('http://localhost:8081/csrf')
+    } catch (e) {
+        console.error('CSRF 토큰 받아오기 실패', e)
+    }
+}
+
 
 import { GcSpreadSheets, GcWorksheet, GcColumn } from '@grapecity/spread-sheets-vue'
 import './api'
@@ -38,3 +49,4 @@ app.use(VMdEditor)
 
 app.use(router)
 app.mount('#app')
+

@@ -37,7 +37,7 @@
                 placeholder="나를 소개하는 말을 적어 보세요."
                 rows="3"
             ></textarea>
-            <small>다른 @유저를 멘션해서 링크할 수 있습니다.</small>
+            <small>다른 사람들에게 표시될 자기소개입니다.</small>
           </div>
 
           <button class="btn-save" @click="saveProfile">저장</button>

@@ -78,6 +78,10 @@ public class ProjectEntity{
         }
     }
 
+    @ManyToOne
+    @JoinColumn(name = "leader_user_id")
+    private UserEntity leader; //팀장
+
     @OneToMany(mappedBy = "project")
     @JsonIgnore
     private List<MeetingEntity> meetings = new ArrayList<>(); //미팅

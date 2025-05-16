@@ -108,4 +108,7 @@ public class UserEntity {
         LIGHT,
         DARK
     }
+
+    @OneToMany(mappedBy = "leader")
+    private List<ProjectEntity> project = new ArrayList<>();
 }

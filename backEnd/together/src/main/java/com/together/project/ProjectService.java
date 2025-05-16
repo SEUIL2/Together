@@ -57,6 +57,7 @@ public class ProjectService {
         project.setTitle(title);
         project.setImageUrl(null); // ✅ 이미지 없이 생성
         project.addUser(user);
+        project.setLeader(user); //프로젝트 리더로 설정
 
         ProjectEntity savedProject = projectRepository.save(project);
 
@@ -96,6 +97,7 @@ public class ProjectService {
         project.setTitle(title);
         project.setImageUrl(imageUrl); // ✅ 이미지 URL 설정
         project.addUser(user);
+        project.setLeader(user); //프로젝트 리더로 설정
 
         ProjectEntity savedProject = projectRepository.save(project);
 
@@ -370,6 +372,34 @@ public class ProjectService {
 
         student.setUserColor(colorHex);
         userRepository.save(student);
+    }
+
+    //리더 변경 기능
+    public boolean changeLeader(Long projectId, Long currentUserId, Long newLeaderId) {
+        ProjectEntity project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new IllegalArgumentException("프로젝트가 존재하지 않습니다."));
+
+        // 현재 유저가 팀장인지 검증
+        if (!project.getLeader().getUserId().equals(currentUserId)) {
+            throw new SecurityException("팀장만 팀장을 넘길 수 있습니다.");
+        }
+
+        // 새 팀장 유저 조회
+        UserEntity newLeader = userRepository.findById(newLeaderId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 유저가 존재하지 않습니다."));
+
+        // 프로젝트 팀원인지 검증
+        boolean isMember = project.getStudents().stream()
+                .anyMatch(u -> u.getUserId().equals(newLeaderId));
+
+        if (!isMember) {
+            throw new IllegalArgumentException("해당 유저는 팀원이 아닙니다.");
+        }
+
+        // 리더 변경
+        project.setLeader(newLeader);
+        projectRepository.save(project);
+        return true;
     }
 }
 

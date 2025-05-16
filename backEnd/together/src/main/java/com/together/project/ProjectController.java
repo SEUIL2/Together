@@ -4,9 +4,11 @@ import com.together.documentManger.GoogleDriveService;
 import com.together.project.Invitation.InvitationRepository;
 import com.together.project.Invitation.dto.InvitationResponseDto;
 import com.together.project.Invitation.dto.TeamMemberDto;
+import com.together.project.ProjectDto.ProjectMembersDto;
 import com.together.project.ProjectDto.ProjectResponseDto;
 import com.together.project.ProjectDto.ProjectTitleUpdateRequestDto;
 import com.together.user.professor.ProfessorResponseDto;
+import com.together.user.student.StudentEntity;
 import com.together.util.customAnnotation.CurrentProject;
 import com.together.systemConfig.UserDetailsImpl;
 import com.together.user.UserRepository;
@@ -19,8 +21,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import com.together.documentManger.GoogleDriveService;
+
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
@@ -266,6 +271,78 @@ public class ProjectController {
 
         projectService.updateUserColor(userId, colorHex);
         return ResponseEntity.ok("색상 업데이트 완료");
+    }
+
+    /**
+     * 변경할 유저의 아이디값을 넣으면 됌
+    {
+        "newLeaderId": 1
+    }
+     */
+    @PutMapping("/change-leader")
+    public ResponseEntity<?> changeLeader(
+            @CurrentProject Long projectId,
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @RequestBody Map<String, Long> body
+    ) {
+        Long currentUserId = userDetails.getUser().getUserId();
+        Long newLeaderId = body.get("newLeaderId");
+
+        try {
+            projectService.changeLeader(projectId, currentUserId, newLeaderId);
+            return ResponseEntity.ok("팀장이 변경되었습니다.");
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    //팀원 역할 확인 메서드
+    @GetMapping("/members/role")
+    public ResponseEntity<List<ProjectMembersDto>> getProjectMembers(
+            @CurrentProject Long projectId
+    ) {
+        ProjectEntity project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new RuntimeException("프로젝트가 존재하지 않습니다."));
+
+        Long leaderId = project.getLeader() != null ? project.getLeader().getUserId() : null;
+
+        // 학생 리스트 변환
+        List<ProjectMembersDto> studentDtos = project.getStudents().stream()
+                .map(user -> {
+                    String studentNumber = null;
+                    if (user instanceof StudentEntity) {
+                        studentNumber = user.getStudentNumber();
+                    }
+
+                    return new ProjectMembersDto(
+                            user.getUserId(),
+                            user.getUserName(),
+                            studentNumber,
+                            user.getRole().name(),
+                            user.getUserId().equals(leaderId) // ✅ isLeader 체크
+                    );
+                })
+                .toList();
+
+        // 교수 리스트 변환
+        List<ProjectMembersDto> professorDtos = project.getProfessors().stream()
+                .map(professor -> new ProjectMembersDto(
+                        professor.getUserId(),
+                        professor.getUserName(),
+                        null, // 교수는 학번 없음
+                        professor.getRole().name(),
+                        professor.getUserId().equals(leaderId) // ✅ isLeader 체크
+
+                ))
+                .toList();
+
+        // 학생 + 교수 통합
+        List<ProjectMembersDto> allMembers = Stream.concat(studentDtos.stream(), professorDtos.stream())
+                .toList();
+
+        return ResponseEntity.ok(allMembers);
     }
 
 }

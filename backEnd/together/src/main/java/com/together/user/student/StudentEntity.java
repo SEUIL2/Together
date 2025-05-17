@@ -1,9 +1,13 @@
 package com.together.user.student;
 
+import com.together.privateNote.PrivateNoteEntity;
 import com.together.project.ProjectEntity;
 import com.together.user.UserEntity;
 import jakarta.persistence.*;
 import lombok.*;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Getter
 @Setter
@@ -23,4 +27,8 @@ public class StudentEntity extends UserEntity {
 
     @Column(name = "user_color", nullable = true)
     private String userColor; //유저 색 프로젝트 나가면 NULL초기화
+
+    @OneToMany(mappedBy = "targetStudent")
+    private List<PrivateNoteEntity> privateNotes = new ArrayList<>(); //메모
+
 }

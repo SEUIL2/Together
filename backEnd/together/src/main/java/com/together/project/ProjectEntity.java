@@ -8,6 +8,7 @@ import com.together.comment.CommentEntity;
 import com.together.documentManger.FileEntity;
 import com.together.meeting.MeetingEntity;
 import com.together.notice.NoticeEntity;
+import com.together.privateNote.PrivateNoteEntity;
 import com.together.user.UserEntity;
 import com.together.user.professor.ProfessorEntity;
 import com.together.user.student.StudentEntity;
@@ -99,7 +100,9 @@ public class ProjectEntity{
 
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL)
     @JsonIgnore
-    private List<CommentEntity> commentEntities = new ArrayList<>();
+    private List<CommentEntity> comments = new ArrayList<>();
 
-
+    @OneToMany(mappedBy = "project")
+    @JsonIgnore
+    private List<PrivateNoteEntity> privateNote = new ArrayList<>();
 }

@@ -7,6 +7,7 @@ import com.together.documentManger.FileEntity;
 import com.together.meeting.MeetingEntity;
 import com.together.notice.NoticeEntity;
 import com.together.notification.NotificationEntity;
+import com.together.privateNote.PrivateNoteEntity;
 import com.together.project.ProjectEntity;
 import com.together.vote.entity.VoteEntity;
 import com.together.vote.entity.VoteResponseEntity;
@@ -110,5 +111,12 @@ public class UserEntity {
     }
 
     @OneToMany(mappedBy = "leader")
-    private List<ProjectEntity> project = new ArrayList<>();
+    private List<ProjectEntity> project = new ArrayList<>(); //프로젝트
+
+    @OneToMany(mappedBy = "author")
+    private List<PrivateNoteEntity> users = new ArrayList<>(); //메모
+
+
+
+
 }

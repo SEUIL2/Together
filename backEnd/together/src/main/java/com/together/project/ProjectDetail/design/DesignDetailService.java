@@ -163,12 +163,12 @@ public class DesignDetailService {
         return DesignAllResponseDto.builder()
                 .usecase(toItem(detail.getUsecaseText(), detail.getUsecaseFiles()))
                 .classDiagram(toItem(detail.getClassDiagramText(), detail.getClassDiagramJson(), detail.getClassDiagramFiles()))
-                .sequenceDiagram(toItem(detail.getSequenceText(), detail.getSequenceFiles()))
-                .uiDesign(toItem(detail.getUiDesignText(), detail.getUiDesignFiles()))
-                .erDiagram(toItem(detail.getErdText(), detail.getErdFiles()))
-                .tableSchema(toItem(detail.getTableSpecText(), detail.getTableSpecFiles()))
-                .systemArchitecture(toItem(detail.getArchitectureText(), detail.getArchitectureFiles()))
-                .schedulePlan(toItem(detail.getScheduleText(), detail.getScheduleFiles()))
+                .sequence(toItem(detail.getSequenceText(), detail.getSequenceFiles()))
+                .ui(toItem(detail.getUiDesignText(), detail.getUiDesignFiles()))
+                .erd(toItem(detail.getErdText(), detail.getErdFiles()))
+                .table(toItem(detail.getTableSpecText(), detail.getTableSpecFiles()))
+                .architecture(toItem(detail.getArchitectureText(), detail.getArchitectureFiles()))
+                .schedule(toItem(detail.getScheduleText(), detail.getScheduleFiles()))
                 .build();
     }
 

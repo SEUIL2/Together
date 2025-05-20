@@ -13,10 +13,10 @@ public class DesignAllResponseDto {
 
     private DesignItemDto usecase;
     private DesignItemDto classDiagram;
-    private DesignItemDto sequenceDiagram;
-    private DesignItemDto uiDesign;
-    private DesignItemDto erDiagram;
-    private DesignItemDto tableSchema;
-    private DesignItemDto systemArchitecture;
-    private DesignItemDto schedulePlan;
+    private DesignItemDto sequence;
+    private DesignItemDto ui;
+    private DesignItemDto erd;
+    private DesignItemDto table;
+    private DesignItemDto architecture;
+    private DesignItemDto schedule;
 }

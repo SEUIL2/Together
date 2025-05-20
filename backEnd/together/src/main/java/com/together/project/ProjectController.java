@@ -272,6 +272,12 @@ public class ProjectController {
         projectService.updateUserColor(userId, colorHex);
         return ResponseEntity.ok("색상 업데이트 완료");
     }
+    @GetMapping("/{projectId}") //무영 수정
+    public ResponseEntity<ProjectResponseDto> getProjectById(@PathVariable Long projectId) {
+        ProjectResponseDto project = projectService.getProjectById(projectId);
+        return ResponseEntity.ok(project);
+    }
+
 
     /**
      * 변경할 유저의 아이디값을 넣으면 됌

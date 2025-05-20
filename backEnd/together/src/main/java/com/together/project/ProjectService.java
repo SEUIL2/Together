@@ -355,6 +355,17 @@ public class ProjectService {
         student.setUserColor(null);
         userRepository.save(student);
     }
+    public ProjectResponseDto getProjectById(Long projectId) { //무영수정
+        ProjectEntity project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new RuntimeException("프로젝트를 찾을 수 없습니다."));
+
+        return new ProjectResponseDto(
+                project.getProjectId(),
+                project.getTitle(),
+                project.getImageUrl()
+        );
+    }
+
 
     //유저 색상지정
     @Transactional

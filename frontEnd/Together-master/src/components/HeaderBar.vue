@@ -34,22 +34,23 @@
       </ul>
     </nav>
 
+    <!-- 교수 읽기 전용 모드일 때만 프로젝트명 + 뒤로가기 -->
+    <div v-if="isProfessorReadOnly" class="readonly-header">
+      <button class="back-button" @click="goBack">← 돌아가기</button>
+      <span class="project-title">{{ projectTitle }}</span>
+    </div>
+
     <!-- 알림 + 설정 아이콘 영역 -->
     <div class="settings-icon">
-      <!-- 🔔 알림 팝업 (내부에서 상태 관리) -->
       <NotificationPopup />
 
-      <!-- ⚙️ 설정 아이콘 -->
       <div ref="settingsRef">
         <button class="icon-button" @click="toggleMenu">
           <img src="@/assets/settings.png" alt="Settings" class="settings-img" />
         </button>
 
-        <!-- 설정 팝업 메뉴 -->
         <div v-if="showMenu" class="settings-popup">
-          <!-- 프로필 메뉴 -->
           <button class="popup-btn" @click="openProfile">프로필</button>
-          <!-- 로그아웃/로그인 메뉴 -->
           <button class="popup-btn" @click="handleAuth">
             {{ isLoggedIn ? '로그아웃' : '로그인' }}
           </button>
@@ -60,15 +61,15 @@
 
   <!-- 프로필 설정 모달 -->
   <ProfileSettingsModal
-      :visible="showProfileModal"
-      @close="showProfileModal = false"
-      @updated="onProfileUpdated"
+    :visible="showProfileModal"
+    @close="showProfileModal = false"
+    @updated="onProfileUpdated"
   />
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import axios from 'axios'
 import NotificationPopup from '@/components/NotificationPopup.vue'
 import ProfileSettingsModal from '@/components/ProfileSettingsModal.vue'
@@ -78,24 +79,14 @@ axios.defaults.baseURL = API_URL
 axios.defaults.withCredentials = true
 
 const router = useRouter()
+const route = useRoute()
 
-// 페이지 이동 함수
-const goMyProject = () => router.push('/MyProject')
-const goMyDashBoard = () => router.push('/DashBoard')
-const goMyTask = () => router.push('/TaskPage')
-const goSchedule = () => router.push('/Scheduletest')
-const goTeam = () => router.push('/TeamManagement')
-const goMeeting = () => router.push('/MeetingPage')
-const goHelp = () => router.push('/Help')
-
-// 로그인 상태, 팝업 표시
 const isLoggedIn = ref(false)
 const showMenu = ref(false)
 const showProfileModal = ref(false)
 const settingsRef = ref(null)
 
-// 토글
-const toggleMenu = () => showMenu.value = !showMenu.value
+const toggleMenu = () => (showMenu.value = !showMenu.value)
 const openProfile = () => {
   showProfileModal.value = true
   showMenu.value = false
@@ -109,16 +100,14 @@ if (authHeader) {
   axios.defaults.headers.common['Authorization'] = authHeader
 }
 
-// 로그인/로그아웃 핸들러
 const handleAuth = async () => {
   showMenu.value = false
   if (isLoggedIn.value) {
     try {
-      // (2) 전역 세팅이 아니라면, 여기에 직접 헤더 추가
       await axios.post(
-          '/auth/logout',
-          null,
-          { headers: { Authorization: localStorage.getItem('authHeader') } }
+        '/auth/logout',
+        null,
+        { headers: { Authorization: localStorage.getItem('authHeader') } }
       )
       localStorage.removeItem('authHeader')
       delete axios.defaults.headers.common['Authorization']
@@ -134,13 +123,10 @@ const handleAuth = async () => {
   }
 }
 
-
-
-// 로그인 상태 확인
 const checkLoginStatus = async () => {
   try {
     await axios.get('/auth/me', {
-      headers: {Authorization: localStorage.getItem('authHeader')},
+      headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true,
     })
     isLoggedIn.value = true
@@ -149,7 +135,6 @@ const checkLoginStatus = async () => {
   }
 }
 
-// 외부 클릭 시 팝업 닫기
 const handleClickOutside = (e) => {
   if (showMenu.value && settingsRef.value && !settingsRef.value.contains(e.target)) {
     showMenu.value = false
@@ -160,9 +145,85 @@ onMounted(() => {
   checkLoginStatus()
   document.addEventListener('click', handleClickOutside)
 })
+
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleClickOutside)
 })
+const isProfessorReadOnly = computed(() => route.query.readonly === 'true')
+const projectId = computed(() => {
+  const fromParams = route.params.projectId
+  const fromQuery = route.query.projectId
+
+  if (typeof fromParams === 'string' || typeof fromParams === 'number') {
+    return String(fromParams)
+  }
+  if (typeof fromQuery === 'string' || typeof fromQuery === 'number') {
+    return String(fromQuery)
+  }
+
+  return '' // fallback: projectId 없을 경우 빈 문자열
+})
+
+
+
+console.log('params:', route.params)
+console.log('query:', route.query)
+console.log('projectId:', projectId.value)
+
+
+const goMyProject = () => {
+  if (isProfessorReadOnly.value && projectId.value) {
+    router.push(`/professor/project/${projectId.value}?readonly=true`)
+  } else {
+    router.push('/MyProject')
+  }
+}
+
+const goMyDashBoard = () => {
+  if (isProfessorReadOnly.value && projectId.value) {
+    router.push(`/professor/dashboard/${projectId.value}?readonly=true`)
+  } else {
+    router.push('/DashBoard')
+  }
+}
+const goMyTask = () => {
+  if (isProfessorReadOnly.value && projectId.value) {
+    router.push(`/professor/task/${projectId.value}?readonly=true&projectTitle=${projectTitle.value}`)
+  } else {
+    router.push('/TaskPage')
+  }
+}
+
+const goSchedule = () => {
+  if (isProfessorReadOnly.value) {
+    router.push(`/professor/schedule/${projectId.value}?readonly=true`)
+  } else {
+    router.push('/Scheduletest')
+  }
+}
+const goTeam = () => {
+  if (isProfessorReadOnly.value) {
+    router.push(`/professor/team/${projectId.value}?readonly=true`)
+  } else {
+    router.push('/TeamManagement')
+  }
+}
+const goMeeting = () => {
+  if (isProfessorReadOnly.value) {
+    router.push(`/professor/meeting/${projectId.value}?readonly=true`)
+  } else {
+    router.push('/MeetingPage')
+  }
+}
+const goHelp = () => {
+  router.push('/Help') // 도움말은 공통이라 조건 없이 이동
+}
+
+
+// 교수 읽기 전용 판단 + 프로젝트명 표시용
+
+const projectTitle = computed(() => route.query.projectTitle || '')
+const goBack = () => router.push('/professor/mainpage')
 </script>
 
 <style scoped>
@@ -240,9 +301,8 @@ nav ul li button.active::after {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 1rem;        /* ← 여기에서 간격을 조절하세요 (예: 1rem = 16px) */
+  gap: 1rem;
 }
-
 
 .settings-img {
   width: 24px;
@@ -257,11 +317,10 @@ nav ul li button.active::after {
   border: 1px solid #ddd;
   border-radius: 6px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  padding: 8px 0;           /* 위아래 패딩만 */
-  min-width: 120px;         /* ← 최소 넓이 지정 */
-  white-space: nowrap;      /* ← 줄바꿈 방지 */
+  padding: 8px 0;
+  min-width: 120px;
+  white-space: nowrap;
 }
-
 
 .popup-btn {
   background: none;
@@ -271,14 +330,14 @@ nav ul li button.active::after {
   cursor: pointer;
   display: block;
   width: 100%;
-  padding: 8px 12px;        /* ← 좌우 패딩 추가 */
+  padding: 8px 12px;
   text-align: left;
 }
-
 
 .popup-btn:hover {
   color: #3f8efc;
 }
+
 .icon-button {
   background: none;
   border: none;
@@ -286,7 +345,32 @@ nav ul li button.active::after {
   margin: 0;
   cursor: pointer;
 }
+
 .icon-button:focus {
   outline: none;
+}
+
+.readonly-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 16px;
+}
+
+.project-title {
+  font-weight: bold;
+  color: #3f8efc;
+}
+
+.back-button {
+  background: none;
+  border: none;
+  color: #3f8efc;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.back-button:hover {
+  text-decoration: underline;
 }
 </style>

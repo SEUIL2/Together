@@ -1,8 +1,8 @@
 <template>
   <div class="notice-section">
-    <div class="notice-header">
+    <div class="notice-header" @click="showAllModal = true">
       <h3>공지사항</h3>
-      <button @click="openCreateModal">+</button>
+      <button @click.stop="openCreateModal">+</button>
     </div>
 
     <!-- 공지사항 목록 (제목만) -->
@@ -25,14 +25,12 @@
       <div class="modal-content">
         <h4>{{ isEditMode ? '공지사항' : '공지사항 작성' }}</h4>
 
-        <!-- 제목 -->
         <input
           v-model="editNotice.title"
           placeholder="제목을 입력해주세요.."
           :readonly="isEditMode && !isEditing"
         />
 
-        <!-- 내용 -->
         <textarea
           v-model="editNotice.content"
           placeholder="내용을 입력해주세요.."
@@ -54,6 +52,31 @@
         </div>
       </div>
     </div>
+
+    <!-- 전체 공지사항 보기 모달 -->
+    <div v-if="showAllModal" class="modal-overlay">
+      <div class="modal-content" style="height: 600px; overflow-y: auto">
+        <h4>전체 공지사항</h4>
+        <ul class="notice-list full">
+          <li
+            v-for="notice in notices"
+            :key="notice.noticeId"
+            class="notice-item expanded"
+            @click="openFromAllModal(notice)"
+          >
+            <div class="notice-content">
+              <strong>{{ notice.title }}</strong>
+              <span class="notice-date">{{ formatDate(notice.createdDate) }}</span>
+            </div>
+            <p class="notice-writer">작성자: {{ notice.writerName }}</p>
+            <p class="notice-full-content">{{ notice.content }}</p>
+          </li>
+        </ul>
+        <div class="modal-actions">
+          <button @click="showAllModal = false">닫기</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -63,6 +86,7 @@ import axios from 'axios'
 
 const notices = ref([])
 const showModal = ref(false)
+const showAllModal = ref(false)
 const isEditMode = ref(false)
 const isEditing = ref(false)
 const editNotice = ref({})
@@ -71,7 +95,6 @@ onMounted(() => {
   fetchNotices()
 })
 
-// 공지사항 목록 불러오기
 async function fetchNotices() {
   try {
     const authHeader = localStorage.getItem("authHeader")
@@ -87,7 +110,6 @@ async function fetchNotices() {
   }
 }
 
-// 공지사항 생성
 async function createNotice() {
   if (!editNotice.value.title || !editNotice.value.content) {
     return alert('제목과 내용을 입력해주세요')
@@ -108,7 +130,6 @@ async function createNotice() {
   }
 }
 
-// 공지사항 수정
 async function updateNotice() {
   try {
     const authHeader = localStorage.getItem("authHeader")
@@ -126,7 +147,6 @@ async function updateNotice() {
   }
 }
 
-// 공지사항 삭제
 async function deleteNotice() {
   try {
     const authHeader = localStorage.getItem("authHeader")
@@ -143,7 +163,6 @@ async function deleteNotice() {
   }
 }
 
-// 모달 관련 함수
 function openCreateModal() {
   editNotice.value = { title: '', content: '' }
   isEditMode.value = false
@@ -158,6 +177,11 @@ function openDetailModal(notice) {
   showModal.value = true
 }
 
+function openFromAllModal(notice) {
+  showAllModal.value = false
+  openDetailModal(notice)
+}
+
 function closeModal() {
   showModal.value = false
   editNotice.value = {}
@@ -165,7 +189,6 @@ function closeModal() {
   isEditing.value = false
 }
 
-// 날짜 포맷 함수
 function formatDate(dateStr) {
   const date = new Date(dateStr)
   const month = (date.getMonth() + 1).toString().padStart(2, '0')
@@ -175,7 +198,7 @@ function formatDate(dateStr) {
 </script>
 
 
-
+<!-- ...생략된 template/script 부분은 그대로 유지되고, style만 수정됩니다. -->
 <style scoped>
 .notice-header {
   display: flex;
@@ -184,6 +207,7 @@ function formatDate(dateStr) {
   margin-bottom: 6px;
   padding-bottom: 4px;
   border-bottom: 1px solid #ddd;
+  cursor: pointer;
 }
 
 .notice-header button {
@@ -226,24 +250,46 @@ function formatDate(dateStr) {
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
 }
 
-.notice-item:not(:last-child) {
-  border-bottom: none;
+.notice-item.expanded {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 20px;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  margin-bottom: 16px;
+  background-color: #fafafa;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.notice-item.expanded:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
 }
 
 .notice-content {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  width: 100%;
 }
 
-.notice-title {
+.notice-content strong {
+  font-size: 20px;
   font-weight: bold;
-  color: #333;
+  color: #2c3e50;
+}
+
+.notice-full-content {
+  font-size: 15px;
+  color: #444;
+  line-height: 1.8;
+  white-space: pre-line;
 }
 
 .notice-date {
-  font-size: 12px;
-  color: #999;
+  font-size: 13px;
+  color: #888;
   white-space: nowrap;
 }
 
@@ -265,8 +311,23 @@ function formatDate(dateStr) {
   padding: 20px;
   border-radius: 12px;
   width: 800px;
-  height: 500px;
+  height: 600px;
+  max-height: 80vh;
+  overflow-y: auto;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE 10+ */
+}
+
+.modal-content::-webkit-scrollbar {
+  display: none; /* Chrome, Safari */
+}
+
+.modal-content h4 {
+  margin-bottom: 16px;
+  font-size: 20px;
+  font-weight: bold;
+  color: #333;
 }
 
 .modal-content input {
@@ -292,6 +353,7 @@ function formatDate(dateStr) {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+  margin-top: 16px;
 }
 
 .modal-actions button {
@@ -314,5 +376,14 @@ function formatDate(dateStr) {
 .modal-actions button:last-child {
   background: #ccc;
   color: #333;
+}
+
+/* 작성자 표시용 스타일 */
+.notice-writer {
+  font-size: 13px;
+  color: #555;
+  margin-top: -6px;
+  margin-bottom: 6px;
+  font-style: italic;
 }
 </style>

@@ -17,6 +17,7 @@ import EmailVerification from "@/views/account/EmailVerificationPage.vue"
 import SignupDetails from "@/views/account/SignupDetailsPage.vue"
 import ErdDiagramPage from '../views/ErdDiagramPage.vue'
 import TaskPage from '../views/TaskPage.vue'
+import ProfessorMainPage from '../views/professor/ProfessorMainPage.vue'
 const routes = [
   {
     path: '/',
@@ -104,6 +105,79 @@ const routes = [
     name: 'TaskPage',
     component: TaskPage,
   },
+  {
+  path: '/professor/MainPage',
+  component: ProfessorMainPage,
+  meta: { requiresAuth: true, role: 'PROFESSOR' }
+},
+{
+    path: '/professor/project/:projectId',
+    name: 'ProfessorReadOnlyProject',
+    component: MyProject,
+    props: route => ({
+      projectId: Number(route.params.projectId),
+      readonly: route.query.readonly === 'true',
+      projectTitle: route.query.projectTitle || ''
+    }),
+    meta: { requiresAuth: true, role: 'PROFESSOR' }
+  },
+  {
+    path: '/professor/dashboard/:projectId',
+    name: 'ProfessorDashboard',
+    component: DashBoard,
+    props: route => ({
+      projectId: Number(route.params.projectId),
+      readonly: route.query.readonly === 'true',
+      projectTitle: route.query.projectTitle || ''
+    }),
+    meta: { requiresAuth: true, role: 'PROFESSOR' }
+  },
+  {
+  path: '/professor/task/:projectId',
+  name: 'ProfessorTaskPage',
+  component: TaskPage,
+  props: route => ({
+    projectId: Number(route.params.projectId),
+    readonly: route.query.readonly === 'true',
+    projectTitle: route.query.projectTitle || ''
+  }),
+  meta: { requiresAuth: true, role: 'PROFESSOR' }
+},
+{
+  path: '/professor/schedule/:projectId',
+  name: 'ProfessorSchedulePage',
+  component: Scheduletest,
+  props: route => ({
+    projectId: Number(route.params.projectId),
+    readonly: route.query.readonly === 'true',
+    projectTitle: route.query.projectTitle || ''
+  }),
+  meta: { requiresAuth: true, role: 'PROFESSOR' }
+},
+{
+  path: '/professor/team/:projectId',
+  name: 'ProfessorTeamManagement',
+  component: TeamManagement,
+  props: route => ({
+    projectId: Number(route.params.projectId),
+    readonly: route.query.readonly === 'true',
+    projectTitle: route.query.projectTitle || ''
+  }),
+  meta: { requiresAuth: true, role: 'PROFESSOR' }
+},
+{
+  path: '/professor/meeting/:projectId',
+  name: 'ProfessorMeetingPage',
+  component: MeetingPage,
+  props: route => ({
+    projectId: Number(route.params.projectId),
+    readonly: route.query.readonly === 'true',
+    projectTitle: route.query.projectTitle || ''
+  }),
+  meta: { requiresAuth: true, role: 'PROFESSOR' }
+}
+
+
   
 ]
 

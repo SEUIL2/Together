@@ -1,9 +1,7 @@
 <template>
   <div class="project-container">
     <main class="main-content">
-      <!-- 프로젝트 상단 정보 -->
       <section class="project-header">
-        <!-- 이미지 업로드 -->
         <input
           type="file"
           ref="fileInput"
@@ -11,28 +9,27 @@
           style="display: none"
           @change="handleImageChange"
         />
-<img
-  :src="projectImageUrl || defaultLogo"
-  :key="projectImageUrl"
-  alt="프로젝트 로고"
-  class="project-logo"
-  @click="triggerImageUpload"
-  referrerpolicy="no-referrer"
-/>
-
-
-
+        <img
+          :src="projectImageUrl || defaultLogo"
+          :key="projectImageUrl"
+          alt="프로젝트 로고"
+          class="project-logo"
+          @click="!isReadOnly && triggerImageUpload()"
+          referrerpolicy="no-referrer"
+        />
 
         <div class="project-info">
           <input
             v-model="projectName"
             class="project-name"
             placeholder="프로젝트 이름"
+            :readonly="isReadOnly"
           />
           <textarea
             v-model="projectDescription"
             class="project-description"
             placeholder="프로젝트에 대한 설명을 적어주세요"
+            :readonly="isReadOnly"
           ></textarea>
 
           <div class="team-list">
@@ -55,7 +52,6 @@
         </div>
       </section>
 
-      <!-- 단계별 요약 정보 -->
       <section class="project-steps">
         <div
           class="step"
@@ -68,19 +64,21 @@
           <p>{{ step.name }}</p>
         </div>
       </section>
+<component
+  :is="currentDetailComponent"
+  v-if="selectedStep && projectId"
+  :project-id="projectId"
+  :readonly="isReadOnly"
+  @updateStepProgress="updatePlanningProgress"
+/>
 
-      <!-- 상세 입력 컴포넌트 -->
-      <component
-        :is="currentDetailComponent"
-        v-if="selectedStep"
-        @updateStepProgress="updatePlanningProgress"
-      />
     </main>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import axios from 'axios'
 import { debounce } from 'lodash'
 
@@ -90,7 +88,10 @@ import DevelopmentDetails from '@/components/DevelopmentDetails.vue'
 import TestingDetails from '@/components/TestingDetails.vue'
 import defaultLogo from '@/assets/togetherlogo.png'
 
-// 기본 데이터
+const route = useRoute()
+const isReadOnly = computed(() => route.query.readonly === 'true')
+const routeProjectId = computed(() => Number(route.params.projectId))
+
 const projectId = ref(null)
 const projectName = ref('로딩 중...')
 const projectDescription = ref('')
@@ -98,15 +99,13 @@ const projectImageUrl = ref('')
 const teamMembers = ref([])
 const fileInput = ref(null)
 
-// 이미지 클릭 시 파일 선택창 열기
 function triggerImageUpload() {
   fileInput.value.click()
 }
 
-// 이미지 변경 처리
 async function handleImageChange(event) {
   const file = event.target.files[0]
-  if (!file || !projectId.value) return
+  if (!file || !projectId.value || isReadOnly.value) return
 
   try {
     const formData = new FormData()
@@ -120,7 +119,6 @@ async function handleImageChange(event) {
       withCredentials: true,
     })
 
-    console.log('✅ 업로드된 이미지 URL:', data)  // 👉 콘솔 출력
     projectImageUrl.value = data
   } catch (err) {
     console.error('❌ 이미지 업로드 실패:', err)
@@ -128,32 +126,25 @@ async function handleImageChange(event) {
   }
 }
 
-
-// 단계 목록
 const steps = ref([
   { name: '기획', current: 0, total: 5 },
-  { name: '설계', current: 1, total: 8 },
-  { name: '개발', current: 1, total: 4 },
-  { name: '테스트', current: 1, total: 3 },
+  { name: '설계', current: 0, total: 8 },
+  { name: '개발', current: 0, total: 4 },
+  { name: '테스트', current: 0, total: 3 },
 ])
 const selectedStep = ref('기획')
-
-// 작업 목록
 const tasks = ref([])
 
-// 진행도 계산
 const progress = computed(() => {
   const total = tasks.value.length
   const completed = tasks.value.filter(t => t.status === 'COMPLETED').length
   return total ? Math.round((completed / total) * 100) : 0
 })
 
-// 현재 선택된 단계 처리
 function selectStep(stepName) {
   selectedStep.value = stepName
 }
 
-// 상세 컴포넌트 선택
 const currentDetailComponent = computed(() => {
   switch (selectedStep.value) {
     case '기획': return PlanningDetails
@@ -164,15 +155,13 @@ const currentDetailComponent = computed(() => {
   }
 })
 
-// 단계별 진행도 수동 업데이트
 function updatePlanningProgress(count) {
   const step = steps.value.find(s => s.name === selectedStep.value)
   if (step) step.current = count
 }
 
-// 제목 및 설명 자동 저장
 const autoSaveProjectInfo = debounce(async () => {
-  if (!projectId.value) return
+  if (!projectId.value || isReadOnly.value) return
 
   try {
     await axios.put(
@@ -195,58 +184,91 @@ const autoSaveProjectInfo = debounce(async () => {
   }
 }, 800)
 
-watch([projectName, projectDescription], autoSaveProjectInfo, { flush: 'post' })
-
-// 팀원 목록 불러오기
-async function fetchTeamMembers() {
-  try {
-    const { data } = await axios.get('/projects/members', {
-      headers: { Authorization: localStorage.getItem('authHeader') },
-      withCredentials: true
-    })
-    teamMembers.value = data.map(member => ({
-      name: member.userName,
-      id: member.userId
-    }))
-  } catch (err) {
-    console.error('❌ 팀원 정보 불러오기 실패:', err)
-  }
+if (!isReadOnly.value) {
+  watch([projectName, projectDescription], autoSaveProjectInfo, { flush: 'post' })
 }
 
-// 전체 프로젝트 정보 로딩
 onMounted(async () => {
   try {
-    const projectRes = await axios.get('/projects/my', {
-      headers: { Authorization: localStorage.getItem('authHeader') },
-      withCredentials: true,
-    })
+    // 1. 🔍 프로젝트 정보
+    let projectRes
+    if (isReadOnly.value) {
+      projectRes = await axios.get(`/projects/${routeProjectId.value}`, {
+        headers: { Authorization: localStorage.getItem('authHeader') },
+        withCredentials: true
+      })
+    } else {
+      projectRes = await axios.get('/projects/my', {
+        headers: { Authorization: localStorage.getItem('authHeader') },
+        withCredentials: true
+      })
+    }
 
     projectId.value = projectRes.data.projectId
     projectName.value = projectRes.data.title
     projectImageUrl.value = projectRes.data.imageUrl || ''
 
-    const detailRes = await axios.get('/planning/all', {
+    // 2. 🔍 기획 항목
+    const planningRes = await axios.get('/planning/all', {
+      params: { projectId: projectId.value }, // ✅ 항상 명확히 전달
       headers: { Authorization: localStorage.getItem('authHeader') },
-      withCredentials: true,
+      withCredentials: true
     })
-    projectDescription.value = detailRes.data.description?.text || ''
+    projectDescription.value = planningRes.data.description?.text || ''
 
-    if (projectId.value) {
-      const taskRes = await axios.get('/work-tasks/project', {
-        headers: { Authorization: localStorage.getItem('authHeader') },
-        withCredentials: true
-      })
-      tasks.value = taskRes.data
-    }
+    const planningTypes = ['motivation', 'goal', 'requirement', 'infostructure', 'storyboard']
+    const planningCount = planningTypes.filter(type => {
+      const entry = planningRes.data[type]
+      return entry?.text?.trim() !== '' || (entry?.files?.length > 0)
+    }).length
+    steps.value.find(s => s.name === '기획').current = planningCount
+
+    // 3. 🔍 설계 항목
+    const designRes = await axios.get('/design/all', {
+      params: { projectId: projectId.value },
+      headers: { Authorization: localStorage.getItem('authHeader') },
+      withCredentials: true
+    })
+
+const designTypes = [
+  'usecase', 'classDiagram', 'sequence', 'ui',
+  'erd', 'table', 'architecture', 'schedule'
+]
+const designCount = designTypes.filter(type => {
+  const entry = designRes.data[type]
+  if (!entry) return false
+  const hasText = entry.text && entry.text.trim() !== ''
+  const hasJson = entry.json && entry.json.trim() !== ''
+  const hasFiles = Array.isArray(entry.files) && entry.files.length > 0
+  return hasText || hasJson || hasFiles
+}).length
+steps.value.find(s => s.name === '설계').current = designCount
+
+
+    // 4. 🔍 작업 항목
+    const taskRes = await axios.get('/work-tasks/project', {
+      params: { projectId: projectId.value },
+      headers: { Authorization: localStorage.getItem('authHeader') },
+      withCredentials: true
+    })
+    tasks.value = taskRes.data
+
+    // 5. 🔍 팀원
+    const memberRes = await axios.get('/projects/members', {
+      params: { projectId: projectId.value },
+      headers: { Authorization: localStorage.getItem('authHeader') },
+      withCredentials: true
+    })
+    teamMembers.value = memberRes.data.map(member => ({
+      name: member.userName,
+      id: member.userId
+    }))
+
   } catch (err) {
     console.error('❌ 데이터 로딩 실패:', err)
-    if (err.response?.status === 403) {
-      alert('작업 목록을 불러올 수 없습니다. 접근 권한이 없거나 로그인 상태가 만료되었을 수 있습니다.')
-    }
   }
-
-  await fetchTeamMembers()
 })
+
 </script>
 
 

@@ -9,11 +9,21 @@
 
       <form @submit.prevent="handleLogin">
         <div class="input-group">
-          <input type="text" placeholder="아이디" v-model="userLoginId" required />
+          <input
+            type="text"
+            placeholder="아이디"
+            v-model="userLoginId"
+            required
+          />
         </div>
 
         <div class="input-group">
-          <input type="password" placeholder="비밀번호" v-model="password" required />
+          <input
+            type="password"
+            placeholder="비밀번호"
+            v-model="password"
+            required
+          />
         </div>
 
         <button type="submit" class="login-btn">로그인</button>
@@ -27,7 +37,9 @@
 
         <hr />
         <p class="signup-text">회원이 아니신가요?</p>
-        <button type="button" class="signup-btn" @click="goToSignup">회원가입</button>
+        <button type="button" class="signup-btn" @click="goToSignup">
+          회원가입
+        </button>
       </form>
     </div>
   </div>
@@ -49,40 +61,47 @@ const handleLogin = async () => {
   successMessage.value = ''
   errorMessage.value = ''
 
+  // Basic Auth 헤더 생성 및 저장
+  const encoded = btoa(`${userLoginId.value}:${password.value}`)
+  const authHeader = `Basic ${encoded}`
+  localStorage.setItem('authHeader', authHeader)
+
   try {
-    const encoded = btoa(`${userLoginId.value}:${password.value}`)
-    const authHeader = `Basic ${encoded}`
-
-    // Basic Auth만 저장
-    localStorage.setItem("authHeader", authHeader)
-
-    // Security에서 인증되면 /auth/me로 확인
+    // 인증된 유저 정보 요청
     const res = await axios.get('/auth/me', {
       headers: { Authorization: authHeader },
       withCredentials: true
     })
 
-    successMessage.value = "로그인 성공!"
-    window.dispatchEvent(new Event("login-success"))
+    // 로그인 성공 처리
+    successMessage.value = '로그인 성공!'
+    window.dispatchEvent(new Event('login-success'))
 
+    // 프로젝트 유무에 따라 라우팅
     const projectId = res.data.projectId
     if (projectId) {
       router.push('/MyProject')
     } else {
       router.push('/MainPage2')
     }
-
   } catch (error) {
-    errorMessage.value = error.response?.data || "로그인에 실패했습니다."
+    // 프로젝트 미등록으로 인한 403 일 때는 MainPage2로
+    if (error.response?.status === 403) {
+      successMessage.value = '로그인 성공! (프로젝트 미등록 계정)'
+      window.dispatchEvent(new Event('login-success'))
+      router.push('/MainPage2')
+    } else {
+      // 그 외는 실제 로그인 실패
+      errorMessage.value = error.response?.data || '로그인에 실패했습니다.'
+    }
   }
 }
 
-
-
 const goToSignup = () => {
-  router.push("/Signup")
+  router.push('/Signup')
 }
 </script>
+
 <style scoped>
 /* 전체 컨테이너 */
 .login-container {

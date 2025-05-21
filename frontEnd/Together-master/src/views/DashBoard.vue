@@ -15,7 +15,7 @@
       <div class="info-section">
         <img src="@/assets/bellicon.png" alt="bell" />
         <div class="info-content">
-          <span class="highlight">2개</span>
+          <span class="highlight">{{ notices.length }}개</span>
           <span class="label">새로운 공지사항</span>
         </div>
       </div>
@@ -35,20 +35,16 @@
         <AllTasksCard :tasks="tasks" />
       </div>
       <div class="card">
-        <MyTasksCard
-          :tasks="tasks"
-          :currentUserName="currentUserName"
-        />
+        <MyTasksCard :tasks="tasks" :currentUserName="currentUserName" />
       </div>
     </div>
 
     <!-- 하단 영역 -->
     <div class="dashboard-bottom">
       <div class="card wide">
-        <DashboardNotice />
+        <NoticeBoard :notices="notices" @selectNotice="openNoticeDetail" />
       </div>
 
-      <!-- 여기를 VotingList로 대체 -->
       <div class="card">
         <VotingList />
       </div>
@@ -58,21 +54,40 @@
         <p>최근 활동 예시</p>
       </div>
     </div>
+
+    <!-- 공지사항 상세 모달 -->
+    <NoticeDetailModal
+      v-if="showNoticeModal"
+      :notice="selectedNotice"
+      :readonly="true"
+      @close="showNoticeModal = false"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, computed, watchEffect } from 'vue'
+import { useRoute } from 'vue-router'
 import axios from 'axios'
-import DashboardNotice from '@/components/dashboard/DashboardNotice.vue'
+
+import NoticeBoard from '@/components/dashboard/NoticeBoard.vue'
+import NoticeDetailModal from '@/components/dashboard/NoticeDetailModal.vue'
 import AllTasksCard from '@/components/dashboard/AllTasksCard.vue'
 import MyTasksCard from '@/components/dashboard/MyTasksCard.vue'
-import VotingList from '@/components/dashboard/VotingList.vue'  // 추가
+import VotingList from '@/components/dashboard/VotingList.vue'
 
-const currentUserName = ref('')  
+const route = useRoute()
+const isProfessorReadOnly = route.query.readonly === 'true'
+const projectId = ref(route.params.projectId || null)
+const projectTitle = route.query.projectTitle || ''
+
+const currentUserName = ref('')
 const currentUserId = ref('')
-const projectId = ref(null)
 const tasks = ref([])
+const notices = ref([])
+
+const showNoticeModal = ref(false)
+const selectedNotice = ref(null)
 
 const progress = computed(() => {
   const total = tasks.value.length
@@ -86,26 +101,47 @@ const remainingTasks = computed(() => {
 
 onMounted(async () => {
   try {
-    const { data } = await axios.get('/auth/me', { withCredentials: true })
-    currentUserName.value = data.userName?.trim()
-    currentUserId.value = data.userId
-    projectId.value = data.projectId
+    if (isProfessorReadOnly && projectId.value) {
+      const { data } = await axios.get(`/work-tasks/project/${projectId.value}`, {
+        headers: { Authorization: localStorage.getItem('authHeader') },
+        withCredentials: true
+      })
+      tasks.value = data
+    } else {
+      const { data } = await axios.get('/auth/me', { withCredentials: true })
+      currentUserName.value = data.userName?.trim()
+      currentUserId.value = data.userId
+      projectId.value = data.projectId
 
-    const taskRes = await axios.get('/work-tasks/project', {
+      const taskRes = await axios.get('/work-tasks/project', {
+        headers: { Authorization: localStorage.getItem('authHeader') },
+        withCredentials: true
+      })
+      tasks.value = taskRes.data
+    }
+
+    const noticeRes = await axios.get('/notices/all-notice', {
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true
     })
-    tasks.value = taskRes.data
+    notices.value = noticeRes.data
   } catch (e) {
-    console.error('❌ 작업 또는 사용자 정보 불러오기 실패:', e)
+    console.error('❌ 작업 또는 공지사항 데이터 불러오기 실패:', e)
   }
 })
+
+function openNoticeDetail(notice) {
+  selectedNotice.value = notice
+  showNoticeModal.value = true
+}
 
 watchEffect(() => {
   console.log('✅ [대시보드] currentUserName:', currentUserName.value)
   console.log('✅ [대시보드] tasks:', tasks.value)
 })
 </script>
+
+
   
   <style scoped>
 .dashboard-container {

@@ -1,40 +1,82 @@
 <template>
   <section class="detail-section">
     <div class="timeline horizontal">
-      <div class="timeline-item" v-for="(item, index) in planningItems" :key="index">
+      <div
+        class="timeline-item"
+        v-for="(item, index) in planningItems"
+        :key="index"
+      >
         <span class="status-circle" :class="{ filled: item.completed }"></span>
         <p class="timeline-text">{{ item.name }}</p>
       </div>
     </div>
 
     <div class="detail-inputs">
-      <div class="detail-box" v-for="(item, index) in planningItems" :key="index">
+      <div
+        class="detail-box"
+        v-for="(item, index) in planningItems"
+        :key="index"
+      >
         <h3 class="detail-title" @click="toggleEdit(index)">
           <span class="status-circle" :class="{ filled: item.completed }"></span>
           <span class="title-text">{{ item.name }}</span>
-          <i class="edit-icon" @click.stop="toggleEdit(index)">
-            <span v-if="!item.editing">&#9998;</span>
-            <img v-else src="@/assets/saveicon.png" alt="저장" class="save-icon" />
+          <i
+            class="edit-icon"
+            v-if="!readonly"
+            @click.stop="toggleEdit(index)"
+          >
+            <span v-if="!item.editing">✎</span>
+            <img
+              v-else
+              src="@/assets/saveicon.png"
+              alt="저장"
+              class="save-icon"
+            />
           </i>
         </h3>
 
         <div v-if="item.editing">
-          <textarea class="detail-textarea" v-model="item.content" :placeholder="item.placeholder" />
+          <textarea
+            v-model="item.content"
+            :placeholder="item.placeholder"
+            :readonly="readonly"
+          ></textarea>
 
           <div class="file-upload-container">
-            <label class="custom-file-upload" :for="'file-upload-' + index">파일 선택</label>
+            <label
+              class="custom-file-upload"
+              :for="`file-upload-${index}`"
+              v-if="!readonly"
+            >
+              파일 선택
+            </label>
             <input
-              :id="'file-upload-' + index"
+              :id="`file-upload-${index}`"
               type="file"
               multiple
               @change="handleFileUpload($event, index)"
               hidden
+              v-if="!readonly"
             />
-            <div v-if="item.files && item.files.length > 0" class="file-list">
-              <div class="file-display" v-for="(file, fIndex) in item.files" :key="fIndex">
-                <a :href="file.url" download class="file-name">{{ extractFileName(file.url) }}</a>
-                <span class="upload-date">({{ formatDate(file.uploadedAt) }})</span>
-                <button class="delete-file-btn" @click="deleteFile(index, fIndex, file.url)">×</button>
+            <div v-if="item.files && item.files.length" class="file-list">
+              <div
+                class="file-display"
+                v-for="(file, fIndex) in item.files"
+                :key="fIndex"
+              >
+                <a :href="file.url" download class="file-name">
+                  {{ extractFileName(file.url) }}
+                </a>
+                <span class="upload-date">
+                  ({{ formatDate(file.uploadedAt) }})
+                </span>
+                <button
+                  class="delete-file-btn"
+                  @click="deleteFile(index, fIndex, file.url)"
+                  v-if="!readonly"
+                >
+                  ×
+                </button>
               </div>
             </div>
           </div>
@@ -48,78 +90,45 @@
 import { ref, watch, onMounted } from 'vue'
 import axios from 'axios'
 
+const props = defineProps({
+  projectId: { type: Number, required: true },
+  readonly: { type: Boolean, default: false }
+})
 const emit = defineEmits(['updateStepProgress'])
 
 const planningItems = ref([
-  { name: "프로젝트 동기", type: "motivation", content: "", files: [], placeholder: "내용 또는 파일을 입력하세요", editing: false, completed: false },
-  { name: "프로젝트 목표", type: "goal", content: "", files: [], placeholder: "내용 또는 파일을 입력하세요", editing: false, completed: false },
-  { name: "요구사항 정의", type: "requirement", content: "", files: [], placeholder: "내용 또는 파일을 입력하세요", editing: false, completed: false },
-  { name: "정보구조도", type: "infostructure", content: "", files: [], placeholder: "내용 또는 파일을 입력하세요", editing: false, completed: false },
-  { name: "스토리보드", type: "storyboard", content: "", files: [], placeholder: "내용 또는 파일을 입력하세요", editing: false, completed: false }
+  { name: '프로젝트 동기', type: 'motivation', content: '', files: [], placeholder: '내용 또는 파일을 입력하세요', editing: false, completed: false },
+  { name: '프로젝트 목표', type: 'goal', content: '', files: [], placeholder: '내용 또는 파일을 입력하세요', editing: false, completed: false },
+  { name: '요구사항 정의', type: 'requirement', content: '', files: [], placeholder: '내용 또는 파일을 입력하세요', editing: false, completed: false },
+  { name: '정보구조도', type: 'infostructure', content: '', files: [], placeholder: '내용 또는 파일을 입력하세요', editing: false, completed: false },
+  { name: '스토리보드', type: 'storyboard', content: '', files: [], placeholder: '내용 또는 파일을 입력하세요', editing: false, completed: false }
 ])
 
-watch(planningItems, (items) => {
-  items.forEach(item => {
-    item.completed = item.content.trim() !== "" || item.files.length > 0
-  })
-
-  // ✅ 완료된 항목 수 계산 및 emit
-  const completedCount = items.filter(item => item.completed).length
-  emit('updateStepProgress', completedCount)
-
-}, { deep: true })
+// 변경 감지 후 진행도 emit (파일/텍스트 수정될 때만)
+watch(
+  planningItems,
+  (items) => {
+    items.forEach(item => {
+      item.completed = item.content.trim() !== '' || item.files.length > 0
+    })
+    const count = items.filter(i => i.completed).length
+    emit('updateStepProgress', count)
+  },
+  { deep: true }
+)
 
 function toggleEdit(index) {
+  if (props.readonly) return
   const item = planningItems.value[index]
   item.editing = !item.editing
   if (!item.editing) saveItem(index)
 }
 
-function handleFileUpload(event, index) {
-  const selectedFiles = event.target.files
-  const item = planningItems.value[index]
-  const formData = new FormData()
-
-  formData.append("type", item.type)
-  for (const file of selectedFiles) {
-    formData.append("files", file)
-  }
-
-  axios.post("/planning/upload", formData, {
-    headers: { Authorization: localStorage.getItem("authHeader") },
-    withCredentials: true
-  }).then(res => {
-    if (res.data.files) {
-      item.files.push(...res.data.files)
-    }
-  }).catch(err => {
-    console.error("파일 저장 실패", err)
-    alert(`${item.name} 파일 저장 오류`)
-  })
-
-  event.target.value = ""
-}
-
-function deleteFile(itemIndex, fileIndex, fileUrl) {
-  const item = planningItems.value[itemIndex]
-  axios.delete("/planning/delete-file", {
-    params: { type: item.type, fileUrl },
-    headers: { Authorization: localStorage.getItem("authHeader") },
-    withCredentials: true
-  }).then(() => {
-    item.files.splice(fileIndex, 1)
-  }).catch(err => {
-    console.error("파일 삭제 실패", err)
-  })
-}
-
 function extractFileName(url) {
   try {
-    const parts = url.split('/')
-    const idx = parts.indexOf('d')
-    return parts[idx + 1] + '.파일'
+    return url.split('/').pop()
   } catch {
-    return "파일"
+    return '파일'
   }
 }
 
@@ -127,46 +136,90 @@ function formatDate(dateString) {
   return new Date(dateString).toLocaleString()
 }
 
-async function saveItem(index) {
+function handleFileUpload(event, index) {
+  if (props.readonly) return
   const item = planningItems.value[index]
   const formData = new FormData()
+  formData.append('type', item.type)
+  formData.append('projectId', props.projectId)
+  for (const f of event.target.files) formData.append('files', f)
 
-  formData.append("type", item.type)
-  formData.append("text", item.content) // ← 빈 문자열도 전송
+  axios.post('/planning/upload', formData, {
+    headers: { Authorization: localStorage.getItem('authHeader') },
+    withCredentials: true
+  })
+  .then(res => {
+    if (res.data.files) item.files.push(...res.data.files)
+  })
+  .catch(err => {
+    console.error('파일 저장 실패', err)
+    alert(`${item.name} 파일 저장 오류`)
+  })
+}
+
+function deleteFile(index, fIndex, url) {
+  if (props.readonly) return
+  const item = planningItems.value[index]
+  axios.delete('/planning/delete-file', {
+    data: { projectId: props.projectId, type: item.type, fileUrl: url },
+    headers: { Authorization: localStorage.getItem('authHeader') },
+    withCredentials: true
+  })
+  .then(() => {
+    item.files.splice(fIndex, 1)
+  })
+  .catch(err => {
+    console.error('파일 삭제 실패', err)
+    alert('파일 삭제 오류')
+  })
+}
+
+async function saveItem(index) {
+  if (props.readonly) return
+  const item = planningItems.value[index]
+  const formData = new FormData()
+  formData.append('type', item.type)
+  formData.append('text', item.content)
+  formData.append('projectId', props.projectId)
 
   try {
-    await axios.put("/planning/update", formData, {
-      headers: { Authorization: localStorage.getItem("authHeader") },
+    await axios.put('/planning/update', formData, {
+      headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true
     })
   } catch (err) {
-    console.error("❌ 저장 오류:", err)
+    console.error('❌ 저장 오류:', err)
     alert(`${item.name} 저장 중 오류 발생`)
   }
 }
 
-
 onMounted(async () => {
   try {
-    const res = await axios.get("/planning/all", {
-      headers: { Authorization: localStorage.getItem("authHeader") },
+    const res = await axios.get('/planning/all', {
+      params: { projectId: props.projectId },
+      headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true
     })
-
     const data = res.data
     planningItems.value.forEach(item => {
-      const contentData = data[item.type]
-      if (contentData) {
-        item.content = contentData.text || ""
-        item.files = contentData.files || []
+      const d = data[item.type]
+      if (d) {
+        item.content = d.text || ''
+        item.files = d.files || []
       }
+      if (props.readonly) item.editing = true
     })
+    // 초기 완료 개수 계산 후 emit
+    planningItems.value.forEach(item => {
+      item.completed = item.content.trim() !== '' || item.files.length > 0
+    })
+    const initialCount = planningItems.value.filter(item => item.completed).length
+    emit('updateStepProgress', initialCount)
   } catch (err) {
-    console.error("❌ 데이터 불러오기 실패:", err)
+    console.error('❌ 데이터 불러오기 실패:', err)
   }
 })
 </script>
-
 
 
 <style scoped>

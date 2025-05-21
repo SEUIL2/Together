@@ -1,42 +1,32 @@
 <template>
   <section class="detail-section">
-    <!-- 타임라인 항목 (수평 배열) -->
     <div class="timeline horizontal">
       <div class="timeline-item" v-for="(item, index) in designItems" :key="index">
-        <!-- 기본 동그라미: 기본은 빈 동그라미, 완료되면 채워짐 -->
         <div class="circle" :class="{ active: item.completed }"></div>
         <p class="timeline-text">{{ item.name }}</p>
       </div>
     </div>
 
-    <!-- 각 항목에 대한 상세 입력 박스 (아코디언 + 편집/저장 기능) -->
     <div class="detail-inputs">
       <div class="detail-box" v-for="(item, index) in designItems" :key="index">
-        <h3 class="detail-title" @click="toggleEdit(index)">
-          <!-- 타이틀 왼쪽에 동그라미 (동일 스타일 적용) -->
+        <h3 class="detail-title" @click="handleItemClick(index)">
           <div class="circle" :class="{ active: item.completed }"></div>
           <span class="title-text">{{ item.name }}</span>
-          <i class="edit-icon" @click.stop="toggleEdit(index)">
-  <img
-    v-if="item.name === '클래스 다이어그램'"
-    src="@/assets/arrowicon.png"
-    alt="이동"
-    class="arrow-icon"
-  />
-  <span v-else-if="!item.editing">&#9998;</span>
-  <img
-    v-else
-    src="@/assets/saveicon.png"
-    alt="저장"
-    class="save-icon"
-  />
-</i>
-
+          <i class="edit-icon" v-if="!readonly" @click.stop="toggleEdit(index)">
+            <span v-if="!item.editing">&#9998;</span>
+            <img v-else src="@/assets/saveicon.png" alt="저장" class="save-icon" />
+          </i>
         </h3>
-        <!-- 편집 모드일 때만 파일 업로드 UI 표시 -->
+
         <div v-if="item.editing">
+          <textarea
+            class="detail-textarea"
+            v-model="item.content"
+            :placeholder="item.placeholder"
+            :readonly="readonly"
+          />
           <div class="file-upload-container">
-            <label class="custom-file-upload" :for="'file-upload-' + index">
+            <label class="custom-file-upload" :for="'file-upload-' + index" v-if="!readonly">
               파일 선택
             </label>
             <input
@@ -45,138 +35,177 @@
               multiple
               @change="handleFileUpload($event, index)"
               hidden
+              v-if="!readonly"
             />
-            <!-- 업로드된 파일 목록 -->
-            <div v-if="item.files && item.files.length > 0" class="file-list">
+            <div v-if="item.files.length > 0" class="file-list">
               <div class="file-display" v-for="(file, fIndex) in item.files" :key="fIndex">
-                <a :href="file.data" download="첨부파일" class="file-name">
-                  {{ file.name }}
-                </a>
-                <span class="upload-date">({{ file.uploadDate }})</span>
-                <button class="delete-file-btn" @click="deleteFile(index, fIndex)">×</button>
+                <a :href="file.url" download class="file-name">{{ extractFileName(file.url) }}</a>
+                <span class="upload-date">({{ formatDate(file.uploadedAt) }})</span>
+                <button class="delete-file-btn" @click="deleteFile(index, fIndex, file.url)" v-if="!readonly">×</button>
               </div>
             </div>
           </div>
         </div>
-        <!-- 편집 모드가 아닐 때는 파일 목록을 숨김 -->
       </div>
     </div>
   </section>
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import axios from 'axios'
 
+const props = defineProps({
+  projectId: Number,
+  readonly: Boolean
+})
+
+const emit = defineEmits(['updateStepProgress'])
 const router = useRouter()
 
 const designItems = ref([
-  {
-    name: "유스케이스 다이어그램",
-    completed: false,
-    files: [],
-    placeholder: "유스케이스 다이어그램 파일을 첨부하세요.",
-    editing: false,
-  },
-  {
-    name: "클래스 다이어그램",
-    completed: false,
-    files: [],
-    placeholder: "클래스 다이어그램 파일을 첨부하세요.",
-    editing: false,
-  },
-  {
-    name: "시퀀스 다이어그램",
-    completed: false,
-    files: [],
-    placeholder: "시퀀스 다이어그램 파일을 첨부하세요.",
-    editing: false,
-  },
-  {
-    name: "UI 디자인",
-    completed: false,
-    files: [],
-    placeholder: "UI 디자인 파일을 첨부하세요.",
-    editing: false,
-  },
-  {
-    name: "ER 다이어그램",
-    completed: false,
-    files: [],
-    placeholder: "ER 다이어그램 파일을 첨부하세요.",
-    editing: false,
-  },
-  {
-    name: "테이블 명세",
-    completed: false,
-    files: [],
-    placeholder: "테이블 명세 파일을 첨부하세요.",
-    editing: false,
-  },
-  {
-    name: "시스템 아키텍쳐",
-    completed: false,
-    files: [],
-    placeholder: "시스템 아키텍쳐 파일을 첨부하세요.",
-    editing: false,
-  },
-  {
-    name: "프로젝트 일정 계획",
-    completed: false,
-    files: [],
-    placeholder: "프로젝트 일정 계획 파일을 첨부하세요.",
-    editing: false,
-  },
+  { name: "유스케이스 다이어그램", type: "usecase", content: "", files: [], placeholder: "", editing: false, completed: false },
+  { name: "클래스 다이어그램", type: "classDiagram", content: "", files: [], placeholder: "", editing: false, completed: false },
+  { name: "시퀀스 다이어그램", type: "sequence", content: "", files: [], placeholder: "", editing: false, completed: false },
+  { name: "UI 디자인", type: "ui", content: "", files: [], placeholder: "", editing: false, completed: false },
+  { name: "ER 다이어그램", type: "erd", content: "", files: [], placeholder: "", editing: false, completed: false },
+  { name: "테이블 명세", type: "table", content: "", files: [], placeholder: "", editing: false, completed: false },
+  { name: "시스템 아키텍쳐", type: "architecture", content: "", files: [], placeholder: "", editing: false, completed: false },
+  { name: "프로젝트 일정 계획", type: "schedule", content: "", files: [], placeholder: "", editing: false, completed: false }
 ])
 
-watch(
-  designItems,
-  (newItems) => {
-    newItems.forEach(item => {
-      item.completed = item.files && item.files.length > 0;
-    });
-  },
-  { deep: true }
-)
+watch(designItems, (items) => {
+  items.forEach(item => {
+    item.completed = item.content.trim() !== "" || item.files.length > 0
+  })
+  const completedCount = items.filter(item => item.completed).length
+  emit('updateStepProgress', completedCount)
+}, { deep: true, immediate: true })
+
+function handleItemClick(index) {
+  if (props.readonly) return
+  const item = designItems.value[index]
+  if (item.type === 'classDiagram') {
+    router.push('/DiagramPage')
+  } else if (item.type === 'erd') {
+    router.push('/ErdDiagramPage')
+  } else {
+    toggleEdit(index)
+  }
+}
 
 function toggleEdit(index) {
-  const item = designItems.value[index];
-  if (item.name === "클래스 다이어그램") {
-    router.push("/DiagramPage");
-    return;
-  }
-  if (item.name === "ER 다이어그램") {
-    router.push("/ErdDiagramPage");
-    return;
-  }
-  item.editing = !item.editing;
+  if (props.readonly) return
+  const item = designItems.value[index]
+  item.editing = !item.editing
+  if (!item.editing) saveItem(index)
 }
-
 
 function handleFileUpload(event, index) {
-  const selectedFiles = event.target.files;
-  if (selectedFiles && selectedFiles.length > 0) {
-    for (let i = 0; i < selectedFiles.length; i++) {
-      const file = selectedFiles[i];
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        const uploadDate = new Date().toLocaleString();
-        designItems.value[index].files.push({
-          name: file.name,
-          data: e.target.result,
-          uploadDate: uploadDate,
-        });
-      };
-      reader.readAsDataURL(file);
+  if (props.readonly) return
+  const selectedFiles = event.target.files
+  const item = designItems.value[index]
+  const formData = new FormData()
+
+  formData.append("type", item.type)
+  formData.append("projectId", props.projectId)
+  for (const file of selectedFiles) {
+    formData.append("files", file)
+  }
+
+  axios.post("/design/upload", formData, {
+    headers: { Authorization: localStorage.getItem("authHeader") },
+    withCredentials: true
+  }).then(res => {
+    if (res.data.files) {
+      item.files.push(...res.data.files)
     }
-    event.target.value = "";
+  }).catch(err => {
+    console.error("파일 저장 실패", err)
+    alert(`${item.name} 파일 저장 오류`)
+  })
+
+  event.target.value = ""
+}
+
+function deleteFile(itemIndex, fileIndex, fileUrl) {
+  if (props.readonly) return
+  const item = designItems.value[itemIndex]
+  axios.delete("/design/delete-file", {
+    params: { type: item.type, fileUrl, projectId: props.projectId },
+    headers: { Authorization: localStorage.getItem("authHeader") },
+    withCredentials: true
+  }).then(() => {
+    item.files.splice(fileIndex, 1)
+  }).catch(err => {
+    console.error("파일 삭제 실패", err)
+  })
+}
+
+function extractFileName(url) {
+  try {
+    const parts = url.split('/')
+    const idx = parts.indexOf('d')
+    return parts[idx + 1] + '.파일'
+  } catch {
+    return "파일"
   }
 }
 
-function deleteFile(itemIndex, fileIndex) {
-  designItems.value[itemIndex].files.splice(fileIndex, 1);
+function formatDate(dateString) {
+  return new Date(dateString).toLocaleString()
 }
+
+async function saveItem(index) {
+  if (props.readonly) return
+  const item = designItems.value[index]
+  const formData = new FormData()
+
+  formData.append("type", item.type)
+  formData.append("text", item.content)
+  formData.append("projectId", props.projectId)
+
+  try {
+    await axios.put("/design/update", formData, {
+      headers: { Authorization: localStorage.getItem("authHeader") },
+      withCredentials: true
+    })
+  } catch (err) {
+    console.error("❌ 저장 오류:", err)
+    alert(`${item.name} 저장 중 오류 발생`)
+  }
+}
+
+onMounted(async () => {
+  try {
+    const res = await axios.get("/design/all", {
+      params: props.readonly ? { projectId: props.projectId } : {},
+      headers: { Authorization: localStorage.getItem("authHeader") },
+      withCredentials: true
+    })
+
+    const data = res.data
+    designItems.value.forEach(item => {
+      const contentData = data[item.type]
+      if (contentData) {
+        item.content = contentData.text || ""
+        item.files = contentData.files || []
+        if (props.readonly) item.editing = true
+      }
+    })
+
+    const completedCount = designItems.value.filter(item =>
+      item.content.trim() !== "" || item.files.length > 0
+    ).length
+    emit('updateStepProgress', completedCount)
+  } catch (err) {
+    console.error("❌ 데이터 불러오기 실패:", err)
+  }
+})
 </script>
+
+
 
 <style scoped>
 .detail-section {

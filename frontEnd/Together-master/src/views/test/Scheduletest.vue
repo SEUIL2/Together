@@ -20,83 +20,100 @@
       </div>
     </div>
 
-
     <!-- Gantt 컨테이너 -->
     <div ref="ganttContainer" class="gantt-container"></div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
+import { useRoute } from 'vue-router'
 import axios from 'axios'
 import 'dhtmlx-gantt/codebase/dhtmlxgantt.css'
 import gantt from 'dhtmlx-gantt'
 
-// Axios 기본 설정
+// 라우트 및 읽기 전용 플래그
+const route = useRoute()
+const isReadOnly = computed(() => route.query.readonly === 'true')
+const routeProjectId = computed(() => Number(route.params.projectId))
+
+// Gantt 컨테이너 ref
+const ganttContainer = ref(null)
+
+// 프로젝트 ID 상태
+const projectId = ref(routeProjectId.value || null)
+
+// 사용자/팀/작업 상태
+const currentUser = ref('')
+const rawTeamMembers = ref([])
+const teamMembers = ref([])
+const searchTerm = ref('')
+const filterMode = ref('all')
+let allRows = []
+
+// Axios 기본 설정 및 인증 헤더
 axios.defaults.baseURL = 'http://localhost:8081'
 axios.defaults.withCredentials = true
+axios.defaults.headers.common['Authorization'] = localStorage.getItem('authHeader')
 
-// Refs
-const ganttContainer = ref(null)
-const rawTeamMembers = ref([])
-const teamMembers    = ref([])
-const searchTerm     = ref('')
-const filterMode     = ref('all')
-const currentUser    = ref('')
-let allRows          = []
+// 1) 프로젝트 정보 로드
+async function fetchProjectInfo() {
+  try {
+    const res = isReadOnly.value && projectId.value
+      ? await axios.get(`/projects/${projectId.value}`)
+      : await axios.get('/projects/my')
+    projectId.value = res.data.projectId
+  } catch (e) {
+    console.error('프로젝트 정보 로드 실패', e)
+  }
+}
 
-// 현재 사용자 정보 로드
+// 2) 현재 사용자 정보 로드
 async function fetchCurrentUser() {
+  if (isReadOnly.value) return
   try {
     const { data } = await axios.get('/auth/me')
-    console.log('auth/me 응답:', data)  // 디버깅용
-
-    // 정확한 필드명으로 한글 이름 추출
-    currentUser.value = data.userName.trim()  // ← '테스트01'이 들어옴
+    currentUser.value = data.userName.trim()
   } catch (e) {
     console.error('유저 정보 로드 실패', e)
   }
 }
 
-// 팀원 정보 로드
+// 3) 팀원 정보 로드
 async function fetchTeamMembers() {
   try {
-    const { data } = await axios.get('/projects/members')
+    const { data } = await axios.get('/projects/members', { params: { projectId: projectId.value } })
     rawTeamMembers.value = data
-    teamMembers.value = data.map(u => ({
-      key:   u.userName,
-      label: u.userName,
-      userId: u.userId
-    }))
+    teamMembers.value = data.map(u => ({ key: u.userName, label: u.userName, userId: u.userId }))
   } catch (e) {
     console.error('팀원 정보 가져오기 실패', e)
   }
 }
 
-// 트리 구조를 flat 배열로 변환
+// 4) 트리 구조를 flat 배열로 변환
 function flattenTask(task, parent = null) {
   const start = new Date(task.startDate)
-  const end   = new Date(task.endDate)
+  const end = new Date(task.endDate)
   const duration = Math.ceil((end - start) / (1000 * 60 * 60 * 24))
   const row = [{
-    id:         task.id,
-    text:       task.title,
+    id: task.id,
+    text: task.title,
     start_date: task.startDate,
     duration,
-    assignee:   task.assignedUserName,
+    assignee: task.assignedUserName,
     parent
   }]
-  if (task.childTasks) {
-    task.childTasks.forEach(c => row.push(...flattenTask(c, task.id)))
-  }
+  if (task.childTasks) task.childTasks.forEach(c => row.push(...flattenTask(c, task.id)))
   return row
 }
 
-// 서버에서 작업 목록 불러오기
+// 5) 서버에서 작업 목록 불러오기
 async function fetchTasksFromServer() {
   try {
-    const { data } = await axios.get('/work-tasks/project')
-    allRows = data.flatMap(t => flattenTask(t))
+    const res = isReadOnly.value && projectId.value
+      ? await axios.get(`/work-tasks/project`, { params: { projectId: projectId.value } })
+      : await axios.get('/work-tasks/project', { params: { projectId: projectId.value } })
+    allRows = res.data.flatMap(t => flattenTask(t))
     onSearch()
   } catch (e) {
     console.error('작업 불러오기 실패', e)
@@ -112,21 +129,10 @@ function renderGantt(rows) {
 
 // 검색 및 필터 처리
 function onSearch() {
-  const q = searchTerm.value.trim().toLowerCase()
   let rows = allRows
+  const q = searchTerm.value.trim().toLowerCase()
   if (q) rows = rows.filter(r => r.text.toLowerCase().includes(q))
-if (filterMode.value === 'mine') {
-  console.log('현재 사용자:', currentUser.value)
-  rows = rows.filter(r => {
-    if (!r.assignee || !currentUser.value) return false
-    const assigneeTrimmed = r.assignee.trim()
-    const userTrimmed     = currentUser.value.trim()
-    console.log('비교:', assigneeTrimmed, 'vs', userTrimmed)
-    return assigneeTrimmed === userTrimmed
-  })
-}
-
-
+  if (filterMode.value === 'mine') rows = rows.filter(r => r.assignee?.trim() === currentUser.value)
   renderGantt(rows)
 }
 
@@ -136,24 +142,10 @@ function setFilter(mode) {
   onSearch()
 }
 
-// 작업 추가 버튼 핸들러
-function gridAddTask() {
-  const defaultUser = teamMembers.value[0]?.key ?? ''
-  gantt.addTask({
-    text:       '새 작업',
-    start_date: '2025-02-01',
-    duration:   7,
-    assignee:   defaultUser,
-    parent:     null
-  })
-}
-window.gridAddTask = gridAddTask
-
 // Gantt 초기 설정
 function setupGantt() {
-  gantt.plugins({drag_timeline: true })
-  
-  gantt.locale.date.month_full  = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월']
+  gantt.plugins({ drag_timeline: true })
+  gantt.locale.date.month_full = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월']
   gantt.locale.date.month_short = [...gantt.locale.date.month_full]
   gantt.locale.labels.section_description = '작업 이름'
   gantt.locale.labels.section_time        = '기간'
@@ -169,34 +161,31 @@ function setupGantt() {
   gantt.config.start_date  = new Date(2025,0,1)
   gantt.config.end_date    = new Date(2025,11,31)
   gantt.config.date_format = "%Y-%m-%d"
-  gantt.config.show_add_task_button = false
-  gantt.config.drag_resize   = true
-  gantt.config.drag_move     = true
-  gantt.config.drag_progress = true
 
+  // 읽기 모드에 따라 편집 기능 토글
+  gantt.config.readonly      = isReadOnly.value
+  gantt.config.drag_move     = !isReadOnly.value
+  gantt.config.drag_resize   = !isReadOnly.value
+  gantt.config.drag_progress = !isReadOnly.value
+
+  // 컬럼 설정 (비읽기 모드일 때만 + 버튼)
   gantt.config.columns = [
     { name:'text',       label:'작업',   tree:true, width:130, align:'center', resize:true },
     { name:'start_date', label:'시작일', width:100, align:'center', resize:true },
     { name:'duration',   label:'기간(일)', width:60,  align:'center' },
     { name:'assignee',   label:'담당자', width:70,  align:'center', editor:'select', options:teamMembers.value },
-    { name:'add',        label:'',       width:60,  template:() => `<button onclick="gridAddTask()">+작업</button>`, resize:false }
+    { name:'add',        label:'',       width:60,  template: () => isReadOnly.value ? '' : '<button onclick="gridAddTask()">+작업</button>', resize:false }
   ]
 
   gantt.config.lightbox.sections = [
-    { name:'description', map_to:'text',     type:'textarea', label:'작업 이름' },
-    { name:'time',        map_to:'auto',     type:'duration', label:'기간' },
-    { name:'assignee',    map_to:'assignee', type:'select',   options:teamMembers.value, label:'담당자' }
+    { name:'description', map_to:'text', type:'textarea', label:'작업 이름' },
+    { name:'time',        map_to:'auto', type:'duration', label:'기간' },
+    { name:'assignee',    map_to:'assignee', type:'select', options:teamMembers.value, label:'담당자' }
   ]
-
-  gantt.templates.tooltip_text = (s,e,t) =>
-    `<b>${t.text}</b><br/>시작일: ${gantt.templates.format_date(s)}<br/>마감일: ${gantt.templates.format_date(e)}`
-
-
-    
 }
 
-// 컴포넌트 마운트
 onMounted(async () => {
+  await fetchProjectInfo()
   await fetchCurrentUser()
   await fetchTeamMembers()
   setupGantt()
@@ -204,30 +193,29 @@ onMounted(async () => {
   gantt.init(ganttContainer.value)
   await fetchTasksFromServer()
 
-  // 작업 생성 저장 이벤트
-  gantt.attachEvent("onAfterTaskAdd", (tempId, task) => {
-    const startStr = gantt.date.date_to_str("%Y-%m-%d")(task.start_date)
-    const endStr   = gantt.date.date_to_str("%Y-%m-%d")(gantt.calculateEndDate({ start_date: task.start_date, duration: task.duration }))
-    const sel = rawTeamMembers.value.find(u => u.userName === task.assignee)
-    const payload = { title: task.text, description: task.text, startDate: startStr, endDate: endStr, assignedUserId: sel?.userId ?? null, status: 'PENDING', parentTaskId: task.parent || null }
-    axios.post('/work-tasks', payload)
-      .then(({ data }) => gantt.changeTaskId(tempId, data.id))
-      .catch(err => { console.error('작업 생성 실패', err); gantt.deleteTask(tempId) })
-  })
+  if (!isReadOnly.value) {
+    gantt.attachEvent("onAfterTaskAdd", (tempId, task) => {
+      const startStr = gantt.date.date_to_str("%Y-%m-%d")(task.start_date)
+      const endStr   = gantt.date.date_to_str("%Y-%m-%d")(gantt.calculateEndDate({ start_date: task.start_date, duration: task.duration }))
+      const sel      = rawTeamMembers.value.find(u => u.userName === task.assignee)
+      const payload  = { title: task.text, startDate: startStr, endDate: endStr, assignedUserId: sel?.userId ?? null, status: 'PENDING', parentTaskId: task.parent || null }
+      axios.post('/work-tasks', payload)
+        .then(({ data }) => gantt.changeTaskId(tempId, data.id))
+        .catch(err => { console.error('작업 생성 실패', err); gantt.deleteTask(tempId) })
+    })
 
-  // 일정 드래그 저장 이벤트
-  gantt.attachEvent("onAfterTaskDrag", (id, mode) => {
-    if (mode !== 'move' && mode !== 'resize') return
-    const task = gantt.getTask(id)
-    const payload = { startDate: gantt.date.date_to_str("%Y-%m-%d")(task.start_date), endDate: gantt.date.date_to_str("%Y-%m-%d")(gantt.calculateEndDate({ start_date: task.start_date, duration: task.duration })) }
-    axios.patch(`/work-tasks/${id}/schedule`, payload).catch(err => console.error('일정 업데이트 실패', err))
-  })
+    gantt.attachEvent("onAfterTaskDrag", (id, mode) => {
+      if (mode !== 'move' && mode !== 'resize') return
+      const task = gantt.getTask(id)
+      const payload = { startDate: gantt.date.date_to_str("%Y-%m-%d")(task.start_date), endDate: gantt.date.date_to_str("%Y-%m-%d")(gantt.calculateEndDate({ start_date: task.start_date, duration: task.duration })) }
+      axios.patch(`/work-tasks/${id}/schedule`, payload).catch(err => console.error('일정 업데이트 실패', err))
+    })
 
-  // 작업 삭제 이벤트
-  gantt.attachEvent("onBeforeTaskDelete", id => {
-    axios.delete(`/work-tasks/${id}`).catch(err => { console.error('작업 삭제 실패', err); fetchTasksFromServer() })
-    return true
-  })
+    gantt.attachEvent("onBeforeTaskDelete", id => {
+      axios.delete(`/work-tasks/${id}`).catch(err => { console.error('작업 삭제 실패', err); fetchTasksFromServer() })
+      return true
+    })
+  }
 })
 </script>
 

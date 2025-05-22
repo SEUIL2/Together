@@ -133,5 +133,35 @@ public class UserService {
         return projectList;
     }
 
+    //유저 삭제
+    @Transactional
+    public void deleteUser(Long userId) {
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("해당 유저가 존재하지 않습니다."));
+
+        // 🔹 공통 연관 정리
+        // 프로젝트 팀장 리스트 제거
+        for (ProjectEntity project : user.getProject()) {
+            project.setLeader(null);
+        }
+
+        // 🔹 역할에 따라 연관 해제
+        if (user instanceof StudentEntity student) {
+            ProjectEntity mainProject = student.getMainProject();
+            if (mainProject != null) {
+                mainProject.getStudents().remove(student); // 🔄 양방향 제거
+                student.setMainProject(null);
+            }
+        } else if (user instanceof ProfessorEntity professor) {
+            for (ProjectEntity project : professor.getProjects()) {
+                project.getProfessors().remove(professor); // 🔄 양방향 제거
+            }
+            professor.getProjects().clear(); // 교수 측에서도 비워줌
+        }
+
+        // 🔥 삭제
+        userRepository.delete(user);
+    }
+
 
 }

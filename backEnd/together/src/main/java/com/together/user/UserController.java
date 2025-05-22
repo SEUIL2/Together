@@ -151,6 +151,20 @@ public class UserController {
         return ResponseEntity.ok(isDuplicate);
     }
 
+    //유저 삭제
+    @DeleteMapping("/me")
+    public ResponseEntity<?> deleteMyAccount(
+            @AuthenticationPrincipal UserDetailsImpl userDetails
+    ) {
+        try {
+            userService.deleteUser(userDetails.getUser().getUserId());
+            return ResponseEntity.ok("회원 탈퇴가 완료되었습니다.");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("탈퇴 중 오류 발생: " + e.getMessage());
+        }
+    }
+
     // 아이디 찾기 요청 (이메일로 인증 코드 전송)
     @PostMapping("/find-id")
     public ResponseEntity<String> findUserId(@RequestParam String email) throws MessagingException {

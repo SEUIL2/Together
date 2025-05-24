@@ -11,34 +11,55 @@
     <nav>
       <ul>
         <li>
-          <button :class="{ active: $route.path === '/MyProject' }" @click="goMyProject">내 프로젝트</button>
-        </li>
+  <button :class="{ active: $route.path.includes('/MyProject') || $route.path.includes('/professor/project') }" @click="goMyProject">
+    내 프로젝트
+  </button>
+</li>
         <li>
-          <button :class="{ active: $route.path === '/DashBoard' }" @click="goMyDashBoard">대시보드</button>
-        </li>
-        <li>
-          <button :class="{ active: $route.path === '/TaskPage' }" @click="goMyTask">작업</button>
-        </li>
-        <li>
-          <button :class="{ active: $route.path === '/Scheduletest' }" @click="goSchedule">일정 관리</button>
-        </li>
-        <li>
-          <button :class="{ active: $route.path === '/TeamManagement' }" @click="goTeam">팀원 관리</button>
-        </li>
-        <li>
-          <button :class="{ active: $route.path === '/MeetingPage' }" @click="goMeeting">회의</button>
-        </li>
-        <li>
-          <button :class="{ active: $route.path === '/Help' }" @click="goHelp">도움말</button>
-        </li>
+  <button :class="{ active: $route.path.includes('/DashBoard') || $route.path.includes('/professor/dashboard') }" @click="goMyDashBoard">
+    대시보드
+  </button>
+</li>
+<li>
+  <button :class="{ active: $route.path.includes('/TaskPage') || $route.path.includes('/professor/task') }" @click="goMyTask">
+    작업
+  </button>
+</li>
+<li>
+  <button :class="{ active: $route.path.includes('/Scheduletest') || $route.path.includes('/professor/schedule') }" @click="goSchedule">
+    일정 관리
+  </button>
+</li>
+<li>
+  <button :class="{ active: $route.path.includes('/TeamManagement') || $route.path.includes('/professor/team') }" @click="goTeam">
+    팀원 관리
+  </button>
+</li>
+
+<li v-if="!isProfessorReadOnly">
+  <button :class="{ active: $route.path === '/MeetingPage' }" @click="goMeeting">회의</button>
+</li>
+
+<!-- 도움말: 교수 읽기 전용이면 숨김 -->
+<li v-if="!isProfessorReadOnly">
+  <button :class="{ active: $route.path === '/HelpPage' }" @click="goHelp">도움말</button>
+</li>
+
       </ul>
     </nav>
 
-    <!-- 교수 읽기 전용 모드일 때만 프로젝트명 + 뒤로가기 -->
-    <div v-if="isProfessorReadOnly" class="readonly-header">
-      <button class="back-button" @click="goBack">← 돌아가기</button>
-      <span class="project-title">{{ projectTitle }}</span>
+<!-- 읽기 전용 프로젝트 카드 + 돌아가기 버튼 -->
+<div v-if="isProfessorReadOnly" class="readonly-project-box">
+  <div class="project-badge">
+    <div class="badge-left">
+      <span class="project-name">{{ projectTitle }}</span>
     </div>
+    <button class="return-btn" @click="goBack">돌아가기</button>
+  </div>
+</div>
+
+
+
 
     <!-- 알림 + 설정 아이콘 영역 -->
     <div class="settings-icon">
@@ -173,7 +194,7 @@ console.log('projectId:', projectId.value)
 
 const goMyProject = () => {
   if (isProfessorReadOnly.value && projectId.value) {
-    router.push(`/professor/project/${projectId.value}?readonly=true`)
+    router.push(`/professor/project/${projectId.value}?readonly=true&projectTitle=${projectTitle.value}`)
   } else {
     router.push('/MyProject')
   }
@@ -181,11 +202,12 @@ const goMyProject = () => {
 
 const goMyDashBoard = () => {
   if (isProfessorReadOnly.value && projectId.value) {
-    router.push(`/professor/dashboard/${projectId.value}?readonly=true`)
+    router.push(`/professor/dashboard/${projectId.value}?readonly=true&projectTitle=${projectTitle.value}`)
   } else {
     router.push('/DashBoard')
   }
 }
+
 const goMyTask = () => {
   if (isProfessorReadOnly.value && projectId.value) {
     router.push(`/professor/task/${projectId.value}?readonly=true&projectTitle=${projectTitle.value}`)
@@ -195,19 +217,21 @@ const goMyTask = () => {
 }
 
 const goSchedule = () => {
-  if (isProfessorReadOnly.value) {
-    router.push(`/professor/schedule/${projectId.value}?readonly=true`)
+  if (isProfessorReadOnly.value && projectId.value) {
+    router.push(`/professor/schedule/${projectId.value}?readonly=true&projectTitle=${projectTitle.value}`)
   } else {
     router.push('/Scheduletest')
   }
 }
+
 const goTeam = () => {
-  if (isProfessorReadOnly.value) {
-    router.push(`/professor/team/${projectId.value}?readonly=true`)
+  if (isProfessorReadOnly.value && projectId.value) {
+    router.push(`/professor/team/${projectId.value}?readonly=true&projectTitle=${projectTitle.value}`)
   } else {
     router.push('/TeamManagement')
   }
 }
+
 const goMeeting = () => {
   if (isProfessorReadOnly.value) {
     router.push(`/professor/meeting/${projectId.value}?readonly=true`)
@@ -216,7 +240,7 @@ const goMeeting = () => {
   }
 }
 const goHelp = () => {
-  router.push('/Help') // 도움말은 공통이라 조건 없이 이동
+  router.push('/HelpPage') // 도움말은 공통이라 조건 없이 이동
 }
 
 
@@ -240,6 +264,7 @@ const goBack = () => router.push('/professor/mainpage')
   height: 60px;
   background-color: #fff;
   border-bottom: 1px solid #eee;
+  box-shadow: 0 2px 6px rgba(0, 40, 120, 0.1);
 }
 
 .logo {
@@ -261,7 +286,7 @@ const goBack = () => router.push('/professor/mainpage')
 nav ul {
   display: flex;
   list-style: none;
-  margin: 0;
+  margin-left: -100px;
   padding: 0;
   gap: 4rem;
 }
@@ -372,5 +397,61 @@ nav ul li button.active::after {
 
 .back-button:hover {
   text-decoration: underline;
+}
+.readonly-project-box {
+  margin-left: 0;
+  margin-right: 0px;
+  display: flex;
+  align-items: center;
+}
+
+.project-badge {
+  display: flex;
+  align-items: center;
+  background-color: rgb(255, 255, 255);
+  border: 1px solid #cddafd;
+  border-radius: 12px;
+  padding: 4px 10px;
+  /* box-shadow: 0 2px 6px rgba(0, 40, 120, 0.1); */
+  transition: box-shadow 0.3s;
+}
+
+.project-badge:hover {
+  box-shadow: 0 4px 12px rgba(0, 40, 120, 0.15);
+}
+
+.badge-left {
+  display: flex;
+  flex-direction: column;
+  margin-right: 15px;
+  margin-left: 5px;
+}
+
+
+.project-name {
+  font-size: 16px;
+  font-weight: bold;
+  color: #000000;
+  max-width: 180px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.return-btn {
+  background-color: #ffffff;
+  border: 1px solid #aab6fe;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #3f51b5;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.return-btn:hover {
+  background-color: #dbe3ff;
+  border-color: #94a3ff;
 }
 </style>

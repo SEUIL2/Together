@@ -1,7 +1,10 @@
 <template>
   <div class="modal-overlay">
     <div class="modal-content">
-      <h4>공지사항</h4>
+      <div class="modal-header">
+        <h4>공지사항</h4>
+        <button class="close-btn" @click="$emit('close')">×</button>
+      </div>
 
       <input
         v-model="localNotice.title"
@@ -20,8 +23,8 @@
       <div class="modal-actions">
         <template v-if="!readonly">
           <button v-if="!isEditing" @click="isEditing = true">수정</button>
-          <button v-if="isEditing" @click="save()">저장</button>
-          <button @click="$emit('delete', localNotice.noticeId)">삭제</button>
+          <button v-if="isEditing" @click="onSave">저장</button>
+          <button @click="onDelete">삭제</button>
         </template>
         <button @click="$emit('close')">닫기</button>
       </div>
@@ -33,7 +36,7 @@
 import { ref, watch } from 'vue'
 
 const props = defineProps({
-  notice: Object,
+  notice: { type: Object, required: true },
   readonly: { type: Boolean, default: false }
 })
 const emit = defineEmits(['close', 'update', 'delete'])
@@ -41,14 +44,24 @@ const emit = defineEmits(['close', 'update', 'delete'])
 const isEditing = ref(false)
 const localNotice = ref({ ...props.notice })
 
-watch(() => props.notice, (newVal) => {
-  localNotice.value = { ...newVal }
-  isEditing.value = false
-})
+watch(
+  () => props.notice,
+  (newVal) => {
+    localNotice.value = { ...newVal }
+    isEditing.value = false
+  }
+)
 
-function save() {
+function onSave() {
   emit('update', { ...localNotice.value })
-  isEditing.value = false
+  // 모달 자동 닫기
+  emit('close')
+}
+
+function onDelete() {
+    emit('delete', localNotice.value.noticeId)
+    emit('close')
+  
 }
 </script>
 
@@ -70,6 +83,20 @@ function save() {
   width: 600px;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.close-btn {
+  background: transparent;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
 }
 
 .modal-content input,
@@ -119,5 +146,6 @@ function save() {
   color: #666;
   margin-top: -8px;
   margin-bottom: 16px;
+  text-align: right;
 }
 </style>

@@ -1,146 +1,176 @@
 <template>
   <div class="team-card">
-    <h3>{{ project.title }}</h3>
-    <p>{{ project.description }}</p>
-    <p>진행도: {{ project.progress }}%</p>
-
-    <!-- 팀원 버튼 -->
-    <div class="team-members">
-      <button
-        v-for="member in project.members"
-        :key="member.id"
-        @click="openMemberEvaluation(member)"
-      >
-        {{ member.name }}
+    <!-- 상단 프로젝트 정보 -->
+    <div class="card-header">
+      <div class="project-info">
+        <h3 class="project-title">{{ project.title }}</h3>
+        <p class="project-desc">{{ project.description }}</p>
+      </div>
+      <button class="view-button" @click="$emit('viewProject', project.projectId)">
+        <i class="arrow">➤</i>
       </button>
     </div>
 
-    <!-- 카드 버튼 -->
-    <div class="card-buttons">
-      <button @click="openNotice">공지사항 작성</button>
-      <button @click="openVote">투표 작성</button>
-      <button @click="openFeedback">피드백 내역</button>
-      <button @click="openMemo">팀 메모</button>
-      <button @click="viewProject">프로젝트 보기</button>
+    <!-- 진행도 바 -->
+    <div class="progress-wrapper">
+      <div class="progress-label-text">
+        📊 프로젝트 진행도 <strong>{{ project.progress || 0 }}%</strong>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" :style="{ width: project.progress + '%' }"></div>
+      </div>
     </div>
 
-    <!-- 모달들 -->
-    <TeamMemberEvaluationModal
-      v-if="showEvaluation"
-      :member="selectedMember"
-      @close="showEvaluation = false"
-    />
-    <VoteCreate
-      v-if="showVote"
-      :project-id="project.projectId"
-      @close="showVote = false"
-    />
-    <NoticeCreate
-      v-if="showNotice"
-      :project-id="project.projectId"
-      @close="showNotice = false"
-    />
-    <TeamFeedbackListModal
-      v-if="showFeedback"
-      :teamId="project.projectId"
-      @close="showFeedback = false"
-    />
-    <TeamMemoModal
-      v-if="showMemo"
-      :teamId="project.projectId"
-      @close="showMemo = false"
-    />
+    <!-- 팀원 목록 -->
+    <div class="team-members">
+      <div v-for="(member, index) in project.members" :key="index" class="avatar">
+        <div class="avatar-img">
+          <img :src="member.avatarUrl" />
+        </div>
+        <span class="member-name">{{ member.name }}</span>
+      </div>
+    </div>
+
+    <!-- 기능 버튼 -->
+    <div class="action-buttons">
+      <button class="action-btn">📢 공지사항</button>
+      <button class="action-btn">🗳 투표</button>
+      <button class="action-btn">📝 피드백</button>
+      <button class="action-btn">🧾 메모</button>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import TeamMemberEvaluationModal from './TeamMemberEvaluationModal.vue'
-import VoteCreate from '@/components/dashboard/VoteCreate.vue'
-import NoticeCreate from '@/components/dashboard/DashBoardNotice.vue'
-import TeamFeedbackListModal from './TeamFeedbackListModal.vue'
-import TeamMemoModal from './TeamMemoModal.vue'
 
-// ✅ props 이름 수정: project
-const props = defineProps({ project: Object })
-const emit = defineEmits(['view-project'])
 
-const showEvaluation = ref(false)
-const showNotice = ref(false)
-const showVote = ref(false)
-const showFeedback = ref(false)
-const showMemo = ref(false)
-
-const selectedMember = ref(null)
-
-function openMemberEvaluation(member) {
-  selectedMember.value = member
-  showEvaluation.value = true
-}
-
-function openNotice() {
-  showNotice.value = true
-}
-
-function openVote() {
-  showVote.value = true
-}
-
-function openFeedback() {
-  showFeedback.value = true
-}
-
-function openMemo() {
-  showMemo.value = true
-}
-
-function viewProject() {
-  emit('view-project', props.project.projectId, props.project.title)
-}
+defineProps({
+  project: Object
+})
 </script>
 
 <style scoped>
 .team-card {
-  border: 1px solid #ddd;
-  padding: 16px;
-  border-radius: 10px;
-  background-color: #fff;
-  box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.05);
+  width: 550px;
+  background-color: #ffffff;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: box-shadow 0.3s ease;
+}
+.team-card:hover {
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.project-info {
+  max-width: 85%;
+}
+
+.project-title {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: #1e1e1e;
+}
+
+.project-desc {
+  font-size: 14px;
+  color: #555;
+  line-height: 1.4;
+  overflow-wrap: break-word;
+}
+
+.view-button {
+  background-color: transparent;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: #888;
+  transition: transform 0.2s ease;
+}
+.view-button:hover {
+  transform: translateX(3px);
+  color: #111;
+}
+
+.progress-wrapper {
+  margin: 18px 0 10px;
+}
+
+.progress-label-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: #444;
+  margin-bottom: 6px;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 10px;
+  background-color: #e9edf3;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background-color: #4a90e2;
+  border-radius: 6px;
+  transition: width 0.4s ease;
 }
 
 .team-members {
-  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 12px 0 18px;
 }
-
-.team-members button {
-  margin-right: 8px;
-  margin-bottom: 6px;
-  padding: 6px 10px;
-  border: none;
-  background-color: #e0f0ff;
+.avatar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #f9f9f9;
+  border: 1px solid #ddd;
+  border-radius: 18px;
+  padding: 5px 12px;
+}
+.avatar-img img {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.member-name {
+  font-size: 13px;
   color: #333;
-  border-radius: 4px;
-  cursor: pointer;
 }
 
-.card-buttons {
-  margin-top: 16px;
+.action-buttons {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+  margin-top: 8px;
 }
-
-.card-buttons button {
-  padding: 8px 12px;
-  background-color: #3f8efc;
-  color: white;
+.action-btn {
+  flex: 1 1 45%;
+  background-color: #4a4a4a;
+  color: #fff;
+  padding: 10px 14px;
+  font-size: 13px;
+  border-radius: 14px;
   border: none;
-  border-radius: 6px;
   cursor: pointer;
-  font-size: 14px;
+  transition: background-color 0.25s ease;
 }
-
-.card-buttons button:hover {
-  background-color: #2f6edc;
+.action-btn:hover {
+  background-color: #222;
 }
 </style>

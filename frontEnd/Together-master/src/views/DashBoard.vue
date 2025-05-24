@@ -39,55 +39,75 @@
       </div>
     </div>
 
-    <!-- 하단 영역 -->
+    <!-- 하단 영역: 카드 3개 균등 분할 -->
     <div class="dashboard-bottom">
-      <div class="card wide">
+      <div class="card notice-card-wrapper">
+        <div class="card-header">
+          <h3 class="board-title" @click="showAllModal = true">공지사항</h3>
+          <button class="create-btn" @click.stop="showCreateModal = true">+</button>
+        </div>
         <NoticeBoard :notices="notices" @selectNotice="openNoticeDetail" />
       </div>
-
       <div class="card">
         <VotingList />
       </div>
-
       <div class="card">
         <h3>최근 활동</h3>
         <p>최근 활동 예시</p>
       </div>
     </div>
 
-    <!-- 공지사항 상세 모달 -->
+    <!-- 모달 컴포넌트들 -->
+    <NoticeCreateModal
+      v-if="showCreateModal"
+      :writerName="currentUserName"
+      @create="handleCreateNotice"
+      @close="showCreateModal = false"
+    />
+
+    <div v-if="showAllModal" class="modal-overlay">
+      <div class="modal-content notice-modal">
+        <div class="modal-header">
+          <h4>전체 공지사항</h4>
+          <button class="close-btn" @click="showAllModal = false">×</button>
+        </div>
+        <NoticeBoard :notices="notices" @selectNotice="openNoticeDetail" />
+      </div>
+    </div>
+
     <NoticeDetailModal
       v-if="showNoticeModal"
       :notice="selectedNotice"
-      :readonly="true"
       @close="showNoticeModal = false"
+      @update="handleUpdateNotice"
+      @delete="handleDeleteNotice"
     />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watchEffect } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import axios from 'axios'
 
 import NoticeBoard from '@/components/dashboard/NoticeBoard.vue'
 import NoticeDetailModal from '@/components/dashboard/NoticeDetailModal.vue'
+import NoticeCreateModal from '@/components/dashboard/NoticeCreateModal.vue'
 import AllTasksCard from '@/components/dashboard/AllTasksCard.vue'
 import MyTasksCard from '@/components/dashboard/MyTasksCard.vue'
 import VotingList from '@/components/dashboard/VotingList.vue'
 
 const route = useRoute()
-const isProfessorReadOnly = route.query.readonly === 'true'
 const projectId = ref(route.params.projectId || null)
-const projectTitle = route.query.projectTitle || ''
 
 const currentUserName = ref('')
-const currentUserId = ref('')
 const tasks = ref([])
 const notices = ref([])
 
 const showNoticeModal = ref(false)
 const selectedNotice = ref(null)
+const showCreateModal = ref(false)
+const showAllModal = ref(false)
 
 const progress = computed(() => {
   const total = tasks.value.length
@@ -95,87 +115,181 @@ const progress = computed(() => {
   return total ? Math.round((done / total) * 100) : 0
 })
 
-const remainingTasks = computed(() => {
-  return tasks.value.filter(t => t.status !== 'COMPLETED').length
-})
+const remainingTasks = computed(() =>
+  tasks.value.filter(t => t.status !== 'COMPLETED').length
+)
 
-onMounted(async () => {
+// 공지사항 조회
+async function fetchNotices() {
   try {
-    if (isProfessorReadOnly && projectId.value) {
-      const { data } = await axios.get(`/work-tasks/project/${projectId.value}`, {
-        headers: { Authorization: localStorage.getItem('authHeader') },
-        withCredentials: true
-      })
-      tasks.value = data
-    } else {
-      const { data } = await axios.get('/auth/me', { withCredentials: true })
-      currentUserName.value = data.userName?.trim()
-      currentUserId.value = data.userId
-      projectId.value = data.projectId
-
-      const taskRes = await axios.get('/work-tasks/project', {
-        headers: { Authorization: localStorage.getItem('authHeader') },
-        withCredentials: true
-      })
-      tasks.value = taskRes.data
-    }
-
-    const noticeRes = await axios.get('/notices/all-notice', {
+    const res = await axios.get('/notices/all-notice', {
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true
     })
-    notices.value = noticeRes.data
+    notices.value = res.data.map(n => ({
+      ...n,
+      writerName: n.writerName || n.authorName || n.userName || currentUserName.value
+    }))
   } catch (e) {
-    console.error('❌ 작업 또는 공지사항 데이터 불러오기 실패:', e)
+    console.error('공지사항 불러오기 실패:', e)
+  }
+}
+
+// 공지 생성
+async function handleCreateNotice(newNotice) {
+  try {
+    await axios.post('/notices/create', newNotice, {
+      headers: {
+        Authorization: localStorage.getItem('authHeader'),
+        'Content-Type': 'application/json'
+      },
+      withCredentials: true
+    })
+    showCreateModal.value = false
+    await fetchNotices()
+  } catch (e) {
+    console.error('공지사항 생성 실패:', e)
+  }
+}
+
+// 공지 수정
+async function handleUpdateNotice(updated) {
+  try {
+    await axios.put(
+      `/notices/update/${updated.noticeId}`,
+      updated,
+      {
+        headers: {
+          Authorization: localStorage.getItem('authHeader'),
+          'Content-Type': 'application/json'
+        },
+        withCredentials: true
+      }
+    )
+    showNoticeModal.value = false
+    await fetchNotices()
+  } catch (e) {
+    console.error('공지사항 수정 실패:', e)
+    alert('수정 중 오류가 발생했습니다.')
+  }
+}
+
+// 공지 삭제
+async function handleDeleteNotice(noticeId) {
+  if (!confirm('정말 삭제하시겠습니까?')) return
+  try {
+    await axios.delete(
+      `/notices/delete/${noticeId}`,
+      {
+        headers: { Authorization: localStorage.getItem('authHeader') },
+        withCredentials: true
+      }
+    )
+    showNoticeModal.value = false
+    await fetchNotices()
+  } catch (e) {
+    console.error('공지사항 삭제 실패:', e)
+    alert('삭제 중 오류가 발생했습니다.')
+  }
+}
+
+// 초기 로드
+onMounted(async () => {
+  try {
+    const { data: me } = await axios.get('/auth/me', { withCredentials: true })
+    currentUserName.value = me.userName
+    projectId.value = me.projectId
+
+    const taskRes = await axios.get('/work-tasks/project', {
+      headers: { Authorization: localStorage.getItem('authHeader') },
+      withCredentials: true
+    })
+    tasks.value = taskRes.data
+
+    await fetchNotices()
+  } catch (e) {
+    console.error('❌ 데이터 로드 실패:', e)
   }
 })
 
+// 공지 상세 열기
 function openNoticeDetail(notice) {
   selectedNotice.value = notice
   showNoticeModal.value = true
 }
-
-watchEffect(() => {
-  console.log('✅ [대시보드] currentUserName:', currentUserName.value)
-  console.log('✅ [대시보드] tasks:', tasks.value)
-})
 </script>
 
-
-  
-  <style scoped>
+<style scoped>
 .dashboard-container {
-  padding: 30px;
+  padding: 24px;
   display: flex;
   flex-direction: column;
   gap: 24px;
-  background-color: #f5f6f8; /* 전체 배경 연회색 */
-  min-height: 100vh;
+  background-color: #f5f6f8;
 }
 
-/* 모든 카드 스타일 공통 */
-.card, .dashboard-top-card {
-  background: #ffffff;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-  border: none; /* 테두리 제거로 더 깔끔 */
+.dashboard-top-card,
+.card {
+  background: #fff;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.04);
 }
 
-/* 상단 박스 */
 .dashboard-top-card {
   display: flex;
-  overflow: hidden;
 }
 
-/* 작업 중간/하단 박스 간격 */
-.dashboard-mid,
-.dashboard-bottom {
+.info-section {
+  flex: 1;
   display: flex;
-  gap: 20px;
+  align-items: center;
+  gap: 12px;
+  border-right: 1px solid #eee;
+  padding: 8px;
+}
+.info-section.no-border {
+  border-right: none;
 }
 
-/* 카드 너비 */
+.info-content .highlight {
+  font-size: 24px;
+}
+.info-content .label {
+  font-size: 12px;
+}
+.progress-bar {
+  height: 8px;
+  background: #ddd;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+.progress-fill {
+  background: #3f8efc;
+}
+
+.dashboard-mid {
+  display: flex;
+  gap: 16px;
+}
+.dashboard-bottom {
+  display: flex;           /* ① flex 컨테이너로 만들기 */
+  flex-direction: row;     /* ② 주 축을 가로로 설정 (기본값이기도 합니다) */
+  gap: 16px;               /* 카드 사이 간격 */
+  /* flex-wrap: nowrap;    필요시 줄바꿈 금지 */
+}
+
+.dashboard-bottom .card {
+  flex: 1;                 /* ③ 모든 카드를 동일 너비로 분할 */
+  height: 400px; /* 고정 높이 추가 */
+  overflow-y: auto;
+  scrollbar-width: none;      /* Firefox용 스크롤바 감춤 */
+}
+.dashboard-bottom .card::-webkit-scrollbar {
+  display: none;
+}
+
 .card.wide {
   flex: 2;
 }
@@ -183,84 +297,64 @@ watchEffect(() => {
   flex: 1;
 }
 
-  
-  .info-section {
-  flex: 1;
-  padding: 0px 24px;
-  border-right: 1px solid #eee;
+/* 공지사항 카드 헤더 */
+.notice-card-wrapper {
+  padding: 12px;
+}
+.card-header {
   display: flex;
-  flex-direction: row;
+  justify-content: space-between;
   align-items: center;
-  justify-content: flex-start; /* 👉 왼쪽 정렬로 변경 */
-  gap: 12px;
+  margin-bottom: 8px;
+  margin-top: -10px;
+}
+.board-title {
+  font-size: 20px;
+  cursor: pointer;
+}
+.create-btn {
+  background: none;
+  border: none;
+  color: rgb(0, 0, 0);
+  font-size: 24px;
+  line-height: 24px;
+  text-align: center;
+  cursor: pointer;
 }
 
-  
-  .info-section.no-border {
-    border-right: none;
-  }
-  
-  .info-section img {
-    width: 36px;
-  }
-  
-  .info-content {
+/* 전체보기 모달 */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.3);
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 1px; /* 간격 추가 */
-  min-width: 240px; /* ✅ progress-bar를 넣을 공간 확보 */
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
 }
-
-  
-  .highlight {
-    font-size: 28px;
-    color: #3f8efc;
-    font-weight: bold;
-    line-height: 1.2;
-  }
-  
-  .label {
-    font-size: 14px;
-    color: #777;
-    line-height: 1.2;
-  }
-  
-  .progress-bar {
-  width: 100%; /* 예시로 200~300px */
-  height: 10px;
-  background: #ddd;
-  border-radius: 5px;
-  overflow: hidden;
+.modal-content {
+  background: #fff;
+  padding: 16px;
+  border-radius: 8px;
+  width: 600px;
+  max-height: 80vh;
+  overflow-y: auto;
+  scrollbar-width: none;
 }
-
-  
-  .progress-fill {
-    height: 100%;
-    background: #3f8efc;
-    border-radius: 10px;
-  }
-  
-  /* 중간/하단 카드 동일 */
-  .dashboard-mid {
-    display: flex;
-    gap: 20px;
-  }
-  .card {
-    background: white;
-    border: 1px solid #ddd;
-    border-radius: 10px;
-    padding: 16px;
-    flex: 1;
-  }
-  .dashboard-bottom {
-    display: flex;
-    gap: 20px;
-  }
-  .card.wide {
-    flex: 1;
-  }
-  .card:not(.wide) {
-    flex: 1;
-  }
-  </style>
+.modal-content::-webkit-scrollbar {
+  display: none;
+}
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.close-btn {
+  background: transparent;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+}
+</style>

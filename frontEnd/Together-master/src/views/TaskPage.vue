@@ -2,12 +2,7 @@
   <div class="task-board-page">
     <!-- 검색 + 필터 -->
     <div class="search-bar">
-      <input
-        v-model="searchTerm"
-        @input="onSearch"
-        type="text"
-        placeholder="작업 검색..."
-      />
+      <input v-model="searchTerm" @input="onSearch" type="text" placeholder="작업 검색..." />
       <div class="filter-toggle">
         <button :class="{ active: filterMode === 'all' }" @click="setFilter('all')">모든 작업</button>
         <button :class="{ active: filterMode === 'mine' }" @click="setFilter('mine')">내 작업</button>
@@ -20,7 +15,14 @@
       <!-- 작업 목록 -->
       <div class="column">
         <h3><span>작업 목록</span></h3>
-        <draggable v-model="pendingList" :group="{ name: 'tasks' }" @change="evt => onTaskDrop(evt, 'PENDING')" class="task-list">
+        <draggable
+          v-model="pendingList"
+          itemKey="id"
+          :group="{ name: 'tasks' }"
+          :disabled="isReadOnly"
+          @change="evt => onTaskDrop(evt, 'PENDING')"
+          class="task-list"
+        >
           <template #item="{ element: task }">
             <div class="card" @dblclick="openLightbox(task.id)">
               <div class="card-title">{{ task.title }}</div>
@@ -33,7 +35,14 @@
       <!-- 진행 중 -->
       <div class="column">
         <h3><span>진행 중</span></h3>
-        <draggable v-model="inProgressList" :group="{ name: 'tasks' }" @change="evt => onTaskDrop(evt, 'IN_PROGRESS')" class="task-list">
+        <draggable
+          v-model="inProgressList"
+          itemKey="id"
+          :group="{ name: 'tasks' }"
+          :disabled="isReadOnly"
+          @change="evt => onTaskDrop(evt, 'IN_PROGRESS')"
+          class="task-list"
+        >
           <template #item="{ element: task }">
             <div class="card" @dblclick="openLightbox(task.id)">
               <div class="card-title">{{ task.title }}</div>
@@ -46,7 +55,14 @@
       <!-- 완료 -->
       <div class="column">
         <h3><span>완료</span></h3>
-        <draggable v-model="completedList" :group="{ name: 'tasks' }" @change="evt => onTaskDrop(evt, 'COMPLETED')" class="task-list">
+        <draggable
+          v-model="completedList"
+          itemKey="id"
+          :group="{ name: 'tasks' }"
+          :disabled="isReadOnly"
+          @change="evt => onTaskDrop(evt, 'COMPLETED')"
+          class="task-list"
+        >
           <template #item="{ element: task }">
             <div class="card" @dblclick="openLightbox(task.id)">
               <div class="card-title">{{ task.title }}</div>
@@ -57,12 +73,14 @@
       </div>
     </div>
 
+    <!-- 숨겨진 Gantt 영역 -->
     <div ref="ganttHidden" style="width:0;height:0;overflow:hidden;"></div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import axios from 'axios'
 import draggable from 'vuedraggable'
 import 'dhtmlx-gantt/codebase/dhtmlxgantt.css'
@@ -70,45 +88,64 @@ import gantt from 'dhtmlx-gantt'
 
 axios.defaults.baseURL = 'http://localhost:8081'
 axios.defaults.withCredentials = true
+axios.defaults.headers.common['Authorization'] = localStorage.getItem('authHeader')
+
+const route = useRoute()
+const isReadOnly = computed(() => route.query.readonly === 'true')
+const ganttHidden = ref(null)
 
 const searchTerm = ref('')
 const filterMode = ref('all')
 const currentUser = ref('')
-const ganttHidden = ref(null)
-
 const workTasks = ref([])
 const pendingList = ref([])
 const inProgressList = ref([])
 const completedList = ref([])
-
 const rawTeamMembers = ref([])
 const teamMembers = ref([])
 
 async function fetchCurrentUser() {
-  const { data } = await axios.get('/auth/me')
-  currentUser.value = data.userName?.trim()
+  if (isReadOnly.value) return
+  try {
+    const { data } = await axios.get('/auth/me')
+    currentUser.value = data.userName?.trim()
+  } catch (e) {
+    console.error('사용자 정보 조회 실패:', e)
+  }
 }
 
 async function fetchTeamMembers() {
-  const { data } = await axios.get('/projects/members')
-  rawTeamMembers.value = data
-  teamMembers.value = data.map(u => ({
-    key: u.userName,
-    label: u.userName,
-    userId: u.userId
-  }))
-}
-
-function splitByStatus(filteredTasks) {
-  pendingList.value    = filteredTasks.filter(t => t.status === 'PENDING')
-  inProgressList.value = filteredTasks.filter(t => t.status === 'IN_PROGRESS')
-  completedList.value  = filteredTasks.filter(t => t.status === 'COMPLETED')
+  try {
+    const { data } = await axios.get('/projects/members', {
+      params: { projectId: route.params.projectId }
+    })
+    rawTeamMembers.value = data
+    teamMembers.value = data.map(u => ({
+      key: u.userName,
+      label: u.userName,
+      userId: u.userId
+    }))
+  } catch (e) {
+    console.error('팀원 정보 조회 실패:', e)
+  }
 }
 
 async function fetchTasks() {
-  const { data } = await axios.get('/work-tasks/project')
-  workTasks.value = data
-  onSearch()
+  try {
+    const { data } = await axios.get('/work-tasks/project', {
+      params: { projectId: route.params.projectId }
+    })
+    workTasks.value = data
+    onSearch()
+  } catch (e) {
+    console.error('작업 목록 조회 실패:', e)
+  }
+}
+
+function splitByStatus(filteredTasks) {
+  pendingList.value = filteredTasks.filter(t => t.status === 'PENDING')
+  inProgressList.value = filteredTasks.filter(t => t.status === 'IN_PROGRESS')
+  completedList.value = filteredTasks.filter(t => t.status === 'COMPLETED')
 }
 
 function onSearch() {
@@ -136,14 +173,14 @@ function setFilter(mode) {
 
 function flattenTask(t, parent = null) {
   const start = new Date(t.startDate)
-  const end   = new Date(t.endDate)
-  const dur   = Math.ceil((end - start) / (1000*60*60*24))
+  const end = new Date(t.endDate)
+  const dur = Math.ceil((end - start) / (1000 * 60 * 60 * 24))
   const row = [{
-    id:         t.id,
-    text:       t.title,
+    id: t.id,
+    text: t.title,
     start_date: t.startDate,
-    duration:   dur,
-    assignee:   t.assignedUserName,
+    duration: dur,
+    assignee: t.assignedUserName,
     parent
   }]
   if (t.childTasks) {
@@ -159,7 +196,7 @@ function refreshHiddenGantt() {
 }
 
 async function onTaskDrop(evt, newStatus) {
-  if (!evt.added) return
+  if (isReadOnly.value || !evt.added) return
   const task = evt.added.element
   const payload = {
     title: task.title,
@@ -172,6 +209,8 @@ async function onTaskDrop(evt, newStatus) {
   }
   try {
     await axios.patch(`/work-tasks/${task.id}`, payload)
+  } catch (e) {
+    console.error('작업 상태 변경 실패:', e)
   } finally {
     await fetchTasks()
     refreshHiddenGantt()
@@ -179,6 +218,7 @@ async function onTaskDrop(evt, newStatus) {
 }
 
 function openLightbox(id) {
+  if (isReadOnly.value) return
   refreshHiddenGantt()
   gantt.showLightbox(id)
 }
@@ -190,6 +230,7 @@ onMounted(async () => {
 
   gantt.init(ganttHidden.value)
 
+  gantt.config.readonly = isReadOnly.value
   gantt.locale.labels.section_description = '작업 이름'
   gantt.locale.labels.section_time = '기간'
   gantt.locale.labels.section_assignee = '담당자'
@@ -198,47 +239,53 @@ onMounted(async () => {
   gantt.locale.labels.button_delete = '삭제'
 
   gantt.config.lightbox.sections = [
-    { name:'description', map_to:'text',     type:'textarea', label:'작업 이름' },
-    { name:'time',        map_to:'auto',     type:'duration', label:'기간' },
-    { name:'assignee',    map_to:'assignee', type:'select',   options: teamMembers.value, label:'담당자' }
+    { name:'description', map_to:'text', type:'textarea', label:'작업 이름' },
+    { name:'time', map_to:'auto', type:'duration', label:'기간' },
+    { name:'assignee', map_to:'assignee', type:'select', options: teamMembers.value, label:'담당자' }
   ]
 
-  gantt.attachEvent('onAfterTaskUpdate', async (id, task) => {
-    const startStr = gantt.date.date_to_str('%Y-%m-%d')(task.start_date)
-    const endStr   = gantt.date.date_to_str('%Y-%m-%d')(
-      gantt.calculateEndDate({ start_date: task.start_date, duration: task.duration })
-    )
-    const sel = rawTeamMembers.value.find(u => u.userName === task.assignee)
-    const dto = {
-      title: task.text,
-      description: task.text,
-      startDate: startStr,
-      endDate: endStr,
-      assignedUserId: sel?.userId ?? null,
-      status: task.status,
-      parentTaskId: task.parent || null
-    }
-    try {
-      await axios.patch(`/work-tasks/${id}`, dto)
-    } finally {
-      await fetchTasks()
-      refreshHiddenGantt()
-    }
-  })
+  if (!isReadOnly.value) {
+    gantt.attachEvent('onAfterTaskUpdate', async (id, task) => {
+      const startStr = gantt.date.date_to_str('%Y-%m-%d')(task.start_date)
+      const endStr = gantt.date.date_to_str('%Y-%m-%d')(gantt.calculateEndDate({ start_date: task.start_date, duration: task.duration }))
+      const sel = rawTeamMembers.value.find(u => u.userName === task.assignee)
+      const dto = {
+        title: task.text,
+        description: task.text,
+        startDate: startStr,
+        endDate: endStr,
+        assignedUserId: sel?.userId ?? null,
+        status: task.status,
+        parentTaskId: task.parent || null
+      }
+      try {
+        await axios.patch(`/work-tasks/${id}`, dto)
+      } catch (e) {
+        console.error('작업 업데이트 실패:', e)
+      } finally {
+        await fetchTasks()
+        refreshHiddenGantt()
+      }
+    })
 
-  gantt.attachEvent('onBeforeTaskDelete', async id => {
-    try {
-      await axios.delete(`/work-tasks/${id}`)
-    } finally {
-      await fetchTasks()
-      refreshHiddenGantt()
-    }
-    return true
-  })
+    gantt.attachEvent('onBeforeTaskDelete', async id => {
+      try {
+        await axios.delete(`/work-tasks/${id}`)
+      } catch (e) {
+        console.error('작업 삭제 실패:', e)
+      } finally {
+        await fetchTasks()
+        refreshHiddenGantt()
+      }
+      return true
+    })
+  }
 
   refreshHiddenGantt()
 })
 </script>
+
+
 
 <style scoped>
 .task-board-page {

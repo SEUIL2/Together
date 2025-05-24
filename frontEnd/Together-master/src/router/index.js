@@ -18,6 +18,7 @@ import SignupDetails from "@/views/account/SignupDetailsPage.vue"
 import ErdDiagramPage from '../views/ErdDiagramPage.vue'
 import TaskPage from '../views/TaskPage.vue'
 import ProfessorMainPage from '../views/professor/ProfessorMainPage.vue'
+import HelpPage from '../views/help/HelpPage.vue'
 const routes = [
   {
     path: '/',
@@ -175,7 +176,12 @@ const routes = [
     projectTitle: route.query.projectTitle || ''
   }),
   meta: { requiresAuth: true, role: 'PROFESSOR' }
-}
+},
+  {
+    path: '/HelpPage',
+    name: 'HelpPage',
+    component: HelpPage,
+  },
 
 
   

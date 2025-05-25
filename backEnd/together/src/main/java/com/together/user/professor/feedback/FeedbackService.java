@@ -138,6 +138,18 @@ public class FeedbackService {
         }
     }
 
+    //피드백 안읽음 처리
+    public void markFeedbackAsDeleted(Long userId, Long feedbackId) {
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        FeedbackEntity feedback = feedbackRepository.findById(feedbackId)
+                .orElseThrow(() -> new IllegalArgumentException("피드백을 찾을 수 없습니다."));
+
+        feedbackReadRepository.findByUserAndFeedback(user, feedback)
+                .ifPresent(feedbackReadRepository::delete);
+    }
+
     @Transactional
     public void deleteFeedback(Long feedbackId) {
         FeedbackEntity feedback = feedbackRepository.findById(feedbackId)

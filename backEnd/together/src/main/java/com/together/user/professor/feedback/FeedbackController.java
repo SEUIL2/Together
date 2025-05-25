@@ -105,6 +105,16 @@ public class FeedbackController {
         return ResponseEntity.ok("피드백 읽음 처리 완료");
     }
 
+    //피드백 안읽음 처리
+    @DeleteMapping("/{feedbackId}/read")
+    public ResponseEntity<?> markFeedbackAsUnread(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @PathVariable Long feedbackId
+    ) {
+        feedbackService.markFeedbackAsDeleted(userDetails.getUser().getUserId(), feedbackId);
+        return ResponseEntity.ok().body("피드백 읽음 기록이 삭제되었습니다.");
+    }
+
     //피드백 삭제기능
     //교수와 학생이 자기가 속한(관리하는) 프로젝트의 피드백을 삭제할수있음
     @DeleteMapping("/{feedbackId}")

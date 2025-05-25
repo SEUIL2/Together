@@ -11,6 +11,7 @@ import com.together.notice.NoticeEntity;
 import com.together.privateNote.PrivateNoteEntity;
 import com.together.user.UserEntity;
 import com.together.user.professor.ProfessorEntity;
+import com.together.user.professor.feedback.FeedbackEntity;
 import com.together.user.student.StudentEntity;
 import com.together.vote.entity.VoteEntity;
 import jakarta.persistence.*;
@@ -105,4 +106,7 @@ public class ProjectEntity{
     @OneToMany(mappedBy = "project")
     @JsonIgnore
     private List<PrivateNoteEntity> privateNote = new ArrayList<>();
+
+    @OneToMany(mappedBy = "project")
+    private List<FeedbackEntity> feedbacks = new ArrayList<>();
 }

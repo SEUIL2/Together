@@ -9,6 +9,8 @@ import com.together.notice.NoticeEntity;
 import com.together.notification.NotificationEntity;
 import com.together.privateNote.PrivateNoteEntity;
 import com.together.project.ProjectEntity;
+import com.together.user.professor.feedback.FeedbackEntity;
+import com.together.user.professor.feedback.FeedbackReadEntity;
 import com.together.vote.entity.VoteEntity;
 import com.together.vote.entity.VoteResponseEntity;
 import jakarta.persistence.*;
@@ -116,7 +118,9 @@ public class UserEntity {
     @OneToMany(mappedBy = "author")
     private List<PrivateNoteEntity> users = new ArrayList<>(); //메모
 
+    @OneToMany(mappedBy = "author")
+    private List<FeedbackEntity> feedbacks = new ArrayList<>();
 
-
-
+    @OneToMany(mappedBy = "user")
+    private List<FeedbackReadEntity> feedbackRead = new ArrayList<>();
 }

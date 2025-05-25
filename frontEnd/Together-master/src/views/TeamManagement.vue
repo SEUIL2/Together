@@ -9,7 +9,6 @@
       <table class="team-management-table">
         <thead>
         <tr>
-          <th>팀명</th>
           <th>학번</th>
           <th>이름</th>
           <th>역할</th>
@@ -18,7 +17,6 @@
         </thead>
         <tbody>
         <tr v-for="(member, idx) in teamMembers" :key="member.userId">
-          <td>{{ member.teamName }}</td>
           <td>{{ member.studentId }}</td>
           <td>
             <div class="name-with-avatar">
@@ -26,7 +24,6 @@
                 <span class="avatar" :style="{ backgroundColor: member.avatarColor }"></span>
               </div>
               <span>{{ member.name }}</span>
-
               <div
                   v-if="member.showColorPicker"
                   class="color-picker-menu"
@@ -56,10 +53,10 @@
           @invite="handleInvite"
       />
       <MemoModal
-            v-if="showMemoModal"
-            :member="memoTarget"
-            :currentUser="currentUser"
-            :projectId="projectId"
+          v-if="showMemoModal"
+          :member="memoTarget"
+          :currentUser="currentUser"
+          :projectId="projectId"
           @close="showMemoModal = false"
           @saved="onMemoSaved"
       />
@@ -70,30 +67,69 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
-import { useRoute } from 'vue-router'        // <-- 추가
+import { useRoute } from 'vue-router'
 import InviteModal from './InviteModal.vue'
-import MemoModal   from './MemoModal.vue'
+import MemoModal from './MemoModal.vue'
 
-//메모관련코드
-const route      = useRoute()
-const projectId  = Number(route.params.projectId)
+// 라우터에서 프로젝트 ID 가져오기
+const route = useRoute()
+const projectId = Number(route.params.projectId)
+
+// 현재 사용자 정보
 const currentUser = ref({})
 
 const availableColors = ['#FF8C00', '#F44336', '#2196F3', '#4CAF50', '#9C27B0']
 const teamMembers = ref([])
 const showInviteModal = ref(false)
 const showMemoModal = ref(false)
-const memoTarget    = ref(null)
+const memoTarget = ref(null)
 
-    // 내 정보 API
+// 내 정보 불러오기
 async function fetchCurrentUser() {
-    try {
-        const { data } = await axios.get('/users/profile', { withCredentials: true })
-        currentUser.value = data
-          } catch (e) {
-        console.error('내 정보 조회 실패', e)
-      }
+  try {
+    const { data } = await axios.get('/users/profile', { withCredentials: true })
+    currentUser.value = data
+  } catch (e) {
+    console.error('내 정보 조회 실패', e)
   }
+}
+
+// 팀원 불러오기
+async function fetchTeamMembers() {
+  try {
+    const { data } = await axios.get(`/projects/${projectId}/members`, { withCredentials: true })
+    teamMembers.value = data.map(member => ({
+      userId: member.userId,
+      studentId: member.loginId,
+      name: member.userName,
+      role: member.role,
+      avatarColor: getRandomColor(),
+      showColorPicker: false,
+      memo: member.memo || '',
+      evaluationId: member.evaluationId || null
+    }))
+    // 개인 메모 로드
+    await Promise.all(
+        teamMembers.value.map((m, idx) => loadMemo(m.userId, idx))
+    )
+  } catch (e) {
+    console.error('팀원 정보 가져오기 실패', e)
+  }
+}
+
+// 개인 메모 로드
+async function loadMemo(evaluateeId, idx) {
+  try {
+    const { data } = await axios.get(`/evaluations/user/${evaluateeId}`, { withCredentials: true })
+    const mine = data.find(e => e.evaluatorName === currentUser.value.userName)
+    if (mine) {
+      teamMembers.value[idx].memo = mine.comment
+      teamMembers.value[idx].evaluationId = mine.evaluationId
+    }
+  } catch (e) {
+    console.error('메모 불러오기 실패', e)
+  }
+}
 
 function openInviteModal() {
   showInviteModal.value = true
@@ -101,9 +137,14 @@ function openInviteModal() {
 
 function handleInvite(invitedPerson) {
   teamMembers.value.push({
-    ...invitedPerson,
+    userId: invitedPerson.userId,
+    studentId: invitedPerson.loginId,
+    name: invitedPerson.userName,
+    role: invitedPerson.role,
     avatarColor: getRandomColor(),
-    showColorPicker: false
+    showColorPicker: false,
+    memo: '',
+    evaluationId: null
   })
   showInviteModal.value = false
 }
@@ -129,27 +170,16 @@ function getRandomColor() {
   return availableColors[Math.floor(Math.random() * availableColors.length)]
 }
 
-async function fetchTeamMembers() {
-  try {
-    const { data } = await axios.get('/projects/members', { withCredentials: true })
-    teamMembers.value = data.map(member => ({
-      userId: member.userId,
-      teamName: member.projectTitle,
-      studentId: member.loginId,
-      name: member.userName,
-      role: member.role,
-      avatarColor: getRandomColor(),
-      showColorPicker: false
-    }))
-  } catch (e) {
-    console.error('팀원 정보 가져오기 실패', e)
-  }
+// 메모 저장 후 상위 컴포넌트 상태 업데이트
+function onMemoSaved({ comment, evaluationId }) {
+  memoTarget.value.memo = comment
+  memoTarget.value.evaluationId = evaluationId
 }
 
 onMounted(async () => {
-    await fetchCurrentUser()
-    await fetchTeamMembers()
-  })
+  await fetchCurrentUser()
+  await fetchTeamMembers()
+})
 </script>
 
 <style scoped>

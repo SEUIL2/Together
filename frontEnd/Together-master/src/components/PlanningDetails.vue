@@ -1,5 +1,10 @@
 <template>
-  <section class="detail-section">
+  <section
+    class="detail-section"
+    @contextmenu.prevent="handleRightClick"
+    style="position: relative"
+  >
+    <!-- 타임라인 -->
     <div class="timeline horizontal">
       <div
         class="timeline-item"
@@ -11,6 +16,7 @@
       </div>
     </div>
 
+    <!-- 세부 항목 -->
     <div class="detail-inputs">
       <div
         class="detail-box"
@@ -40,8 +46,10 @@
             v-model="item.content"
             :placeholder="item.placeholder"
             :readonly="readonly"
+            class="detail-textarea"
           ></textarea>
 
+          <!-- 파일 업로드 -->
           <div class="file-upload-container">
             <label
               class="custom-file-upload"
@@ -83,12 +91,41 @@
         </div>
       </div>
     </div>
+
+    <!-- 📌 기존 피드백 마커 -->
+    <div
+      v-for="(fb, index) in feedbacks"
+      :key="index"
+      class="feedback-marker"
+      :style="{ top: fb.y + 'px', left: fb.x + 'px', position: 'absolute' }"
+    >
+      📌
+    </div>
+
+<!-- 바꿔줘야 할 부분 -->
+<FeedbackInput
+  v-if="showFeedbackInput"
+  :x="feedbackPosition.x"
+  :y="feedbackPosition.y"
+  :page="'planning'"
+  :readonly="isReadOnly"
+  :projectId="projectId"
+  @close="showFeedbackInput = false"
+  @submitted="loadFeedbacks"
+/>
+
+
+
   </section>
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from 'vue'
+import { ref, watch, onMounted, computed } from 'vue'
 import axios from 'axios'
+import FeedbackInput from '@/components/feedback/FeedbackInput.vue'
+const isReadOnly = computed(() => route.query.readonly === 'true')
+import { useRoute } from 'vue-router'
+const route = useRoute()
 
 const props = defineProps({
   projectId: { type: Number, required: true },
@@ -104,7 +141,52 @@ const planningItems = ref([
   { name: '스토리보드', type: 'storyboard', content: '', files: [], placeholder: '내용 또는 파일을 입력하세요', editing: false, completed: false }
 ])
 
-// 변경 감지 후 진행도 emit (파일/텍스트 수정될 때만)
+const feedbacks = ref([])
+const showFeedbackInput = ref(false)
+const feedbackPosition = ref({ x: 0, y: 0 })
+
+const handleRightClick = (e) => {
+if (!(props.readonly)) return
+
+  console.log('📌 우클릭 위치:', e.clientX, e.clientY)
+  const section = e.currentTarget
+  const sectionRect = section.getBoundingClientRect()
+
+  // 스크롤 보정 추가!
+  const scrollTop = section.scrollTop
+  const scrollLeft = section.scrollLeft
+
+  feedbackPosition.value = {
+    x: e.clientX - sectionRect.left + scrollLeft,
+    y: e.clientY - sectionRect.top + scrollTop
+  }
+
+  showFeedbackInput.value = true
+}
+
+
+
+const loadFeedbacks = async () => {
+  try {
+    const res = await axios.get('/feedbacks/project', {
+      params: {
+        page: 'planning',
+        projectId: props.projectId   // ✅ 직접 넘기도록 수정
+      },
+      headers: {
+        Authorization: localStorage.getItem('authHeader')
+      },
+      withCredentials: true
+    })
+
+    feedbacks.value = res.data
+  } catch (err) {
+    console.error('❌ 피드백 불러오기 오류:', err)
+  }
+}
+
+
+// 진행도 감지
 watch(
   planningItems,
   (items) => {
@@ -195,11 +277,17 @@ async function saveItem(index) {
 
 onMounted(async () => {
   try {
+    // 🔽 select 제거! 직접 넘기니까 이제 필요 없음
+
+    // 🔽 기존 로직 유지 (planning 항목 불러오기)
     const res = await axios.get('/planning/all', {
-      params: { projectId: props.projectId },
-      headers: { Authorization: localStorage.getItem('authHeader') },
+      params: { projectId: props.projectId },  // 그대로 유지
+      headers: {
+        Authorization: localStorage.getItem('authHeader')
+      },
       withCredentials: true
     })
+
     const data = res.data
     planningItems.value.forEach(item => {
       const d = data[item.type]
@@ -209,20 +297,26 @@ onMounted(async () => {
       }
       if (props.readonly) item.editing = true
     })
-    // 초기 완료 개수 계산 후 emit
+
     planningItems.value.forEach(item => {
       item.completed = item.content.trim() !== '' || item.files.length > 0
     })
-    const initialCount = planningItems.value.filter(item => item.completed).length
-    emit('updateStepProgress', initialCount)
+    emit('updateStepProgress', planningItems.value.filter(i => i.completed).length)
+
+    // ✅ 피드백도 직접 projectId 넘겨서 로딩
+    await loadFeedbacks()
   } catch (err) {
     console.error('❌ 데이터 불러오기 실패:', err)
   }
 })
 </script>
 
-
 <style scoped>
+.feedback-marker {
+  position: absolute;
+  font-size: 18px;
+  cursor: pointer;
+}
 .detail-section {
   background: white;
   padding: 15px;

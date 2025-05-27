@@ -129,18 +129,18 @@ async function fetchProfile() {
   try {
     const res = await axios.get('/users/profile')
     const data = res.data
-    // Backend가 반환하는 사용자 ID 필드에 맞춰 userId 설정
-    userId.value = data.userId ?? data.id
-    userName.value = data.userName
-    userEmail.value = data.userEmail
-    bio.value = data.bio
-    profileImageUrl.value = data.profileImageUrl
-    theme.value = data.theme || theme.value
+    userId.value        = data.userId ?? data.id
+    userName.value      = data.userName
+    userEmail.value     = data.userEmail
+    bio.value           = data.bio
+    profileImageUrl.value = data.imageUrl ?? data.profileImageUrl
+    theme.value         = data.theme || theme.value
   } catch (err) {
     console.error('프로필 조회 실패', err)
     alert('프로필 정보를 불러오는 중 오류가 발생했습니다.')
   }
 }
+
 
 // 프로필 저장
 async function saveProfile() {
@@ -172,14 +172,21 @@ async function onFileChange(e) {
   const formData = new FormData()
   formData.append('image', file)
   try {
-    const res = await axios.put('/users/profile/image', formData)
-    profileImageUrl.value = res.data
+    // → POST 로 바꿔주세요 (Spring MultipartResolver 기본은 POST)
+    const res = await axios.post(
+        '/users/profile/image',
+        formData,
+        { headers: { 'Content-Type': 'multipart/form-data' } }
+    )
+    console.log('▶ upload response.data:', res.data)      // 이 줄 추가
+    profileImageUrl.value = res.data                      // res.data 가 URL 이어야 함
     alert('프로필 이미지가 업데이트되었습니다.')
   } catch (err) {
     console.error('이미지 업로드 실패', err)
     alert('이미지 업로드 중 오류가 발생했습니다.')
   }
 }
+
 
 // 색상 메뉴 토글
 function toggleColorMenu() {

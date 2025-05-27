@@ -3,27 +3,34 @@
     <main class="main-content">
       <div class="team-management-header">
         <h2>팀원 관리</h2>
-        <button class="add-member-btn" @click="openInviteModal">+ 팀원 초대</button>
+        <button class="add-member-btn" @click="openInviteModal">+ 초대하기</button>
       </div>
 
       <table class="team-management-table">
         <thead>
         <tr>
+          <th>사진</th>
           <th>학번</th>
           <th>이름</th>
-          <th>역할</th>
           <th>메모</th>
         </tr>
         </thead>
         <tbody>
         <tr v-for="(member, idx) in teamMembers" :key="member.userId">
-          <td>{{ member.studentId }}</td>
+          <td>
+            <img
+                :src="member.profileImageUrl || defaultAvatar"
+                alt="프로필"
+                class="profile-img"
+            />
+          </td>
+          <td>{{ member.studentNumber }}</td>
           <td>
             <div class="name-with-avatar">
               <div class="avatar-wrapper" @click="toggleColorPicker(idx)">
                 <span class="avatar" :style="{ backgroundColor: member.avatarColor }"></span>
               </div>
-              <span>{{ member.name }}</span>
+              <span>{{ member.userName }}</span>
               <div
                   v-if="member.showColorPicker"
                   class="color-picker-menu"
@@ -39,7 +46,6 @@
               </div>
             </div>
           </td>
-          <td>{{ member.role }}</td>
           <td>
             <button class="evaluate-btn" @click="evaluateMember(member)">메모</button>
           </td>
@@ -71,12 +77,15 @@ import { useRoute } from 'vue-router'
 import InviteModal from './InviteModal.vue'
 import MemoModal from './MemoModal.vue'
 
-// 라우터에서 프로젝트 ID 가져오기
+// 프로젝트 ID
 const route = useRoute()
 const projectId = Number(route.params.projectId)
 
-// 현재 사용자 정보
+// 현재 사용자
 const currentUser = ref({})
+
+// 기본 아바타 (fallback)
+const defaultAvatar = '/images/default-avatar.png'
 
 const availableColors = ['#FF8C00', '#F44336', '#2196F3', '#4CAF50', '#9C27B0']
 const teamMembers = ref([])
@@ -94,19 +103,22 @@ async function fetchCurrentUser() {
   }
 }
 
-// 팀원 불러오기
+// 팀원 및 학번, 프로필 이미지 로드
 async function fetchTeamMembers() {
   try {
-    const { data } = await axios.get(`/projects/${projectId}/members`, { withCredentials: true })
+    const { data } = await axios.get(
+        '/projects/members/role',
+        { withCredentials: true }
+    )
     teamMembers.value = data.map(member => ({
       userId: member.userId,
-      studentId: member.loginId,
-      name: member.userName,
-      role: member.role,
+      studentNumber: member.studentNumber || '',
+      userName: member.userName,
+      profileImageUrl: member.profileImageUrl || null,
       avatarColor: getRandomColor(),
       showColorPicker: false,
-      memo: member.memo || '',
-      evaluationId: member.evaluationId || null
+      memo: '',
+      evaluationId: null
     }))
     // 개인 메모 로드
     await Promise.all(
@@ -117,10 +129,13 @@ async function fetchTeamMembers() {
   }
 }
 
-// 개인 메모 로드
+// 개인 메모 조회
 async function loadMemo(evaluateeId, idx) {
   try {
-    const { data } = await axios.get(`/evaluations/user/${evaluateeId}`, { withCredentials: true })
+    const { data } = await axios.get(
+        `/evaluations/user/${evaluateeId}`,
+        { withCredentials: true }
+    )
     const mine = data.find(e => e.evaluatorName === currentUser.value.userName)
     if (mine) {
       teamMembers.value[idx].memo = mine.comment
@@ -135,12 +150,12 @@ function openInviteModal() {
   showInviteModal.value = true
 }
 
-function handleInvite(invitedPerson) {
+function handleInvite(invited) {
   teamMembers.value.push({
-    userId: invitedPerson.userId,
-    studentId: invitedPerson.loginId,
-    name: invitedPerson.userName,
-    role: invitedPerson.role,
+    userId: invited.userId,
+    studentNumber: invited.studentNumber || invited.loginId,
+    userName: invited.userName,
+    profileImageUrl: null,
     avatarColor: getRandomColor(),
     showColorPicker: false,
     memo: '',
@@ -155,9 +170,9 @@ function evaluateMember(member) {
 }
 
 function toggleColorPicker(idx) {
-  teamMembers.value = teamMembers.value.map((member, i) => ({
-    ...member,
-    showColorPicker: i === idx ? !member.showColorPicker : false
+  teamMembers.value = teamMembers.value.map((m, i) => ({
+    ...m,
+    showColorPicker: i === idx ? !m.showColorPicker : false
   }))
 }
 
@@ -170,7 +185,7 @@ function getRandomColor() {
   return availableColors[Math.floor(Math.random() * availableColors.length)]
 }
 
-// 메모 저장 후 상위 컴포넌트 상태 업데이트
+// 메모 저장 후 상태 반영
 function onMemoSaved({ comment, evaluationId }) {
   memoTarget.value.memo = comment
   memoTarget.value.evaluationId = evaluationId
@@ -235,6 +250,13 @@ onMounted(async () => {
   text-align: left;
   border-bottom: 1px solid #eee;
   vertical-align: middle;
+}
+
+.profile-img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
 }
 
 .name-with-avatar {

@@ -1,7 +1,7 @@
-package com.together.ai.service;
+package com.together.topicRecommendAI.service;
 
-import com.together.ai.UserKeywordHistoryEntity;
-import com.together.ai.UserKeywordHistoryRepository;
+import com.together.topicRecommendAI.UserKeywordHistoryEntity;
+import com.together.topicRecommendAI.UserKeywordHistoryRepository;
 import com.together.user.UserEntity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

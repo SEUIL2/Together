@@ -1,4 +1,4 @@
-package com.together.ai.dto;
+package com.together.topicRecommendAI.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

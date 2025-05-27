@@ -1,7 +1,7 @@
 package com.together.user;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.together.ai.UserKeywordHistoryEntity;
+import com.together.topicRecommendAI.UserKeywordHistoryEntity;
 import com.together.comment.CommentEntity;
 import com.together.documentManger.FileEntity;
 import com.together.meeting.MeetingEntity;

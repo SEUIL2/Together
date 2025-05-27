@@ -1,8 +1,8 @@
-package com.together.ai.service;
+package com.together.topicRecommendAI.service;
 
-import com.together.ai.dto.ChatMessage;
-import com.together.ai.dto.ChatRequest;
-import com.together.ai.dto.ChatResponse;
+import com.together.topicRecommendAI.dto.ChatMessage;
+import com.together.topicRecommendAI.dto.ChatRequest;
+import com.together.topicRecommendAI.dto.ChatResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.PropertySource;

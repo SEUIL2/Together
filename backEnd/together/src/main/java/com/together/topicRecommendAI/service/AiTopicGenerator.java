@@ -1,4 +1,4 @@
-package com.together.ai.service;
+package com.together.topicRecommendAI.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

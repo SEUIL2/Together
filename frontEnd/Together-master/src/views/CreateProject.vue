@@ -23,8 +23,10 @@
       <div class="divider">아직 프로젝트 주제를 못 정했어요</div>
 
       <!-- 프로젝트 추천 버튼 -->
-      <button class="recommend-btn" @click="recommendTopic">프로젝트 주제 추천 받기</button>
-    </div>
+      <button class="btn-ai" @click="$router.push({ name: 'AiFlow' })">
+        프로젝트 주제 추천 받기
+      </button>
+      </div>
   </div>
 </template>
 
@@ -59,11 +61,6 @@ const createProject = async () => {
     console.error(err)
     alert("프로젝트 생성 중 오류가 발생했습니다.")
   }
-}
-
-// 추천 주제 기능 (임시)
-const recommendTopic = () => {
-  alert("추천 기능은 준비 중입니다 :)")
 }
 
 // 뒤로 가기 버튼
@@ -178,7 +175,7 @@ const goBack = () => {
 }
 
 /* 추천 버튼 */
-.recommend-btn {
+.btn-ai {
   width: 50%;
   padding: 10px;
   font-size: 14px;
@@ -188,7 +185,7 @@ const goBack = () => {
   cursor: pointer;
 }
 
-.recommend-btn:hover {
+.btn-ai:hover {
   background-color: #f2f2f2;
 }
 </style>

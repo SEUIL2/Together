@@ -31,17 +31,20 @@ public class FeedbackEntity {
     private int y;             // Y 좌표
     private String text;       // 피드백 내용
 
+    @CreationTimestamp
+    private LocalDateTime createdAt; //만들어진 날짜
+
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_id")
     private ProjectEntity project;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "author_id")
-    private UserEntity author;
-
-    @CreationTimestamp
-    private LocalDateTime createdAt;
+    private UserEntity author; //작성자
 
     @OneToMany(mappedBy = "feedback")
-    private List<FeedbackReadEntity> feedbacks = new ArrayList<>();
+    private List<FeedbackReadEntity> feedbacks = new ArrayList<>(); //피드백 읽었는지에 대한 엔티티
+
+    private Boolean isRead = false;
 }

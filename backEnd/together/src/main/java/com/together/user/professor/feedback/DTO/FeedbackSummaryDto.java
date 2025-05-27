@@ -15,5 +15,5 @@ public class FeedbackSummaryDto {
     private String page;
     private String text;
     private Long authorId;
-    private boolean isRead;
+    private Boolean isRead;
 }

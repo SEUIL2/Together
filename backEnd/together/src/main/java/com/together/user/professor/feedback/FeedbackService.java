@@ -39,6 +39,7 @@ public class FeedbackService {
         feedback.setX(dto.getX());
         feedback.setY(dto.getY());
         feedback.setText(dto.getText());
+        feedback.setIsRead(false); //false로 명시
 
         return feedbackRepository.save(feedback);
     }
@@ -62,7 +63,8 @@ public class FeedbackService {
                             feedback.getPage(),
                             feedback.getText(),
                             feedback.getAuthor().getUserId(),
-                            readFeedbackIds.contains(feedback.getFeedbackId())
+                            feedback.getIsRead()
+                            //readFeedbackIds.contains(feedback.getFeedbackId())
                     ))
                     .collect(Collectors.toList());
         } else if (user.getRole() == UserEntity.UserRole.PROFESSOR) {
@@ -103,7 +105,8 @@ public class FeedbackService {
                         fb.getY(),
                         fb.getText(),
                         fb.getAuthor().getUserName(),
-                        fb.getCreatedAt()
+                        fb.getCreatedAt(),
+                        fb.getIsRead()
                 )).toList();
     }
 
@@ -134,6 +137,7 @@ public class FeedbackService {
             read.setUser(user);
             read.setFeedback(feedback);
             read.setReadAt(LocalDateTime.now());
+            feedback.setIsRead(Boolean.TRUE); //피드백을 읽었는지에 대한 여부를 명시
             feedbackReadRepository.save(read);
         }
     }
@@ -146,14 +150,18 @@ public class FeedbackService {
         FeedbackEntity feedback = feedbackRepository.findById(feedbackId)
                 .orElseThrow(() -> new IllegalArgumentException("피드백을 찾을 수 없습니다."));
 
+        feedback.setIsRead(Boolean.FALSE); //피드백을 안읽음으로 명시적 표현
+
         feedbackReadRepository.findByUserAndFeedback(user, feedback)
                 .ifPresent(feedbackReadRepository::delete);
     }
 
+    //피드백 삭제
     @Transactional
     public void deleteFeedback(Long feedbackId) {
         FeedbackEntity feedback = feedbackRepository.findById(feedbackId)
                 .orElseThrow(() -> new IllegalArgumentException("피드백을 찾을 수 없습니다."));
+
 
         feedbackRepository.delete(feedback);
     }

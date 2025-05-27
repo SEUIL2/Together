@@ -1,4 +1,4 @@
-package com.together.ai;
+package com.together.topicRecommendAI;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

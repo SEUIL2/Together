@@ -19,5 +19,6 @@ public class FeedbackDto {
     private String text;
     private String author;
     private LocalDateTime createdAt;
+    private Boolean isRead;
 
 }

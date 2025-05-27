@@ -9,4 +9,5 @@ public class CreateFeedbackRequest {
     private int x;
     private int y;
     private String text;
+    private Boolean isRead;
 }

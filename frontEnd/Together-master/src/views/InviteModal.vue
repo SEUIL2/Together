@@ -1,7 +1,7 @@
 <template>
   <div v-if="isOpen" class="modal-overlay">
     <div class="modal-content">
-      <h3>팀원 초대</h3>
+      <h3>팀원/교수 초대</h3>
       <input
           type="email"
           v-model="inviteEmail"

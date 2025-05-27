@@ -1,8 +1,8 @@
-package com.together.ai;
+package com.together.topicRecommendAI;
 
-import com.together.ai.dto.KeywordsRequestDto;
-import com.together.ai.service.AiKeywordGenerator;
-import com.together.ai.service.AiTopicGenerator;
+import com.together.topicRecommendAI.dto.KeywordsRequestDto;
+import com.together.topicRecommendAI.service.AiKeywordGenerator;
+import com.together.topicRecommendAI.service.AiTopicGenerator;
 import com.together.systemConfig.UserDetailsImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

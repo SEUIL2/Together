@@ -41,6 +41,12 @@ public class ProjectEntity{
     @Column(name = "image_url")
     private String imageUrl;  // Google Drive 공유 이미지 URL (nullable)
 
+    // [추가] 프로젝트 생성일 (자동 저장, 수정 불가)
+    @Column(name = "created_at", updatable = false)
+    @Temporal(TemporalType.TIMESTAMP)
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Seoul")
+    private Date createdAt;
+
     @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinTable(
             name = "user_project",

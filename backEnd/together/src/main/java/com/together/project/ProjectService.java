@@ -8,6 +8,7 @@ import com.together.project.Invitation.dto.InvitationResponseDto;
 import com.together.project.Invitation.dto.TeamMemberDto;
 import com.together.project.ProjectDto.InviteResponseDto;
 import com.together.project.ProjectDto.ProjectResponseDto;
+import com.together.project.ProjectDto.ProjectSummaryWithMembersDto;
 import com.together.user.UserEntity;
 import com.together.user.UserRepository;
 import com.together.user.dto.UserResponseDto;
@@ -22,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -58,6 +60,8 @@ public class ProjectService {
         project.setImageUrl(null); // ✅ 이미지 없이 생성
         project.addUser(user);
         project.setLeader(user); //프로젝트 리더로 설정
+
+        project.setCreatedAt(new Date());  // ✅ 생성일 저장
 
         ProjectEntity savedProject = projectRepository.save(project);
 
@@ -98,6 +102,7 @@ public class ProjectService {
         project.setImageUrl(imageUrl); // ✅ 이미지 URL 설정
         project.addUser(user);
         project.setLeader(user); //프로젝트 리더로 설정
+        project.setCreatedAt(new Date()); // ✅ 생성일 저장
 
         ProjectEntity savedProject = projectRepository.save(project);
 
@@ -130,6 +135,7 @@ public class ProjectService {
                 updatedProject.getImageUrl()
         );
     }
+
 
     /**
      * 프로젝트 이미지 업로드 후 imageUrl 저장
@@ -309,7 +315,8 @@ public class ProjectService {
                         user.getUserName(),
                         user.getUserEmail(),
                         user.getRole().name(),
-                        user.getUserColor()
+                        user.getUserColor(),
+                        user.getProfileImageUrl()
                 ))
                 .toList();
     }
@@ -411,6 +418,98 @@ public class ProjectService {
         project.setLeader(newLeader);
         projectRepository.save(project);
         return true;
+    }
+    //교수 프로젝트 나가기
+    @Transactional
+    public void professorLeaveProject(Long userId, Long projectId) {
+        // 1. 사용자 조회
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
+        // 2. 교수인지 검증
+        if (!(user instanceof ProfessorEntity professor)) {
+            throw new RuntimeException("이 기능은 교수만 사용할 수 있습니다.");
+        }
+
+        // 3. 프로젝트 조회
+        ProjectEntity project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new RuntimeException("프로젝트를 찾을 수 없습니다."));
+
+        // 4. 교수 포함 여부 확인
+        if (!project.getProfessors().contains(professor)) {
+            throw new RuntimeException("해당 교수는 이 프로젝트에 참여하고 있지 않습니다.");
+        }
+
+        // 5. 리더 여부 확인 (null 체크 포함)
+        UserEntity leader = project.getLeader();
+        if (leader != null && leader.getUserId().equals(userId)) {
+            throw new RuntimeException("팀장은 프로젝트를 나갈 수 없습니다. 리더를 다른 사람에게 넘기고 다시 시도하세요.");
+        }
+
+        // 6. 양방향 관계 해제
+        project.getProfessors().remove(professor);
+        professor.getProjects().remove(project);
+
+        projectRepository.save(project);  // 명시적 저장 (안전)
+    }
+
+    /**
+     * 교수의 프로젝트들을 생성일 기준으로 정렬하여 응답
+     * @param professorId 로그인한 교수 ID
+     * @return 프로젝트 요약 + 팀원 목록 포함된 DTO 리스트
+     */
+    // ✅ 교수의 프로젝트들을 생성일 기준으로 정렬된 목록으로 반환
+    public List<ProjectSummaryWithMembersDto> getProfessorProjectsSorted(Long professorId) {
+        UserEntity user = userRepository.findById(professorId)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
+        if (!(user instanceof ProfessorEntity professor)) {
+            throw new IllegalStateException("이 기능은 교수만 사용할 수 있습니다.");
+        }
+
+        return professor.getProjects().stream()
+                .sorted((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt())) // 🔁 생성일 기준 최신순 정렬
+                .map(project -> new ProjectSummaryWithMembersDto(
+                        project.getProjectId(),
+                        project.getTitle(),
+                        project.getImageUrl(),
+                        project.getCreatedAt(),
+                        buildTeamMemberDtoList(project) // 🔧 아래 메서드에서 팀원 리스트 생성
+                ))
+                .toList();
+    }
+
+    /**
+     * 프로젝트에 포함된 학생 + 교수 팀원을 모두 TeamMemberDto 형태로 변환
+     */
+    private List<TeamMemberDto> buildTeamMemberDtoList(ProjectEntity project) {
+        List<TeamMemberDto> members = new ArrayList<>();
+
+        // 학생 리스트 구성
+        for (StudentEntity student : project.getStudents()) {
+            members.add(new TeamMemberDto(
+                    student.getUserId(),
+                    student.getUserName(),
+                    student.getUserEmail(),
+                    "STUDENT",
+                    student.getUserColor(),
+                    student.getProfileImageUrl()
+            ));
+        }
+
+        // 교수 리스트 구성
+        for (ProfessorEntity professor : project.getProfessors()) {
+            members.add(new TeamMemberDto(
+                    professor.getUserId(),
+                    professor.getUserName(),
+                    professor.getUserEmail(),
+                    "PROFESSOR",
+                    null, // 교수는 userColor 없음
+                    professor.getProfileImageUrl()
+            ));
+        }
+
+        return members;
     }
 }
 

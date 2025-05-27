@@ -11,4 +11,5 @@ public class TeamMemberDto {
     private String userEmail;    // 이메일
     private String role;      // 역할 (STUDENT / PROFESSOR)
     private String userColor; //유저 색상
+    private String profileImageUrl; // null이면 기본이미지 처리
 }

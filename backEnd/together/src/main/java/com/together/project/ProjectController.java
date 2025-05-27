@@ -6,6 +6,7 @@ import com.together.project.Invitation.dto.InvitationResponseDto;
 import com.together.project.Invitation.dto.TeamMemberDto;
 import com.together.project.ProjectDto.ProjectMembersDto;
 import com.together.project.ProjectDto.ProjectResponseDto;
+import com.together.project.ProjectDto.ProjectSummaryWithMembersDto;
 import com.together.project.ProjectDto.ProjectTitleUpdateRequestDto;
 import com.together.user.professor.ProfessorResponseDto;
 import com.together.user.student.StudentEntity;
@@ -143,6 +144,22 @@ public class ProjectController {
         ));
     }
 
+
+    /**
+     * [GET] 교수의 프로젝트 목록을 생성일 기준으로 정렬하여 반환
+     * 팀원 정보(학생 + 교수)까지 포함
+     */
+    // ✅ [교수 전용] 내가 만든 프로젝트를 생성일 기준으로 최신순 조회
+    @GetMapping("/my-projects/sorted-by-created")
+    public ResponseEntity<List<ProjectSummaryWithMembersDto>> getMyProjectsSortedWithMembers(
+            @AuthenticationPrincipal UserDetailsImpl userDetails
+    ) {
+        List<ProjectSummaryWithMembersDto> projects =
+                projectService.getProfessorProjectsSorted(userDetails.getUser().getUserId());
+
+        return ResponseEntity.ok(projects);
+    }
+
     //프로젝트 제목 수정
     @PutMapping("/{projectId}/update-title")
     public ResponseEntity<ProjectResponseDto> updateProjectTitle(
@@ -254,6 +271,19 @@ public class ProjectController {
 
         projectService.leaveProject(userDetails.getUser().getUserId(), projectId);
         return ResponseEntity.ok("프로젝트에서 성공적으로 나갔습니다.");
+    }
+    //교수 프로젝트 나가기
+    @DeleteMapping("/{projectId}/leave")
+    public ResponseEntity<String> leaveProjectAsProfessor(
+            @PathVariable Long projectId,
+            @AuthenticationPrincipal UserDetailsImpl userDetails
+    ) {
+        try {
+            projectService.professorLeaveProject(userDetails.getUser().getUserId(), projectId);
+            return ResponseEntity.ok("프로젝트에서 성공적으로 나갔습니다.");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body("나가기 실패: " + e.getMessage());
+        }
     }
 
     // 프로젝트 삭제

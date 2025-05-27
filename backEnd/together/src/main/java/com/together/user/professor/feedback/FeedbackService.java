@@ -150,10 +150,10 @@ public class FeedbackService {
         FeedbackEntity feedback = feedbackRepository.findById(feedbackId)
                 .orElseThrow(() -> new IllegalArgumentException("피드백을 찾을 수 없습니다."));
 
+        feedback.setIsRead(Boolean.FALSE); //피드백을 안읽음으로 명시적 표현
+
         feedbackReadRepository.findByUserAndFeedback(user, feedback)
                 .ifPresent(feedbackReadRepository::delete);
-
-        feedback.setIsRead(Boolean.FALSE); //피드백을 안읽음으로 명시적 표현
     }
 
     //피드백 삭제
@@ -161,6 +161,7 @@ public class FeedbackService {
     public void deleteFeedback(Long feedbackId) {
         FeedbackEntity feedback = feedbackRepository.findById(feedbackId)
                 .orElseThrow(() -> new IllegalArgumentException("피드백을 찾을 수 없습니다."));
+
 
         feedbackRepository.delete(feedback);
     }

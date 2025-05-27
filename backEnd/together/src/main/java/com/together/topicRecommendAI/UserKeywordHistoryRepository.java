@@ -1,4 +1,4 @@
-package com.together.ai;
+package com.together.topicRecommendAI;
 
 import com.together.user.UserEntity;
 import org.springframework.data.jpa.repository.JpaRepository;

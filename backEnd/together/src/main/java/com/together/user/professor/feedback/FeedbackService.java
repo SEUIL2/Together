@@ -52,10 +52,6 @@ public class FeedbackService {
         if(user.getRole() == UserEntity.UserRole.STUDENT){
             List<FeedbackEntity> feedbacks = feedbackRepository.findAllByProjectIn(user.getProject());
 
-            List<Long> readFeedbackIds = feedbackReadRepository.findAllByUser(user).stream()
-                    .map(read -> read.getFeedback().getFeedbackId())
-                    .collect(Collectors.toList());
-
             return feedbacks.stream()
                     .map(feedback -> new FeedbackSummaryDto(
                             feedback.getFeedbackId(),

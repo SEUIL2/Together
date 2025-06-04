@@ -40,7 +40,7 @@ public class DesignDetailService {
                 if (text != null) detail.setUsecaseText(text);
                 detail.getUsecaseFiles().addAll(metaList);
             }
-            case "class-diagram" -> {
+            case "classDiagram" -> {
                 if (json != null) detail.setClassDiagramJson(json); // ✅ 다이어그램 JSON 저장 무영 수정
                 detail.getClassDiagramFiles().addAll(metaList);
             }
@@ -90,7 +90,7 @@ public class DesignDetailService {
                 if (text != null) detail.setUsecaseText(text);
                 detail.getUsecaseFiles().addAll(metaList);
             }
-            case "class-diagram" -> {
+            case "classDiagram" -> {
                 if (json != null) detail.setClassDiagramJson(json);
                 detail.getClassDiagramFiles().addAll(metaList);
             }
@@ -134,7 +134,7 @@ public class DesignDetailService {
 
         switch (type.toLowerCase()) {
             case "usecase" -> targetList = detail.getUsecaseFiles();
-            case "class-diagram" -> targetList = detail.getClassDiagramFiles();
+            case "classDiagram" -> targetList = detail.getClassDiagramFiles();
             case "sequence" -> targetList = detail.getSequenceFiles();
             case "ui" -> targetList = detail.getUiDesignFiles();
             case "erd" -> targetList = detail.getErdFiles();

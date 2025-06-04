@@ -115,23 +115,39 @@ public class UserService {
         return userRepository.existsByUserLoginId(loginId);
     }
 
-    //교수 프로젝트 아이디 반환
-    public List<Map<String, Object>> getProfessorProjectSummaries(Long userId) {
-        ProfessorEntity professor = professorRepository.findById(userId).get();
-        if (professor == null) {
-            throw new EntityNotFoundException("교수님을 찾을수 없습니다.");
-        }
+//    //교수 프로젝트 아이디 반환
+//    public List<Map<String, Object>> getProfessorProjectSummaries(Long userId) {
+//        ProfessorEntity professor = professorRepository.findById(userId).get();
+//        if (professor == null) {
+//            throw new EntityNotFoundException("교수님을 찾을수 없습니다.");
+//        }
+//
+//        List<ProjectEntity> projects = professor.getProjects();
+//
+//        List<Map<String, Object>> projectList = projects.stream().map(project -> {
+//            Map<String, Object> p = new HashMap<>();
+//            p.put("projectId", project.getProjectId());
+//            return p;
+//        }).toList();
+//
+//        return projectList;
+//    }
+// 교수 프로젝트 요약 정보 반환 (projectId + title + imageUrl + createdAt 포함) //무영 수정
+public List<Map<String, Object>> getProfessorProjectSummaries(Long userId) {
+    ProfessorEntity professor = professorRepository.findById(userId)
+            .orElseThrow(() -> new EntityNotFoundException("교수님을 찾을 수 없습니다."));
 
-        List<ProjectEntity> projects = professor.getProjects();
+    List<ProjectEntity> projects = professor.getProjects();
 
-        List<Map<String, Object>> projectList = projects.stream().map(project -> {
-            Map<String, Object> p = new HashMap<>();
-            p.put("projectId", project.getProjectId());
-            return p;
-        }).toList();
-
-        return projectList;
-    }
+    return projects.stream().map(project -> {
+        Map<String, Object> p = new HashMap<>();
+        p.put("projectId", project.getProjectId());
+        p.put("title", project.getTitle());              // 🔹 프로젝트 제목
+        p.put("imageUrl", project.getImageUrl());        // 🔹 이미지 URL (nullable)
+        p.put("createdAt", project.getCreatedAt());      // ✅ 생성일 추가
+        return p;
+    }).toList();
+}
 
     //유저 삭제
     @Transactional

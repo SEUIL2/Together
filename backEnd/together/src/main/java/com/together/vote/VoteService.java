@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class VoteService {
@@ -178,11 +179,18 @@ public class VoteService {
                 dto.setVoteItemId(item.getVoteItemId());
                 dto.setOptions(item.getOptions());
                 dto.setResponseCount(item.getVoteResponse().size());  // 응답 수
+
+                // 투표한 사용자 이름들 추출
+                List<String> voterNames = item.getVoteResponse().stream()
+                        .map(response -> response.getUser().getUserName())
+                        .collect(Collectors.toList());
+
+                dto.setVoterNames(voterNames);
+
                 return dto;
             }).toList();
 
             voteDetailDTO.setItems(itemResults);
-
             return voteDetailDTO;
         }
 

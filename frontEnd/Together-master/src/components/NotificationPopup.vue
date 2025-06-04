@@ -1,11 +1,15 @@
 <template>
   <div class="notification-wrapper" ref="wrapperRef">
+    <!-- 종(벨) 아이콘 -->
     <img
         src="@/assets/bell.png"
         @click="toggleNotifications"
         class="notification-icon"
         alt="알림 아이콘"
     />
+
+    <!-- 읽지 않은 알림(초대)이 하나라도 있으면 파란 점 표시 -->
+    <span v-if="invitations.length > 0" class="unread-dot"></span>
 
     <div v-if="showNotifications" class="notification-popup">
       <p v-if="invitations.length === 0">초대 알림이 없습니다.</p>
@@ -47,11 +51,7 @@ const showNotifications = ref(false)
 const invitations = ref([])
 const wrapperRef = ref(null)
 
-function toggleNotifications() {
-  showNotifications.value = !showNotifications.value
-  if (showNotifications.value) fetchInvitations()
-}
-
+// 페이지 로딩 직후에도 unread-dot 표시를 위해, mounted 시 한 번만 알림 목록을 가져옵니다.
 async function fetchInvitations() {
   try {
     const resp = await axios.get('/projects/invitations', {
@@ -62,11 +62,18 @@ async function fetchInvitations() {
         .filter(inv => inv.status === 'PENDING')
         .map(inv => ({
           ...inv,
-          // createdAt 또는 createdDate 필드 중 사용 가능한 값으로 설정
           createdAt: inv.createdAt || inv.createdDate
         }))
   } catch (e) {
     console.error('초대 목록 조회 실패', e)
+  }
+}
+
+function toggleNotifications() {
+  showNotifications.value = !showNotifications.value
+  // 팝업을 열 때마다 최신 목록으로 갱신
+  if (showNotifications.value) {
+    fetchInvitations()
   }
 }
 
@@ -116,6 +123,8 @@ function handleClickOutside(e) {
 }
 
 onMounted(() => {
+  // 컴포넌트가 마운트되면 곧바로 초대 목록을 가져와 unread-dot 표시
+  fetchInvitations()
   document.addEventListener('click', handleClickOutside)
 })
 
@@ -131,10 +140,24 @@ onBeforeUnmount(() => {
   align-items: center;
 }
 
+/* 종(벨) 아이콘 */
 .notification-icon {
   width: 24px;
   height: 24px;
   cursor: pointer;
+}
+
+/* 읽지 않은 알림이 있을 때 표시할 파란 점(뱃지) */
+.unread-dot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 8px;
+  height: 8px;
+  background-color: #3f8efc;
+  border-radius: 50%;
+  border: 1px solid #fff;
+  z-index: 1;
 }
 
 .notification-popup {

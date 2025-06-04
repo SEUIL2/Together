@@ -1,6 +1,6 @@
 <template>
   <div class="team-card">
-    <!-- 상단 프로젝트 정보 -->
+    <!-- 프로젝트 정보 -->
     <div class="card-header">
       <div class="project-info">
         <h3 class="project-title">{{ project.title }}</h3>
@@ -11,7 +11,7 @@
       </button>
     </div>
 
-    <!-- 진행도 바 -->
+    <!-- 진행도 -->
     <div class="progress-wrapper">
       <div class="progress-label-text">
         📊 프로젝트 진행도 <strong>{{ project.progress || 0 }}%</strong>
@@ -21,33 +21,62 @@
       </div>
     </div>
 
-    <!-- 팀원 목록 -->
+    <!-- 팀원 -->
     <div class="team-members">
       <div v-for="(member, index) in project.members" :key="index" class="avatar">
-        <div class="avatar-img">
-          <img :src="member.avatarUrl" />
-        </div>
+        <div class="avatar-img"><img :src="member.avatarUrl" /></div>
         <span class="member-name">{{ member.name }}</span>
       </div>
     </div>
 
-    <!-- 기능 버튼 -->
+    <!-- 버튼들 -->
     <div class="action-buttons">
-      <button class="action-btn">📢 공지사항</button>
-      <button class="action-btn">🗳 투표</button>
-      <button class="action-btn">📝 피드백</button>
+      <button class="action-btn" @click="showNoticeModal = true">📢 공지사항</button>
+      <button class="action-btn" @click="showVoteModal = true">🗳 투표</button>
+
+      <button class="action-btn" @click="showFeedbackModal = true">📝 피드백 내역</button>
       <button class="action-btn">🧾 메모</button>
     </div>
+
+    <!-- 공지사항 모달 -->
+    <NoticeModal
+      v-if="showNoticeModal"
+      :projectId="project.projectId"
+      @close="showNoticeModal = false"
+    />
+
+    <!-- 피드백 모달 -->
+    <FeedbackHistoryModal
+      v-if="showFeedbackModal"
+      :projectId="project.projectId"
+      @close="showFeedbackModal = false"
+    />
+<!-- 투표 모달 -->
+<VotingListModalWrapper
+  v-if="showVoteModal"
+  :projectId="project.projectId"
+  @close="showVoteModal = false"
+/>
+
+
+
   </div>
 </template>
 
 <script setup>
+import { ref } from 'vue'
+import NoticeModal from '@/components/notice/NoticeModal.vue'
+import FeedbackHistoryModal from '@/components/feedback/FeedbackHistoryModal.vue'
+import VotingListModalWrapper from '@/components/dashboard/VotingListModalWrapper.vue'
+const props = defineProps({ project: Object })
 
+const showNoticeModal = ref(false)
+const showFeedbackModal = ref(false)
+const showVoteModal = ref(false)
 
-defineProps({
-  project: Object
-})
 </script>
+
+
 
 <style scoped>
 .team-card {

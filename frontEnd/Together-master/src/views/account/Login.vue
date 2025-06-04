@@ -61,37 +61,45 @@ const handleLogin = async () => {
   successMessage.value = ''
   errorMessage.value = ''
 
-  // Basic Auth 헤더 생성 및 저장
   const encoded = btoa(`${userLoginId.value}:${password.value}`)
   const authHeader = `Basic ${encoded}`
   localStorage.setItem('authHeader', authHeader)
 
   try {
-    // 인증된 유저 정보 요청
     const res = await axios.get('/auth/me', {
       headers: { Authorization: authHeader },
       withCredentials: true
     })
 
-    // 로그인 성공 처리
     successMessage.value = '로그인 성공!'
     window.dispatchEvent(new Event('login-success'))
 
-    // 프로젝트 유무에 따라 라우팅
-    const projectId = res.data.projectId
-    if (projectId) {
-      router.push('/MyProject')
-    } else {
-      router.push('/MainPage2')
-    }
+const roles = res.data.roles || []
+const isProfessor = roles.some(role => role.authority === 'ROLE_PROFESSOR')
+
+// ✅ 프로젝트 하나라도 있으면 true
+const projectId = res.data.projectId
+const hasProject = typeof projectId === 'number' && projectId > 0
+
+console.log('✅ 교수 여부:', isProfessor)
+console.log('✅ 프로젝트 ID:', projectId)
+console.log('✅ 프로젝트 있음?:', hasProject)
+
+if (isProfessor) {
+  router.push('/professor/mainpage')
+} else if (hasProject) {
+  router.push('/MyProject')
+} else {
+  router.push('/MainPage2')
+}
+
+
   } catch (error) {
-    // 프로젝트 미등록으로 인한 403 일 때는 MainPage2로
     if (error.response?.status === 403) {
       successMessage.value = '로그인 성공! (프로젝트 미등록 계정)'
       window.dispatchEvent(new Event('login-success'))
       router.push('/MainPage2')
     } else {
-      // 그 외는 실제 로그인 실패
       errorMessage.value = error.response?.data || '로그인에 실패했습니다.'
     }
   }
@@ -101,6 +109,8 @@ const goToSignup = () => {
   router.push('/Signup')
 }
 </script>
+
+
 
 <style scoped>
 /* 전체 컨테이너 */

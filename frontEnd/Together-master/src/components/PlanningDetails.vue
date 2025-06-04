@@ -91,16 +91,21 @@
         </div>
       </div>
     </div>
-
-    <!-- 📌 기존 피드백 마커 -->
-    <div
-      v-for="(fb, index) in feedbacks"
-      :key="index"
-      class="feedback-marker"
-      :style="{ top: fb.y + 'px', left: fb.x + 'px', position: 'absolute' }"
-    >
-      📌
-    </div>
+    <FeedbackNote
+      v-for="fb in feedbacks"
+      :key="fb.feedbackId"
+      :x="fb.x"
+      :y="fb.y"
+      :feedbackId="fb.feedbackId"
+      :readonly="true"
+      @click="openPopup(fb)"
+    />
+<FeedbackPopup
+  v-if="selectedFeedback"
+  :fb="selectedFeedback"
+  @close="selectedFeedback = null"
+  @read="handleRead"
+/>
 
 <!-- 바꿔줘야 할 부분 -->
 <FeedbackInput
@@ -123,10 +128,18 @@
 import { ref, watch, onMounted, computed } from 'vue'
 import axios from 'axios'
 import FeedbackInput from '@/components/feedback/FeedbackInput.vue'
+import FeedbackNote from '@/components/feedback/FeedbackNote.vue'
+import FeedbackPopup from '@/components/feedback/FeedbackPopup.vue'
 const isReadOnly = computed(() => route.query.readonly === 'true')
 import { useRoute } from 'vue-router'
 const route = useRoute()
+// ✅ 필수: ref 선언
 
+
+// ✅ 필수: 클릭 함수
+const openPopup = (fb) => {
+  selectedFeedback.value = fb
+}
 const props = defineProps({
   projectId: { type: Number, required: true },
   readonly: { type: Boolean, default: false }
@@ -142,8 +155,30 @@ const planningItems = ref([
 ])
 
 const feedbacks = ref([])
+const selectedFeedback = ref(null)
 const showFeedbackInput = ref(false)
 const feedbackPosition = ref({ x: 0, y: 0 })
+
+
+const handleRead = async (feedbackId) => {
+  try {
+    await axios.post(`/feedbacks/${feedbackId}/read`, null, {
+      headers: {
+        Authorization: localStorage.getItem('authHeader')
+      },
+      withCredentials: true
+    })
+
+    // 마커 제거
+    feedbacks.value = feedbacks.value.filter(fb => fb.feedbackId !== feedbackId)
+
+    // 말풍선 닫기
+    selectedFeedback.value = null
+  } catch (err) {
+    console.error('❌ 읽음 처리 실패:', err)
+    alert('피드백 읽음 처리 중 오류가 발생했습니다.')
+  }
+}
 
 const handleRightClick = (e) => {
 if (!(props.readonly)) return
@@ -310,182 +345,192 @@ onMounted(async () => {
   }
 })
 </script>
-
 <style scoped>
-.feedback-marker {
-  position: absolute;
-  font-size: 18px;
-  cursor: pointer;
-}
+/* 전체 배경 영역 */
 .detail-section {
-  background: white;
-  padding: 15px;
-  margin-bottom: 20px;
-  border-radius: 10px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  background: #f4f6fa; /* 연한 회색 배경 */
+  padding: 32px;
+  border-radius: 12px;
+  min-height: 100vh;
 }
 
+/* 타임라인 영역 */
 .timeline.horizontal {
   display: flex;
+  justify-content: space-around;
   align-items: center;
-  justify-content: space-between;
-  padding: 0 20px;
-  margin-top: 20px;
-  margin-bottom: 20px;
+  background: #ffffff;
+  padding: 16px 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  margin-bottom: 32px;
 }
 
 .timeline-item {
   display: flex;
   flex-direction: column;
   align-items: center;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: -14px;
+  margin-top: 10px;
+  height: 80px;
 }
 
 .status-circle {
-  display: inline-block;
-  width: 12px;
-  height: 12px;
+  width: 15px;
+  height: 15px;
   border-radius: 50%;
-  border: 2px solid #ddd;
-  margin-right: 8px;
-  transition: background-color 0.3s, border-color 0.3s;
+  border: 3px solid #dce3ec;
+  background-color: white;
+  margin-bottom: 4px;
+  transition: all 0.3s ease;
 }
 
 .status-circle.filled {
-  background-color: #3f8efc;
-  border-color: #3f8efc;
+  background-color: #3478f6;
+  border-color: #3478f6;
+  box-shadow: 0 0 6px rgba(52, 120, 246, 0.5);
 }
 
-.timeline-text {
-  font-size: 0.8rem;
-}
-
+/* 입력 영역 전체 */
 .detail-inputs {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 28px;
 }
 
+/* 개별 항목 카드 */
 .detail-box {
-  background: #f9f9f9;
-  border: 1px solid #ddd;
-  border-radius: 5px;
-  padding: 10px;
+  background-color: #ffffff;
+  border: 2px solid #dce3ec;
+  border-left: 6px solid #3478f6;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
 }
 
+/* 제목줄 */
 .detail-title {
-  margin: 4px 0 5px 0;
-  font-size: 1rem;
-  color: #333;
-  cursor: pointer;
   display: flex;
   align-items: center;
-}
-
-.title-text {
-  flex-grow: 1;
-  text-align: left;
+  justify-content: space-between;
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: #1f2d3d;
+  margin-bottom: 14px;
 }
 
 .edit-icon {
-  font-size: 1.2rem;
+  font-size: 1rem;
+  color: #3478f6;
   cursor: pointer;
-  margin-left: 10px;
 }
 
 .save-icon {
-  width: 1em;
-  height: 1em;
-  vertical-align: middle;
+  width: 20px;
+  height: 20px;
 }
 
+/* 텍스트 입력창 */
 .detail-textarea {
   width: 100%;
-  min-height: 200px;
-  border: 2px solid #ccc;
+  min-height: 160px;
+  border: 2px solid #dce3ec;
   border-radius: 8px;
-  padding: 10px;
-  font-size: 1rem;
-  transition: border-color 0.3s, box-shadow 0.3s;
-  background-color: #fff;
-  resize: none;
+  padding: 14px;
+  font-size: 0.95rem;
+  background-color: #fdfdfd;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  resize: vertical;
+  font-family: 'SUIT', 'Noto Sans KR', sans-serif;
+  
 }
 
 .detail-textarea:focus {
+  border-color: #e1ecff;
+  box-shadow: 0 0 0 3px rgba(52, 120, 246, 0.2);
   outline: none;
-  border-color: #3f8efc;
-  box-shadow: 0 0 8px rgba(63, 142, 252, 0.5);
 }
 
-/* 파일 업로드 커스텀 디자인 */
+/* 파일 업로드 버튼 */
 .file-upload-container {
+  margin-top: 18px;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
+  gap: 12px;
 }
 
 .custom-file-upload {
   display: inline-block;
-  padding: 4px 12px;
+  background-color: #3478f6;
+  color: white;
+  padding: 6px 16px;
+  border-radius: 6px;
+  font-weight: 500;
   cursor: pointer;
-  background-color: #3f8efc;
-  color: #fff;
-  border-radius: 4px;
-  transition: background-color 0.3s;
+  transition: background-color 0.2s;
 }
 
 .custom-file-upload:hover {
-  background-color: #2869c5;
+  background-color: #265fd1;
 }
 
-/* 파일 목록 및 삭제 버튼 */
+/* 파일 리스트 */
 .file-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  width: 100%;
+  gap: 10px;
 }
 
 .file-display {
+  background-color: #ffffff;
+  border: 1px solid #dce3ec;
+  border-radius: 8px;
+  padding: 10px 14px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background-color: #fff;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  padding: 10px 12px;
-  font-size: 0.95rem;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
 }
 
 .file-name {
-  flex-grow: 1;
-  color: #333;
-  text-decoration: none;
+  color: #3478f6;
   font-weight: 500;
+  text-decoration: underline;
+  max-width: 60%;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .upload-date {
-  margin-left: 12px;
-  color: #999;
+  color: #7b8a9b;
   font-size: 0.85rem;
+  margin-left: -500px;
 }
 
 .delete-file-btn {
-  background-color: transparent;
-  color: #999;
+  background: none;
   border: none;
-  font-size: 1rem;
+  color: #aaa;
+  font-size: 1.2rem;
+  margin-left: 10px;
   cursor: pointer;
-  margin-left: 12px;
-  transition: color 0.3s;
+  transition: color 0.2s;
 }
 
 .delete-file-btn:hover {
-  color: #ff4d4f;
+  color: #e53935;
 }
 
+/* 피드백 마커 */
+.feedback-marker {
+  position: absolute;
+  font-size: 22px;
+  color: #3478f6;
+  cursor: pointer;
+  z-index: 10;
+}
 </style>

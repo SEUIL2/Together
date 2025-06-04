@@ -220,7 +220,7 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.task-board-page { padding:5px; background-color: #d6d6d6;  /* ← 이거 추가 */ }
+.task-board-page { padding:5px; background-color: #ffffff;  /* ← 이거 추가 */ }
 .search-bar { display:flex; align-items:center; margin:8px 0px 4px ;}
 .search-bar input { width:200px; padding:4px 8px; border:1px solid #ccc; border-radius:4px }
 .filter-toggle button { margin-left:5px; padding:4px 10px; border:1px solid #ccc; border-radius:4px; background:#fff; cursor:pointer }

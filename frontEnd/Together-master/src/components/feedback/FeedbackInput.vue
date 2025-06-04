@@ -67,7 +67,7 @@ await axios.post('/feedbacks/create', {
 
 <style scoped>
 .feedback-input {
-  width: 220px;
+  width: 300px;
   background: white;
   border: 1px solid #ccc;
   border-radius: 6px;
@@ -77,7 +77,7 @@ await axios.post('/feedbacks/create', {
 
 textarea {
   width: 100%;
-  height: 70px;
+  height: 140px;
   resize: none;
   padding: 6px;
   border: 1px solid #bbb;

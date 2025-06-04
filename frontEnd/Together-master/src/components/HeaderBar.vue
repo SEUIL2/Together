@@ -165,7 +165,11 @@ const handleClickOutside = (e) => {
 onMounted(() => {
   checkLoginStatus()
   document.addEventListener('click', handleClickOutside)
+
+  // ✅ 로그인 성공 이벤트 수신 시 로그인 상태 재확인
+  window.addEventListener('login-success', checkLoginStatus)
 })
+
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleClickOutside)

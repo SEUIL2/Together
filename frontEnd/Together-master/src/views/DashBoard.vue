@@ -39,25 +39,30 @@
       </div>
     </div>
 
-    <!-- 하단 영역: 카드 3개 균등 분할 -->
+    <!-- 하단 카드 -->
     <div class="dashboard-bottom">
       <div class="card notice-card-wrapper">
         <div class="card-header">
           <h3 class="board-title" @click="showAllModal = true">공지사항</h3>
           <button class="create-btn" @click.stop="showCreateModal = true">+</button>
         </div>
-        <NoticeBoard :notices="notices" @selectNotice="openNoticeDetail" />
+        <NoticeList :notices="notices" @selectNotice="openNoticeDetail" />
       </div>
       <div class="card">
         <VotingList />
       </div>
-      <div class="card">
-        <h3>최근 활동</h3>
-        <p>최근 활동 예시</p>
-      </div>
+<!-- 피드백 내역 카드 -->
+<div class="card">
+  <div class="card-header">
+    <h3 class="board-title" @click="showFeedbackModal = true">피드백 내역</h3>
+  </div>
+  <FeedbackHistoryList :projectId="projectId" />
+</div>
+
+
     </div>
 
-    <!-- 모달 컴포넌트들 -->
+    <!-- 모달 -->
     <NoticeCreateModal
       v-if="showCreateModal"
       :writerName="currentUserName"
@@ -71,7 +76,7 @@
           <h4>전체 공지사항</h4>
           <button class="close-btn" @click="showAllModal = false">×</button>
         </div>
-        <NoticeBoard :notices="notices" @selectNotice="openNoticeDetail" />
+        <NoticeList :notices="notices" @selectNotice="openNoticeDetail" />
       </div>
     </div>
 
@@ -82,6 +87,12 @@
       @update="handleUpdateNotice"
       @delete="handleDeleteNotice"
     />
+    <FeedbackHistoryModal
+  v-if="showFeedbackModal"
+  :projectId="projectId"
+  @close="showFeedbackModal = false"
+/>
+
   </div>
 </template>
 
@@ -90,12 +101,16 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import axios from 'axios'
 
-import NoticeBoard from '@/components/dashboard/NoticeBoard.vue'
-import NoticeDetailModal from '@/components/dashboard/NoticeDetailModal.vue'
-import NoticeCreateModal from '@/components/dashboard/NoticeCreateModal.vue'
+import NoticeList from '@/components/notice/NoticeList.vue'
+import NoticeDetailModal from '@/components/notice/NoticeDetailModal.vue'
+import NoticeCreateModal from '@/components/notice/NoticeCreateModal.vue'
 import AllTasksCard from '@/components/dashboard/AllTasksCard.vue'
 import MyTasksCard from '@/components/dashboard/MyTasksCard.vue'
 import VotingList from '@/components/dashboard/VotingList.vue'
+import FeedbackHistoryList from '@/components/feedback/FeedbackHistoryList.vue'
+import FeedbackHistoryModal from '@/components/feedback/FeedbackHistoryModal.vue'
+
+const showFeedbackModal = ref(false)
 
 const route = useRoute()
 const projectId = ref(route.params.projectId || null)
@@ -119,21 +134,25 @@ const remainingTasks = computed(() =>
   tasks.value.filter(t => t.status !== 'COMPLETED').length
 )
 
-// 공지사항 조회
+// 공지사항 목록 불러오기
 async function fetchNotices() {
   try {
     const res = await axios.get('/notices/all-notice', {
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true
     })
-    notices.value = res.data.map(n => ({
-      ...n,
-      writerName: n.writerName || n.authorName || n.userName || currentUserName.value
-    }))
+
+    notices.value = res.data
+      .sort((a, b) => new Date(b.createdDate) - new Date(a.createdDate)) // ✅ 최신순 정렬
+      .map(n => ({
+        ...n,
+        writerName: n.writerName || n.authorName || n.userName || currentUserName.value
+      }))
   } catch (e) {
     console.error('공지사항 불러오기 실패:', e)
   }
 }
+
 
 // 공지 생성
 async function handleCreateNotice(newNotice) {
@@ -155,17 +174,13 @@ async function handleCreateNotice(newNotice) {
 // 공지 수정
 async function handleUpdateNotice(updated) {
   try {
-    await axios.put(
-      `/notices/update/${updated.noticeId}`,
-      updated,
-      {
-        headers: {
-          Authorization: localStorage.getItem('authHeader'),
-          'Content-Type': 'application/json'
-        },
-        withCredentials: true
-      }
-    )
+    await axios.put(`/notices/update/${updated.noticeId}`, updated, {
+      headers: {
+        Authorization: localStorage.getItem('authHeader'),
+        'Content-Type': 'application/json'
+      },
+      withCredentials: true
+    })
     showNoticeModal.value = false
     await fetchNotices()
   } catch (e) {
@@ -178,13 +193,10 @@ async function handleUpdateNotice(updated) {
 async function handleDeleteNotice(noticeId) {
   if (!confirm('정말 삭제하시겠습니까?')) return
   try {
-    await axios.delete(
-      `/notices/delete/${noticeId}`,
-      {
-        headers: { Authorization: localStorage.getItem('authHeader') },
-        withCredentials: true
-      }
-    )
+    await axios.delete(`/notices/delete/${noticeId}`, {
+      headers: { Authorization: localStorage.getItem('authHeader') },
+      withCredentials: true
+    })
     showNoticeModal.value = false
     await fetchNotices()
   } catch (e) {
@@ -218,6 +230,7 @@ function openNoticeDetail(notice) {
   showNoticeModal.value = true
 }
 </script>
+
 
 <style scoped>
 .dashboard-container {

@@ -87,6 +87,9 @@ const selectedVote = ref(null)
 const selectedOption = ref(null)
 const voteCounts = ref({})
 
+const props = defineProps({
+  projectId: Number,
+});
 async function fetchUser() {
   try {
     const res = await axios.get('/auth/me', { withCredentials: true });
@@ -103,16 +106,17 @@ async function fetchUser() {
 
 async function fetchVotes() {
   try {
-    const res = await axios.get('/votes/project', {
+    const res = await axios.get(`/votes/project?projectId=${props.projectId}`, {
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true
-    })
-    votes.value = res.data || []
+    });
+    votes.value = res.data || [];
   } catch (e) {
-    console.error('투표 목록 로드 실패:', e)
-    votes.value = []
+    console.error('투표 목록 로드 실패:', e);
+    votes.value = [];
   }
 }
+
 
 function onCreated() {
   closeCreateModal()
@@ -230,12 +234,6 @@ async function submitVote() {
     console.error('투표 제출 실패:', e.response?.status, e.response?.data);
   }
 }
-
-
-
-
-
-
 function formatDate(date) {
   const d = new Date(date)
   return d.toLocaleDateString('ko-KR', {

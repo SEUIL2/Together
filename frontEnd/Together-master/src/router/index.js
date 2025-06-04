@@ -4,6 +4,8 @@ import MainPage from '../views/MainPage.vue'
 import MainPage2 from '../views/MainPage2.vue'
 import Signup from '../views/account/Signup.vue'
 import Login from '../views/account/Login.vue'
+import FindId from '../views/account/FindId.vue'
+import ResetPassword from '../views/account/ResetPassword.vue'
 import CreateProject from '../views/CreateProject.vue'
 import MyProject from '../views/MyProject.vue'
 import DashBoard from '../views/DashBoard.vue'
@@ -41,6 +43,16 @@ const routes = [
     path: '/Login',
     name: 'Login',
     component: Login,
+  },
+  {
+    path: "/find-id",
+    name: "FindId",
+    component: FindId,
+  },
+  {
+    path: "/reset-password",
+    name: "ResetPassword",
+    component: ResetPassword,
   },
   {
     path: '/CreateProject',

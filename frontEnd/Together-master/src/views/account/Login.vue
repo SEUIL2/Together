@@ -32,7 +32,7 @@
         <p v-if="errorMessage" class="error-msg">{{ errorMessage }}</p>
 
         <div class="find-links">
-          <a href="#">아이디 찾기</a> | <a href="#">비밀번호 찾기</a>
+          <a href="#" @click.prevent="goFindId">아이디 찾기</a> | <a href="#" @click.prevent="goFindPw">비밀번호 찾기</a>
         </div>
 
         <hr />
@@ -107,6 +107,13 @@ if (isProfessor) {
 
 const goToSignup = () => {
   router.push('/Signup')
+}
+// 아이디 찾기 페이지로 이동
+const goFindId = () => {
+  router.push('/find-id')
+}
+const goFindPw = () => {
+  router.push("/reset-password");
 }
 </script>
 

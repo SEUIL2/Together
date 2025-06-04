@@ -1,6 +1,7 @@
 package com.together.user;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.together.project.worktask.WorkTaskEntity;
 import com.together.topicRecommendAI.UserKeywordHistoryEntity;
 import com.together.comment.CommentEntity;
 import com.together.documentManger.FileEntity;
@@ -123,4 +124,7 @@ public class UserEntity {
 
     @OneToMany(mappedBy = "user")
     private List<FeedbackReadEntity> feedbackRead = new ArrayList<>();
+
+    @OneToMany(mappedBy = "assignedUser")
+    private List<WorkTaskEntity> assignedUsers = new ArrayList<>();
 }

@@ -8,6 +8,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 import org.hibernate.annotations.Where;
 
 import java.time.LocalDate;
@@ -53,6 +55,7 @@ public class WorkTaskEntity {
      */
     @ManyToOne(fetch = FetchType.LAZY, optional = true)
     @JoinColumn(name = "assigned_user_id", nullable = true)
+    @OnDelete(action = OnDeleteAction.SET_NULL)
     private UserEntity assignedUser;
 
     /**

@@ -1,6 +1,7 @@
 package com.together.user;
 
 import com.together.project.ProjectEntity;
+import com.together.project.worktask.WorkTaskEntity;
 import com.together.user.profile.dto.UserProfileResponseDto;
 import com.together.user.profile.dto.UserProfileUpdateRequestDto;
 import com.together.user.dto.UserSignUpRequestDto;
@@ -173,6 +174,9 @@ public List<Map<String, Object>> getProfessorProjectSummaries(Long userId) {
                 project.getProfessors().remove(professor); // 🔄 양방향 제거
             }
             professor.getProjects().clear(); // 교수 측에서도 비워줌
+        }
+        for (WorkTaskEntity task : user.getAssignedUsers()) {
+            task.setAssignedUser(null);  // 관계 끊기
         }
 
         // 🔥 삭제

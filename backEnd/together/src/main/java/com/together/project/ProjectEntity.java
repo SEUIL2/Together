@@ -9,6 +9,7 @@ import com.together.documentManger.FileEntity;
 import com.together.meeting.MeetingEntity;
 import com.together.notice.NoticeEntity;
 import com.together.privateNote.PrivateNoteEntity;
+import com.together.project.worktask.WorkTaskEntity;
 import com.together.user.UserEntity;
 import com.together.user.professor.ProfessorEntity;
 import com.together.user.professor.feedback.FeedbackEntity;
@@ -115,4 +116,8 @@ public class ProjectEntity{
 
     @OneToMany(mappedBy = "project")
     private List<FeedbackEntity> feedbacks = new ArrayList<>();
+
+    // ✅ 프로젝트에 속한 작업 일정들 (작업/일정 관리용)
+    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<WorkTaskEntity> workTasks = new ArrayList<>();
 }

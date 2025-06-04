@@ -4,6 +4,7 @@
       <!-- 모달 종료 버튼 -->
       <button class="close-btn" @click="closeModal">&times;</button>
       <h2 class="modal-title">프로필 설정</h2>
+      <!-- 입력 영역 -->
       <div class="profile-settings">
         <!-- 좌측 폼 -->
         <div class="form-section">
@@ -40,27 +41,34 @@
             <small>다른 사람들에게 표시될 자기소개입니다.</small>
           </div>
 
-          <!-- 색상 선택 -->
-          <div class="form-group color-picker-section">
+          <!-- 색상 선택 (설명은 아래로) -->
+          <div class="form-group">
             <label>테마 색상</label>
-            <div
-                class="color-circle"
-                :style="{ backgroundColor: theme }"
-                @click="toggleColorMenu"
-            ></div>
-            <div v-if="showColorMenu" class="color-menu">
+            <div class="color-picker-section">
               <div
-                  v-for="color in availableColors"
-                  :key="color"
-                  class="color-option"
-                  :style="{ backgroundColor: color }"
-                  @click="selectColor(color)"
+                  class="color-circle"
+                  :style="{ backgroundColor: theme }"
+                  @click="toggleColorMenu"
               ></div>
+              <div v-if="showColorMenu" class="color-menu">
+                <div
+                    v-for="color in availableColors"
+                    :key="color"
+                    class="color-option"
+                    :style="{ backgroundColor: color }"
+                    @click="selectColor(color)"
+                ></div>
+              </div>
             </div>
             <small>프로필에 적용할 테마 색상을 선택하세요.</small>
           </div>
 
-          <button class="btn-save" @click="saveProfile">저장</button>
+          <!-- 회원 탈퇴 섹션 -->
+          <div class="form-group delete-section">
+            <label>회원 탈퇴</label>
+            <button class="btn-delete" @click="deleteAccount">회원 탈퇴</button>
+            <small>회원 탈퇴 시 모든 정보가 영구 삭제됩니다.</small>
+          </div>
         </div>
 
         <!-- 우측 이미지 -->
@@ -84,6 +92,11 @@
           </div>
         </div>
       </div>
+
+      <!-- 저장 버튼 (프로필 사진 아래, 오른쪽 끝) -->
+      <div class="save-container">
+        <button class="btn-save" @click="saveProfile">저장</button>
+      </div>
     </div>
   </div>
 </template>
@@ -91,12 +104,15 @@
 <script setup>
 import { ref, watch, onMounted } from 'vue'
 import axios from 'axios'
+import { useRouter } from 'vue-router'
 
 // Props
 const props = defineProps({
   visible: { type: Boolean, default: false }
 })
 const emit = defineEmits(['close', 'updated'])
+
+const router = useRouter()
 
 // Axios 기본 설정
 const API_URL = 'http://localhost:8081'
@@ -129,18 +145,17 @@ async function fetchProfile() {
   try {
     const res = await axios.get('/users/profile')
     const data = res.data
-    userId.value        = data.userId ?? data.id
-    userName.value      = data.userName
-    userEmail.value     = data.userEmail
-    bio.value           = data.bio
-    profileImageUrl.value = data.imageUrl ?? data.profileImageUrl
-    theme.value         = data.theme || theme.value
+    userId.value           = data.userId ?? data.id
+    userName.value         = data.userName
+    userEmail.value        = data.userEmail
+    bio.value              = data.bio
+    profileImageUrl.value  = data.imageUrl ?? data.profileImageUrl
+    theme.value            = data.theme || theme.value
   } catch (err) {
     console.error('프로필 조회 실패', err)
     alert('프로필 정보를 불러오는 중 오류가 발생했습니다.')
   }
 }
-
 
 // 프로필 저장
 async function saveProfile() {
@@ -172,21 +187,19 @@ async function onFileChange(e) {
   const formData = new FormData()
   formData.append('image', file)
   try {
-    // → POST 로 바꿔주세요 (Spring MultipartResolver 기본은 POST)
     const res = await axios.post(
         '/users/profile/image',
         formData,
         { headers: { 'Content-Type': 'multipart/form-data' } }
     )
-    console.log('▶ upload response.data:', res.data)      // 이 줄 추가
-    profileImageUrl.value = res.data                      // res.data 가 URL 이어야 함
+    console.log('▶ upload response.data:', res.data)
+    profileImageUrl.value = res.data
     alert('프로필 이미지가 업데이트되었습니다.')
   } catch (err) {
     console.error('이미지 업로드 실패', err)
     alert('이미지 업로드 중 오류가 발생했습니다.')
   }
 }
-
 
 // 색상 메뉴 토글
 function toggleColorMenu() {
@@ -211,6 +224,22 @@ async function selectColor(color) {
   } catch (err) {
     console.error('색상 저장 실패', err)
     alert('색상 저장 중 오류가 발생했습니다.')
+  }
+}
+
+// 회원 탈퇴
+async function deleteAccount() {
+  const ok = confirm('정말로 회원 탈퇴하시겠습니까? 탈퇴하면 모든 정보가 삭제됩니다.')
+  if (!ok) return
+
+  try {
+    await axios.delete('/auth/me')
+    alert('회원 탈퇴가 완료되었습니다. 그동안 이용해 주셔서 감사합니다.')
+    localStorage.removeItem('authHeader')
+    router.push('/')
+  } catch (err) {
+    console.error('회원 탈퇴 실패', err)
+    alert('회원 탈퇴 중 오류가 발생했습니다.')
   }
 }
 
@@ -266,6 +295,8 @@ onMounted(() => {
 }
 .form-section {
   flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 .form-group {
   margin-bottom: 16px;
@@ -282,6 +313,7 @@ onMounted(() => {
   border: 1px solid #ccc;
   border-radius: 4px;
 }
+/* 색상 선택: 레이아웃 분리 */
 .color-picker-section {
   display: flex;
   align-items: center;
@@ -312,16 +344,18 @@ onMounted(() => {
   color: #666;
   font-size: 0.85rem;
 }
-.btn-save {
+/* 회원 탈퇴 버튼 스타일 */
+.btn-delete {
   padding: 10px 20px;
-  background-color: #555;
+  background-color: #c0392b;
   color: #fff;
   border: none;
   border-radius: 20px;
   cursor: pointer;
+  margin-top: 4px;
 }
-.btn-save:hover {
-  background-color: #444;
+.btn-delete:hover {
+  background-color: #a93226;
 }
 .image-section {
   width: 200px;
@@ -351,5 +385,27 @@ onMounted(() => {
   font-size: 1rem;
   cursor: pointer;
   box-shadow: 0 0 4px rgba(0,0,0,0.2);
+}
+/* 저장 버튼 컨테이너: 모달 오른쪽 끝 정렬 */
+.save-container {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+}
+.btn-save {
+  padding: 10px 20px;
+  background-color: #555;
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+}
+.btn-save:hover {
+  background-color: #444;
+}
+/* 회원 탈퇴 설명 텍스트 간격 */
+.delete-section small {
+  margin-top: 4px;
+  display: block;
 }
 </style>

@@ -118,28 +118,28 @@ async function fetchTeamMembers() {
       avatarColor: getRandomColor(),
       showColorPicker: false,
       memo: '',
-      evaluationId: null
+      noteId: null
     }))
     // 개인 메모 로드
     await Promise.all(
-        teamMembers.value.map((m, idx) => loadMemo(m.userId, idx))
+        teamMembers.value.map((m, idx) => loadNote(m.userId, idx))
     )
   } catch (e) {
     console.error('팀원 정보 가져오기 실패', e)
   }
 }
 
-// 개인 메모 조회
-async function loadMemo(evaluateeId, idx) {
+// 개인 메모 조회 (PrivateNote API)
+async function loadNote(targetStudentId, idx) {
   try {
     const { data } = await axios.get(
-        `/evaluations/user/${evaluateeId}`,
+        `/notes/student/${targetStudentId}`,
         { withCredentials: true }
     )
-    const mine = data.find(e => e.evaluatorName === currentUser.value.userName)
-    if (mine) {
-      teamMembers.value[idx].memo = mine.comment
-      teamMembers.value[idx].evaluationId = mine.evaluationId
+    if (data.length > 0) {
+      const note = data[0]
+      teamMembers.value[idx].memo = note.content
+      teamMembers.value[idx].noteId = note.noteId
     }
   } catch (e) {
     console.error('메모 불러오기 실패', e)
@@ -159,7 +159,7 @@ function handleInvite(invited) {
     avatarColor: getRandomColor(),
     showColorPicker: false,
     memo: '',
-    evaluationId: null
+    noteId: null
   })
   showInviteModal.value = false
 }
@@ -186,9 +186,9 @@ function getRandomColor() {
 }
 
 // 메모 저장 후 상태 반영
-function onMemoSaved({ comment, evaluationId }) {
-  memoTarget.value.memo = comment
-  memoTarget.value.evaluationId = evaluationId
+function onMemoSaved({ content, noteId }) {
+  memoTarget.value.memo = content
+  memoTarget.value.noteId = noteId
 }
 
 onMounted(async () => {

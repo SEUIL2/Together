@@ -71,7 +71,8 @@
   :readonly="isReadOnly"
   @updateStepProgress="updatePlanningProgress"
 />
-
+  <FloatingHelpWidget @open-help="showHelp = true" />
+    <HelpModal v-if="showHelp" @close="showHelp = false" />
     </main>
   </div>
 </template>
@@ -87,6 +88,8 @@ import DesignDetails from '@/components/DesignDetails.vue'
 import DevelopmentDetails from '@/components/DevelopmentDetails.vue'
 import TestingDetails from '@/components/TestingDetails.vue'
 import defaultLogo from '@/assets/togetherlogo.png'
+import FloatingHelpWidget from '@/components/FloatingHelpWidget.vue'
+import HelpModal from '@/components/HelpModal.vue'
 
 const route = useRoute()
 const isReadOnly = computed(() => route.query.readonly === 'true')
@@ -98,7 +101,7 @@ const projectDescription = ref('')
 const projectImageUrl = ref('')
 const teamMembers = ref([])
 const fileInput = ref(null)
-
+const showHelp = ref(false)
 function triggerImageUpload() {
   fileInput.value.click()
 }
@@ -270,8 +273,6 @@ steps.value.find(s => s.name === '설계').current = designCount
 })
 
 </script>
-
-
 
 <style scoped>
 html, body {

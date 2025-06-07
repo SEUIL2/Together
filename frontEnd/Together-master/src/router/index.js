@@ -22,6 +22,8 @@ import TaskPage from '../views/TaskPage.vue'
 import ProfessorMainPage from '../views/professor/ProfessorMainPage.vue'
 import HelpPage from '../views/help/HelpPage.vue'
 import AiFlow from '../views/AiFlow.vue'
+import ClassDiagramPage from '../views/toolview/classDiagramPage.vue'
+import ERDiagramPage from '../views/toolview/ErdDiagramPage.vue'
 const routes = [
   {
     path: '/',
@@ -200,9 +202,17 @@ const routes = [
     name: 'AiFlow',
     component: AiFlow
   },
+  {
+    path: '/class-Diagram',
+    name: 'ClassDiagramPage ',
+    component: ClassDiagramPage 
+  },
+    {
+    path: '/erd-Diagram',
+    name: 'ERDiagramPage ',
+    component: ERDiagramPage 
+  },
 
-
-  
 ]
 
 const router = createRouter({

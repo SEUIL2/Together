@@ -1,6 +1,8 @@
 import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router'
+import { createPinia } from 'pinia' // ✅ Pinia import
+
 
 // ✅ 인증 쿠키 포함 설정
 import axios from 'axios'
@@ -38,6 +40,8 @@ VMdEditor.lang.use('ko-KR', koKR)
 VMdEditor.use(vuepressTheme, { Prism })
 
 const app = createApp(App)
+const pinia = createPinia()        // ✅ Pinia 인스턴스 생성
+app.use(pinia)    
 
 app.component('gc-spread-sheets', GcSpreadSheets)
 app.component('gc-worksheet', GcWorksheet)

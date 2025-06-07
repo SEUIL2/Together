@@ -87,7 +87,7 @@ function handleItemClick(index) {
   if (props.readonly) return
   const item = designItems.value[index]
   if (item.type === 'classDiagram') {
-    router.push('/DiagramPage')
+    router.push('/class-diagram')
   } else if (item.type === 'erd') {
     router.push('/ErdDiagramPage')
   } else {

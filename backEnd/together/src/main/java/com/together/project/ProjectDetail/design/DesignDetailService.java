@@ -90,7 +90,7 @@ public class DesignDetailService {
                 if (text != null) detail.setUsecaseText(text);
                 detail.getUsecaseFiles().addAll(metaList);
             }
-            case "classDiagram" -> {
+            case "classdiagram" -> {
                 if (json != null) detail.setClassDiagramJson(json);
                 detail.getClassDiagramFiles().addAll(metaList);
             }
@@ -134,7 +134,7 @@ public class DesignDetailService {
 
         switch (type.toLowerCase()) {
             case "usecase" -> targetList = detail.getUsecaseFiles();
-            case "classDiagram" -> targetList = detail.getClassDiagramFiles();
+            case "classdiagram" -> targetList = detail.getClassDiagramFiles();
             case "sequence" -> targetList = detail.getSequenceFiles();
             case "ui" -> targetList = detail.getUiDesignFiles();
             case "erd" -> targetList = detail.getErdFiles();

@@ -44,14 +44,12 @@ public class DesignDetailController {
     public ResponseEntity<DesignDetailResponseDto> updateDesignItem(
             @CurrentProject(required = false) Long projectId,
             @AuthenticationPrincipal UserDetailsImpl userDetails,
-            @RequestParam("type") String type,
-            @RequestParam(value = "text", required = false) String text,
-            @RequestParam(value = "json", required = false) String json,
+            @RequestPart("type") String type,
+            @RequestPart(value = "text", required = false) String text,
+            @RequestPart(value = "json", required = false) String json,
             @RequestPart(value = "files", required = false) List<MultipartFile> files
     ) throws IOException {
-
         Long userId = userDetails.getUser().getUserId();
-
         DesignDetailResponseDto response = service.updateDesignItem(userId, projectId, type, text, json, files);
         return ResponseEntity.ok(response);
     }

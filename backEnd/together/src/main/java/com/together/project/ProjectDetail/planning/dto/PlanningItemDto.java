@@ -17,5 +17,6 @@ import java.util.List;
 @Builder
 public class PlanningItemDto {
     private String text; // 텍스트 내용
+    private String json; // ⭐️ 정보구조도/기타 JSON 저장용 필드 추가 (null 가능)
     private List<FileMetaDto> files; // 업로드된 파일 리스트 (url + 업로드 시간)
 }

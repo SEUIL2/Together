@@ -34,6 +34,7 @@ public class PlanningDetailService {
             Long projectId,
             String type,
             String text,
+            String json,
             List<MultipartFile> files
     ) throws IOException {
 
@@ -60,9 +61,9 @@ public class PlanningDetailService {
                 if (!file.isEmpty()) {
                     // ✅ Google Drive 업로드
                     String url = driveService.uploadFile(file, userId, projectId).getFileUrl();
-                    FileMeta meta = new FileMeta(url, LocalDateTime.now());
+                    FileMeta meta = new FileMeta(url, LocalDateTime.now(),file.getContentType());
                     metaList.add(meta);
-                    uploadedDtos.add(new FileMetaDto(meta.getUrl(), meta.getUploadedAt()));
+                    uploadedDtos.add(new FileMetaDto(meta.getUrl(), meta.getUploadedAt(), meta.getFileType()));
                 }
             }
         }
@@ -87,6 +88,7 @@ public class PlanningDetailService {
             }
             case "infostructure" -> {
                 if (text != null) detail.setInfoStructureText(text);
+                if (json != null) detail.setInfoStructureJson(json); // ⭐️ JSON 저장 추가
                 detail.getInfoStructureFiles().addAll(metaList);
             }
             case "storyboard" -> {
@@ -99,8 +101,8 @@ public class PlanningDetailService {
         // 💾 최종 저장
         repository.save(detail);
 
-        // 📤 클라이언트에게 응답 반환
-        return new PlanningDetailResponseDto(type, text, uploadedDtos);
+        // ⭐️ JSON 포함해서 응답 (infostructure일 때만 json 값 할당)
+        return new PlanningDetailResponseDto(type, text, json, uploadedDtos);
     }
     //수정
     @Transactional
@@ -109,6 +111,7 @@ public class PlanningDetailService {
             Long projectId,
             String type,
             String text,
+            String json, // ⭐️ 추가
             List<MultipartFile> files
     ) throws IOException {
         ProjectEntity project = projectRepository.findById(projectId)
@@ -126,9 +129,9 @@ public class PlanningDetailService {
             for (MultipartFile file : files) {
                 if (!file.isEmpty()) {
                     String url = driveService.uploadFile(file, userId, projectId).getFileUrl();
-                    FileMeta meta = new FileMeta(url, LocalDateTime.now());
+                    FileMeta meta = new FileMeta(url, LocalDateTime.now(),file.getContentType());
                     metaList.add(meta);
-                    uploadedDtos.add(new FileMetaDto(meta.getUrl(), meta.getUploadedAt()));
+                    uploadedDtos.add(new FileMetaDto(meta.getUrl(), meta.getUploadedAt(), meta.getFileType()));
                 }
             }
         }
@@ -153,6 +156,7 @@ public class PlanningDetailService {
             }
             case "infostructure" -> {
                 if (text != null) detail.setInfoStructureText(text);
+                if (json != null) detail.setInfoStructureJson(json); // ⭐️ JSON 수정 추가
                 detail.getInfoStructureFiles().addAll(metaList);
             }
             case "storyboard" -> {
@@ -163,7 +167,7 @@ public class PlanningDetailService {
         }
 
         repository.save(detail);
-        return new PlanningDetailResponseDto(type, text, uploadedDtos);
+        return new PlanningDetailResponseDto(type, text, json,uploadedDtos);
     }
 
     //삭제
@@ -218,7 +222,7 @@ public class PlanningDetailService {
      * @param projectId 해당 프로젝트 ID
      * @return PlanningAllResponseDto 형태로 전체 반환
      */
-    @Transactional(readOnly = true)
+    @Transactional
     public PlanningAllResponseDto getAllDetails(Long projectId) {
         PlanningDetailEntity detail = getOrCreateDetail(projectId);
 
@@ -226,7 +230,10 @@ public class PlanningDetailService {
                 .motivation(toItem(detail.getMotivationText(), detail.getMotivationFiles()))
                 .goal(toItem(detail.getGoalText(), detail.getGoalFiles()))
                 .requirement(toItem(detail.getRequirementText(), detail.getRequirementFiles()))
-                .infostructure(toItem(detail.getInfoStructureText(), detail.getInfoStructureFiles()))
+                .infostructure(toItem(
+                        detail.getInfoStructureText(),
+                        detail.getInfoStructureJson(), // ⭐️ JSON 추가
+                        detail.getInfoStructureFiles()))
                 .storyboard(toItem(detail.getStoryboardText(), detail.getStoryboardFiles()))
                 .description(toItem(detail.getDescriptionText(), detail.getDescriptionFiles()))
                 .build();
@@ -235,13 +242,23 @@ public class PlanningDetailService {
     /**
      * 개별 항목의 텍스트 + 파일 리스트를 DTO로 변환
      */
-    private PlanningItemDto toItem(String text, List<FileMeta> files) {
+    // json까지 모두 받을 수 있는 오버로딩 메서드
+    private PlanningItemDto toItem(String text, String json, List<FileMeta> files) {
         List<FileMetaDto> fileDtos = files.stream()
-                .map(f -> new FileMetaDto(f.getUrl(), f.getUploadedAt()))
+                .map(f -> new FileMetaDto(f.getUrl(), f.getUploadedAt(),f.getFileType()))
                 .toList();
-
-        return new PlanningItemDto(text, fileDtos);
+        return PlanningItemDto.builder()
+                .text(text)
+                .json(json) // json 필드 포함
+                .files(fileDtos)
+                .build();
     }
+
+    // text + files만 있는 경우 (json=null로 전달)
+    private PlanningItemDto toItem(String text, List<FileMeta> files) {
+        return toItem(text, null, files);
+    }
+
 
     private PlanningDetailEntity getOrCreateDetail(Long projectId) {
         ProjectEntity project = projectRepository.findById(projectId)

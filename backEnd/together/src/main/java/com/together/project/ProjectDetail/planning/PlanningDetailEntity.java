@@ -60,6 +60,11 @@ public class PlanningDetailEntity {
     @CollectionTable(name = "planning_info_structure_files", joinColumns = @JoinColumn(name = "planning_id"))
     private List<FileMeta> infoStructureFiles = new ArrayList<>();
 
+    //✏️ 정보구조도 JSON
+    @Column(columnDefinition = "TEXT")
+    private String infoStructureJson; // ⭐️ 반드시 여기에 추가
+
+
     // ✏️ 스토리보드
     @Column(columnDefinition = "TEXT")
     private String storyboardText;

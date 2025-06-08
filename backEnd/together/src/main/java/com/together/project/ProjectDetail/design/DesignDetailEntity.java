@@ -31,6 +31,9 @@ public class DesignDetailEntity {
     private String usecaseText;
 
     @Column(columnDefinition = "TEXT")
+    private String usecaseJson; //
+
+    @Column(columnDefinition = "TEXT")
     private String classDiagramText;
 
     @Column(columnDefinition = "TEXT")
@@ -40,10 +43,16 @@ public class DesignDetailEntity {
     private String sequenceText;
 
     @Column(columnDefinition = "TEXT")
+    private String sequenceJson;
+
+    @Column(columnDefinition = "TEXT")
     private String uiDesignText;
 
     @Column(columnDefinition = "TEXT")
     private String erdText;
+
+    @Column(columnDefinition = "TEXT")
+    private String erdJson;
 
     @Column(columnDefinition = "TEXT")
     private String tableSpecText;

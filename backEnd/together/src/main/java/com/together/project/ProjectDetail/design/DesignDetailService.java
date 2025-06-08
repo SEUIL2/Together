@@ -38,15 +38,18 @@ public class DesignDetailService {
         switch (type.toLowerCase()) {
             case "usecase" -> {
                 if (text != null) detail.setUsecaseText(text);
+                if (json != null) detail.setUsecaseJson(json); // ⭐️ 유스케이스 JSON도 저장!
                 detail.getUsecaseFiles().addAll(metaList);
             }
             case "classDiagram" -> {
+                if (text != null) detail.setClassDiagramText(text);
                 if (json != null) detail.setClassDiagramJson(json); // ✅ 다이어그램 JSON 저장 무영 수정
                 detail.getClassDiagramFiles().addAll(metaList);
             }
 
             case "sequence" -> {
                 if (text != null) detail.setSequenceText(text);
+                if (json != null) detail.setSequenceJson(json); //시퀀스 JSON저장
                 detail.getSequenceFiles().addAll(metaList);
             }
             case "ui" -> {
@@ -55,6 +58,7 @@ public class DesignDetailService {
             }
             case "erd" -> {
                 if (text != null) detail.setErdText(text);
+                if (json != null) detail.setErdJson(json);
                 detail.getErdFiles().addAll(metaList);
             }
             case "table" -> {
@@ -73,6 +77,7 @@ public class DesignDetailService {
         }
 
         repository.save(detail);
+        // ⭐️ json이 null이 아니면 text대신 json 우선 응답
         return new DesignDetailResponseDto(type, text, json, uploadedDtos);
     }
 
@@ -156,16 +161,16 @@ public class DesignDetailService {
     }
 
     // ✅ 설계 전체 조회
-    @Transactional(readOnly = true)
+    @Transactional
     public DesignAllResponseDto getAllDesignDetails(Long projectId) {
         DesignDetailEntity detail = getOrCreateDesignDetail(projectId);
 
         return DesignAllResponseDto.builder()
-                .usecase(toItem(detail.getUsecaseText(), detail.getUsecaseFiles()))
+                .usecase(toItem(detail.getUsecaseText(), detail.getUsecaseJson(), detail.getUsecaseFiles())) // ⭐️ 추가!
                 .classDiagram(toItem(detail.getClassDiagramText(), detail.getClassDiagramJson(), detail.getClassDiagramFiles()))
-                .sequence(toItem(detail.getSequenceText(), detail.getSequenceFiles()))
+                .sequence(toItem(detail.getSequenceText(), detail.getSequenceJson(),detail.getSequenceFiles()))
                 .ui(toItem(detail.getUiDesignText(), detail.getUiDesignFiles()))
-                .erd(toItem(detail.getErdText(), detail.getErdFiles()))
+                .erd(toItem(detail.getErdText(), detail.getErdJson(), detail.getErdFiles()))
                 .table(toItem(detail.getTableSpecText(), detail.getTableSpecFiles()))
                 .architecture(toItem(detail.getArchitectureText(), detail.getArchitectureFiles()))
                 .schedule(toItem(detail.getScheduleText(), detail.getScheduleFiles()))
@@ -179,7 +184,7 @@ public class DesignDetailService {
             for (MultipartFile file : files) {
                 if (!file.isEmpty()) {
                     String url = driveService.uploadFile(file, userId, projectId).getFileUrl();
-                    metaList.add(new FileMeta(url, LocalDateTime.now()));
+                    metaList.add(new FileMeta(url, LocalDateTime.now(),file.getContentType()));
                 }
             }
         }
@@ -188,14 +193,14 @@ public class DesignDetailService {
 
     private List<FileMetaDto> toDtoList(List<FileMeta> metas) {
         return metas.stream()
-                .map(meta -> new FileMetaDto(meta.getUrl(), meta.getUploadedAt()))
+                .map(meta -> new FileMetaDto(meta.getUrl(), meta.getUploadedAt(), meta.getFileType()))
                 .toList();
     }
 
     // 1. JSON 포함된 toItem //무영 수정
     private DesignItemDto toItem(String text, String json, List<FileMeta> files) {
         List<FileMetaDto> fileDtos = files.stream()
-                .map(f -> new FileMetaDto(f.getUrl(), f.getUploadedAt()))
+                .map(f -> new FileMetaDto(f.getUrl(), f.getUploadedAt(),f.getFileType()))
                 .toList();
         return new DesignItemDto(text, json, fileDtos);
     }

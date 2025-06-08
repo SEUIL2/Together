@@ -1,6 +1,7 @@
 package com.together.user;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.together.generatedCodeAI.GeneratedCodeEntity;
 import com.together.project.worktask.WorkTaskEntity;
 import com.together.topicRecommendAI.UserKeywordHistoryEntity;
 import com.together.comment.CommentEntity;
@@ -127,4 +128,9 @@ public class UserEntity {
 
     @OneToMany(mappedBy = "assignedUser")
     private List<WorkTaskEntity> assignedUsers = new ArrayList<>();
+
+    @OneToMany(mappedBy = "author")
+    private List<GeneratedCodeEntity> generatedCodes = new ArrayList<>();
+
+
 }

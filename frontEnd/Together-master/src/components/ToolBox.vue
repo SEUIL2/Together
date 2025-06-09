@@ -22,7 +22,7 @@
         v-for="type in diagramTypes"
         :key="type.value"
         :class="['tab-btn', { active: currentDiagram === type.value }]"
-        @click="currentDiagram = type.value"
+        @click="onDiagramTabClick(type)"
       >
         {{ type.label }}
       </button>
@@ -30,33 +30,68 @@
   </div>
 </template>
 
-
 <script setup>
-import { ref } from 'vue'
+import { ref, watch, onMounted, nextTick } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useToolStore } from '@/stores/toolStore'
 
+const router = useRouter()
+const route = useRoute()
 const toolStore = useToolStore()
+
 const currentDiagram = ref('class')
 
 const diagramTypes = [
-  { label: '클래스', value: 'class' },
-  { label: 'ERD', value: 'erd' },
-  { label: '정보구조도', value: 'info' },
-  { label: '유스케이스', value: 'usecase' }
+  { label: '클래스', value: 'class', path: '/class-diagram' },
+  { label: 'ERD', value: 'erd', path: '/erd-diagram' },
+  { label: '정보구조도', value: 'info', path: '/InfoStructurePage' },
+  { label: '유스케이스', value: 'usecase', path: '/UseCasePage' }
 ]
 
-const toolButtons = {
-class: [
-  {
-    label: '클래스 박스',
-    type: 'box',
-    subtype: 'class',
-    icon: new URL('@/assets/classbox.png', import.meta.url).href  // ✅ 이렇게 처리
-  }
+// 라우터 경로 → 다이어그램 value 맵핑
+function getDiagramTypeByRoute(path) {
+  if (path.startsWith('/class-diagram')) return 'class'
+  if (path.startsWith('/erd-diagram')) return 'erd'
+  if (path.startsWith('/InfoStructurePage')) return 'info'
+  if (path.startsWith('/UseCasePage')) return 'usecase'
+  return 'class' // 기본값
+}
 
+// route.path 바뀔 때마다 무조건 맞춰줌
+const syncTabWithRoute = () => {
+  const type = getDiagramTypeByRoute(route.path)
+  currentDiagram.value = type
+}
+
+// 최초 진입 + 경로 변경 시
+onMounted(() => {
+  syncTabWithRoute()
+})
+watch(() => route.path, () => {
+  // 라우터 반응성 보장 위해 nextTick 사용
+  nextTick(syncTabWithRoute)
+})
+
+// 버튼 클릭하면 경로까지 강제로 맞춰줌
+const onDiagramTabClick = (type) => {
+  if (currentDiagram.value !== type.value) {
+    currentDiagram.value = type.value
+    router.push(type.path)
+  }
+}
+
+// --- 나머지 기존 로직 그대로 ---
+const toolButtons = {
+  class: [
+    {
+      label: '클래스 박스',
+      type: 'box',
+      subtype: 'class',
+      icon: new URL('@/assets/classbox.png', import.meta.url).href
+    }
   ],
   erd: [
-    { label: '테이블', type: 'box', subtype: 'table', icon: '/assets/tool-icons/table.svg' },
+    { label: '테이블', type: 'box', subtype: 'table', icon: new URL('@/assets/table.png', import.meta.url).href }
   ],
   info: [
     { label: '페이지', type: 'box', subtype: 'page', icon: '/assets/tool-icons/page.svg' },
@@ -83,6 +118,8 @@ const onDragStart = (tool, event) => {
   event.dataTransfer.setData('application/json', JSON.stringify(tool))
 }
 </script>
+
+
 
 <style scoped>
 .toolbox {

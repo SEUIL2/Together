@@ -67,8 +67,10 @@
         @keydown.enter="applyEdit"
       />
 
-      <div v-if="showSavedMessage" class="save-toast">저장 완료✔️</div>
-      <div v-if="saveError" class="error-toast">저장 실패 ⚠️</div>
+<div v-if="saveStatus === 'saving'" class="save-toast saving">저장 중...</div>
+<div v-else-if="saveStatus === 'saved'" class="save-toast saved">저장됨</div>
+<div v-else-if="saveStatus === 'error'" class="save-toast error">저장 실패!</div>
+
     </div>
   </div>
 </template>
@@ -114,7 +116,7 @@ const selectedBoxId = ref(null)
 
 const showSavedMessage = ref(false)
 const saveError = ref(false)
-
+const saveStatus = ref('idle')
 const hideAllMenus = () => {
   arrowContextMenuVisible.value = false
   boxContextMenuVisible.value = false
@@ -301,6 +303,18 @@ onMounted(async () => {
     console.error('❌ 초기 데이터 로드 실패:', err)
   }
 })
+const saveErd = debounce(async () => {
+  saveStatus.value = 'saving'
+  try {
+    // ...axios 저장 코드...
+    await axios.post('/design/upload', formData, config)
+    saveStatus.value = 'saved'
+    setTimeout(() => saveStatus.value = 'idle', 1200) // 1.2초 후 숨김
+  } catch (e) {
+    saveStatus.value = 'error'
+    setTimeout(() => saveStatus.value = 'idle', 3000)
+  }
+}, 1000)
 
 </script>
 
@@ -337,22 +351,20 @@ onMounted(async () => {
 }
 .save-toast {
   position: fixed;
-  top: 20px;
-  right: 20px;
-  background: #4caf50;
-  color: white;
-  padding: 8px 16px;
+  top: 24px;
+  right: 36px;
+  z-index: 9000;
+  background: #4b80ff;
+  color: #fff;
   border-radius: 6px;
-  z-index: 1000;
+  font-size: 15px;
+  padding: 10px 26px;
+  box-shadow: 0 4px 16px #0022;
+  transition: opacity .3s;
+  pointer-events: none;
 }
-.error-toast {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  background: #e53935;
-  color: white;
-  padding: 8px 16px;
-  border-radius: 6px;
-  z-index: 1000;
-}
+.save-toast.saving { background: #87b4ff; }
+.save-toast.saved { background: #31c984; }
+.save-toast.error { background: #ff5555; }
+
 </style>

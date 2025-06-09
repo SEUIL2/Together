@@ -1,0 +1,8 @@
+<!-- crowsfoot.svg -->
+<svg width="28" height="24" viewBox="0 0 28 24" xmlns="http://www.w3.org/2000/svg">
+  <g stroke="black" stroke-width="2" fill="none">
+    <line x1="2" y1="12" x2="26" y2="12"></line>
+    <line x1="2" y1="12" x2="18" y2="4"></line>
+    <line x1="2" y1="12" x2="18" y2="20"></line>
+  </g>
+</svg>

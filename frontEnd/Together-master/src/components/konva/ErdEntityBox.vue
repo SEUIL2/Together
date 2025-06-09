@@ -1,110 +1,188 @@
 <template>
-  <v-group :x="config.x" :y="config.y" draggable @dragend="emitPosition">
-    <!-- 배경 박스 -->
-    <v-rect :width="boxWidth" :height="totalHeight" fill="white" stroke="#333" cornerRadius="8" shadowBlur="4" />
+<v-group
+  :x="config.x"
+  :y="config.y"
+  :draggable="!isEditing && !midDragging"
+  @dragend="emitPosition"
+   @contextmenu="onBoxRightClick"
+>
+
+
+    <!-- 박스 배경 -->
+    <v-rect
+      :width="boxWidth"
+      :height="totalHeight"
+      fill="#ffffff"
+      stroke="#999"
+      :strokeWidth="1.2"
+      :cornerRadius="2"
+    />
+
+    <!-- 헤더 -->
+    <v-rect
+      :width="boxWidth"
+      :height="headerHeight"
+      fill="#f2f2f2"
+      stroke="#ccc"
+      :strokeWidth="1"
+    />
+    <v-line
+      :points="[0, headerHeight, boxWidth, headerHeight]"
+      stroke="#ccc"
+      :strokeWidth="1"
+    />
 
     <!-- 테이블명 -->
-    <v-rect :width="boxWidth" :height="headerHeight" fill="#1976d2" />
     <v-text
       :text="config.name"
-      :x="12"
+      :x="0"
       :y="8"
-      fontSize="15"
-      fill="white"
+      :width="boxWidth"
+      align="center"
+      :fontSize="14"
       fontStyle="bold"
-      @dblclick="editingName = true"
+      fill="#222"
+      @dblclick="onEditTableName"
     />
-    <v-html v-if="editingName" :x="12" :y="6">
-      <input
-        class="name-edit-input"
-        v-model="config.name"
-        @blur="editingName = false"
-        style="font-size:14px; width:100px"
-      />
-    </v-html>
 
-    <!-- 필드 목록 -->
-    <v-group v-for="(field, index) in config.fields" :key="index" :y="headerHeight + index * fieldHeight">
-      <v-text
-        :text="formatField(field)"
-        :x="12"
-        :y="8"
-        fontSize="13"
-        fill="#333"
-        @dblclick="editField(index)"
-      />
-      <v-html v-if="field.editing" :x="12" :y="6">
-        <input
-          v-model="field.name"
-          @blur="field.editing = false"
-          style="width: 120px; font-size: 13px"
-        />
-        <select v-model="field.type" style="margin-left: 5px; font-size: 13px;">
-          <option value="PK">PK</option>
-          <option value="FK">FK</option>
-          <option value="NORMAL">일반</option>
-        </select>
-      </v-html>
-    </v-group>
+    <!-- 필드 라인 + 텍스트 -->
+    <v-line
+      v-for="(field, index) in config.fields"
+      :key="'line-' + index"
+      :points="[0, headerHeight + (index + 1) * fieldHeight, boxWidth, headerHeight + (index + 1) * fieldHeight]"
+      stroke="#ddd"
+      :strokeWidth="1"
+    />
+    <v-text
+      v-for="(field, index) in config.fields"
+      :key="'field-' + index"
+      :text="formatField(field)"
+      :x="10"
+      :y="headerHeight + index * fieldHeight + 6"
+      :fontSize="12"
+      fill="#333"
+      @dblclick="(e) => onEditField(e, index, field)"
+    />
+    <!-- + 필드 추가 버튼 -->
+<v-text
+  :x="10"
+  :y="headerHeight + config.fields.length * fieldHeight + 6"
+  text="＋ 필드 추가"
+  :fontSize="12"
+  fill="#1976d2"
+  fontStyle="bold"
+  @click="addField"
+/>
 
-    <!-- Anchor 포인트 -->
+
+
+    <!-- 앵커 포인트 (4방향) -->
     <v-circle
       v-for="dir in ['top', 'bottom', 'left', 'right']"
       :key="dir"
       :x="anchorX(dir)"
       :y="anchorY(dir)"
-      :radius="6"
-      fill="#1976d2"
+      :radius="5"
+      fill="#ffffff"
+      stroke="#007bff"
+      :strokeWidth="1.5"
       @click="emitAnchorClick(dir)"
     />
   </v-group>
 </template>
 
 <script setup>
-import { ref } from 'vue'
-const props = defineProps({ config: Object });
-const emit = defineEmits(['update-position', 'anchor-click']);
+import { computed } from 'vue'
 
-const boxWidth = 180;
-const headerHeight = 30;
-const fieldHeight = 28;
+const props = defineProps({
+  config: Object,
+  isEditing: Boolean, // ⬅️ 추가!
+  midDragging: Boolean // 추가!
+})
 
-const editingName = ref(false);
+const emit = defineEmits(['update-position', 'anchor-click', 'edit-table', 'edit-field','add-field','open-context'])
+
+const boxWidth = 180
+const headerHeight = 30
+const fieldHeight = 26
+const totalHeight = computed(() => {
+  return headerHeight + props.config.fields.length * fieldHeight + 30
+})
+
+
+const addField = () => {
+  emit('add-field', props.config.id)
+}
+
+
 
 const emitPosition = (e) => {
-  const node = e.target;
-  if (node && typeof node.x === 'function' && typeof node.y === 'function') {
-    emit('update-position', {
-      id: props.config.id,
-      x: node.x(),
-      y: node.y()
-    });
-  }
-};
+  emit('update-position', {
+    id: props.config.id,
+    x: e.target.x(),
+    y: e.target.y()
+  })
+}
 
 
 const emitAnchorClick = (direction) => {
-  emit('anchor-click', { boxId: props.config.id, direction });
-};
+  emit('anchor-click', { boxId: props.config.id, direction })
+}
 
 const formatField = (field) => {
-  return `[${field.type}] ${field.name}`;
-};
+  const label = field.type === 'PK' ? 'PK' : field.type === 'FK' ? 'FK' : ''
+  return `${label ? label + '  ' : ''}${field.name}`
+}
+
 
 const anchorX = (dir) => {
-  if (dir === 'left') return 0;
-  if (dir === 'right') return boxWidth;
-  if (dir === 'top' || dir === 'bottom') return boxWidth / 2;
-};
+  if (dir === 'left') return 0
+  if (dir === 'right') return boxWidth
+  return boxWidth / 2
+}
 
 const anchorY = (dir) => {
-  const totalHeight = headerHeight + props.config.fields.length * fieldHeight;
-  if (dir === 'top') return 0;
-  if (dir === 'bottom') return totalHeight;
-  if (dir === 'left' || dir === 'right') return totalHeight / 2;
-};
+  if (dir === 'top') return 0
+  if (dir === 'bottom') return totalHeight.value        // ✅ .value 붙이기
+  return totalHeight.value / 2                          // ✅ .value 붙이기
+}
 
-const editField = (index) => {
-  props.config.fields[index].editing = true;
-};
+const onEditTableName = (e) => {
+  if (e.evt) {
+    e.evt.stopPropagation()
+    emit('start-edit', {
+      boxId: props.config.id,
+      type: 'table',
+      index: null,
+      value: props.config.name,
+      x: e.evt.clientX,
+      y: e.evt.clientY
+    })
+  }
+}
+
+const onEditField = (e, index, field) => {
+  if (e.evt) {
+    e.evt.stopPropagation()
+    emit('start-edit', {
+      boxId: props.config.id,
+      type: 'field',
+      index,
+      value: field.name,
+      fieldType: field.type || '', // 🔥 현재 타입(FK/PK/없음) 같이 넘김
+      x: e.evt.clientX,
+      y: e.evt.clientY
+    })
+  }
+}
+
+function onBoxRightClick(e) {
+  if (e.evt && typeof e.evt.preventDefault === 'function') e.evt.preventDefault();
+  emit('open-context', { box: props.config, event: e.evt });
+}
+
 </script>
+
+<style scoped>
+/* 스타일은 필요 시 추가 */
+</style>

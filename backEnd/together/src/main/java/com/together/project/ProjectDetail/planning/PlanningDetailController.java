@@ -30,6 +30,7 @@ public class PlanningDetailController {
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @RequestPart("type") String type,  // 어떤 항목에 저장할지 지정 (ex: motivation, goal...)
             @RequestPart(value = "text", required = false) String text,
+            @RequestPart(value = "json", required = false) String json, // ⭐️ JSON 파라미터 추가!
             @RequestPart(value = "files", required = false) List<MultipartFile> files
     ) throws IOException {
 
@@ -37,7 +38,7 @@ public class PlanningDetailController {
         Long userId = userDetails.getUser().getUserId();
 
         // 💾 서비스에 저장 위임
-        PlanningDetailResponseDto response = service.savePlanningItem(userId, projectId, type, text, files);
+        PlanningDetailResponseDto response = service.savePlanningItem(userId, projectId, type, text, json, files);
 
         // 📤 클라이언트에 응답 반환
         return ResponseEntity.ok(response);
@@ -50,10 +51,11 @@ public class PlanningDetailController {
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @RequestParam("type") String type,
             @RequestParam(value = "text", required = false) String text,
+            @RequestPart(value = "json", required = false) String json, // ⭐️ JSON 파라미터 추가!
             @RequestPart(value = "files", required = false) List<MultipartFile> files
     ) throws IOException {
         Long userId = userDetails.getUser().getUserId();
-        return ResponseEntity.ok(service.updatePlanningItem(userId, projectId, type, text, files));
+        return ResponseEntity.ok(service.updatePlanningItem(userId, projectId, type, text, json, files));
     }
 
     // ✅ 특정 기획 항목에 첨부된 파일 삭제 API

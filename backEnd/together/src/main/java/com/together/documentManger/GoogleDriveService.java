@@ -76,13 +76,16 @@ public class GoogleDriveService {
 
 
 
-        // 🗃️ DB에 파일 메타데이터 저장
+        // Google Drive "다운로드 전용" URL 직접 생성해서 fileUrl에 저장!
+        String downloadUrl = "https://drive.google.com/uc?export=download&id=" + uploadedFile.getId();
+
+        // 🗃️ DB에 파일 메타데이터 저장 (fileUrl에 반드시 downloadUrl 저장)
         FileEntity fileEntity = FileEntity.builder()
                 .googleDriveFileId(uploadedFile.getId())
                 .fileName(file.getOriginalFilename())
                 .fileType(uploadedFile.getMimeType())   // 예: image/jpeg
                 .fileSize(String.valueOf(uploadedFile.getSize()))
-                .fileUrl(uploadedFile.getWebViewLink())
+                .fileUrl(downloadUrl)  // ⭐️⭐️⭐️ 반드시 이 부분을 downloadUrl로!
                 .user(user)
                 .project(project)
                 .build();
@@ -144,9 +147,8 @@ public class GoogleDriveService {
         // 🔹 파일을 공개로 설정
         makeFilePublic(uploadedFile.getId());
 
-        // 🔹 Google Drive URL 반환
-        return "https://drive.google.com/thumbnail?id=" + uploadedFile.getId(); //무영 수정
-
+        // PDFBox, 브라우저 등 어디서든 바로 이미지를 다운받을 수 있는 URL 반환!
+        return "https://drive.google.com/uc?export=download&id=" + uploadedFile.getId();
     }
 
     public String extractDriveFileId(String fileUrl) {

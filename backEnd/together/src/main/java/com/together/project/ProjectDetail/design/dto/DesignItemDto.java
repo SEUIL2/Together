@@ -19,7 +19,7 @@ public class DesignItemDto {
         this.files = files;
     }
 
-    // ✅ 클래스 다이어그램용 (json 포함)
+    // ✅ json저장용 (json 포함)
     public DesignItemDto(String text, String json, List<FileMetaDto> files) {
         this.text = text;
         this.json = json;

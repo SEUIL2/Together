@@ -142,7 +142,7 @@ public class DevelopDetailService {
         repository.save(detail);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public DevelopAllResponseDto getAllDetails(Long projectId) {
         DevelopDetailEntity detail = getOrCreateDetail(projectId);
 
@@ -175,7 +175,7 @@ public class DevelopDetailService {
             for (MultipartFile file : files) {
                 if (!file.isEmpty()) {
                     String url = driveService.uploadFile(file, userId, projectId).getFileUrl();
-                    metaList.add(new FileMeta(url, LocalDateTime.now()));
+                    metaList.add(new FileMeta(url, LocalDateTime.now(),file.getContentType()));
                 }
             }
         }
@@ -184,13 +184,13 @@ public class DevelopDetailService {
 
     private List<FileMetaDto> toDtoList(List<FileMeta> metas) {
         return metas.stream()
-                .map(meta -> new FileMetaDto(meta.getUrl(), meta.getUploadedAt()))
+                .map(meta -> new FileMetaDto(meta.getUrl(), meta.getUploadedAt(), meta.getFileType()))
                 .toList();
     }
 
     private DevelopItemDto toItem(String text, List<FileMeta> files) {
         List<FileMetaDto> fileDtos = files.stream()
-                .map(f -> new FileMetaDto(f.getUrl(), f.getUploadedAt()))
+                .map(f -> new FileMetaDto(f.getUrl(), f.getUploadedAt(), f.getFileType()))
                 .toList();
         return new DevelopItemDto(text, fileDtos);
     }

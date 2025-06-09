@@ -7,6 +7,7 @@ import com.together.project.Invitation.InvitationRepository;
 import com.together.project.Invitation.dto.InvitationResponseDto;
 import com.together.project.Invitation.dto.TeamMemberDto;
 import com.together.project.ProjectDto.InviteResponseDto;
+import com.together.project.ProjectDto.ProjectMembersDto;
 import com.together.project.ProjectDto.ProjectResponseDto;
 import com.together.project.ProjectDto.ProjectSummaryWithMembersDto;
 import com.together.user.UserEntity;
@@ -309,16 +310,34 @@ public class ProjectService {
         ProjectEntity project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new RuntimeException("프로젝트를 찾을 수 없습니다."));
 
-        return project.getStudents().stream()
-                .map(user -> new TeamMemberDto(
-                        user.getUserId(),
-                        user.getUserName(),
-                        user.getUserEmail(),
-                        user.getRole().name(),
-                        user.getUserColor(),
-                        user.getProfileImageUrl()
-                ))
-                .toList();
+        Long leaderId = project.getLeader() != null ? project.getLeader().getUserId() : null;
+
+        List<TeamMemberDto> members = new ArrayList<>();
+        // 학생 추가
+        for (StudentEntity student : project.getStudents()) {
+            members.add(new TeamMemberDto(
+                    student.getUserId(),
+                    student.getUserName(),
+                    student.getUserEmail(),
+                    "STUDENT",
+                    student.getUserColor(),
+                    student.getProfileImageUrl(),
+                    leaderId != null && leaderId.equals(student.getUserId())
+            ));
+        }
+        // 교수 추가 (★★★)
+        for (ProfessorEntity professor : project.getProfessors()) {
+            members.add(new TeamMemberDto(
+                    professor.getUserId(),
+                    professor.getUserName(),
+                    professor.getUserEmail(),
+                    "PROFESSOR",
+                    null, // 교수는 userColor 없음
+                    professor.getProfileImageUrl(),
+                    false // 교수는 팀장 아님
+            ));
+        }
+        return members;
     }
 
     // 교수 조회
@@ -484,7 +503,7 @@ public class ProjectService {
      */
     private List<TeamMemberDto> buildTeamMemberDtoList(ProjectEntity project) {
         List<TeamMemberDto> members = new ArrayList<>();
-
+        Long leaderId = project.getLeader() != null ? project.getLeader().getUserId() : null;
         // 학생 리스트 구성
         for (StudentEntity student : project.getStudents()) {
             members.add(new TeamMemberDto(
@@ -493,7 +512,8 @@ public class ProjectService {
                     student.getUserEmail(),
                     "STUDENT",
                     student.getUserColor(),
-                    student.getProfileImageUrl()
+                    student.getProfileImageUrl(),
+                    leaderId != null && leaderId.equals(student.getUserId())
             ));
         }
 
@@ -505,10 +525,42 @@ public class ProjectService {
                     professor.getUserEmail(),
                     "PROFESSOR",
                     null, // 교수는 userColor 없음
-                    professor.getProfileImageUrl()
+                    professor.getProfileImageUrl(),
+                    false // ⭐️ 교수는 팀장 아님 (isLeader)
+
             ));
         }
 
+        return members;
+    }
+
+    public List<ProjectMembersDto> getProjectMembersDto(Long projectId) {
+        ProjectEntity project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new RuntimeException("프로젝트를 찾을 수 없습니다."));
+
+        List<ProjectMembersDto> members = new ArrayList<>();
+
+        // 학생
+        Long leaderId = project.getLeader() != null ? project.getLeader().getUserId() : null;
+        for (StudentEntity student : project.getStudents()) {
+            members.add(new ProjectMembersDto(
+                    student.getUserId(),
+                    student.getUserName(),
+                    student.getStudentNumber(),   // studentNumber
+                    "STUDENT",
+                    student.getUserId().equals(leaderId)   // isLeader
+            ));
+        }
+        // 교수
+        for (ProfessorEntity professor : project.getProfessors()) {
+            members.add(new ProjectMembersDto(
+                    professor.getUserId(),
+                    professor.getUserName(),
+                    null,   // 교수는 studentNumber 없음
+                    "PROFESSOR",
+                    false   // 교수는 팀장 아님
+            ));
+        }
         return members;
     }
 }

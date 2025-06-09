@@ -12,4 +12,5 @@ public class TeamMemberDto {
     private String role;      // 역할 (STUDENT / PROFESSOR)
     private String userColor; //유저 색상
     private String profileImageUrl; // null이면 기본이미지 처리
+    private boolean isLeader; //팀장 여부
 }

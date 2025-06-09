@@ -1,0 +1,4 @@
+<!-- circle.svg -->
+<svg width="20" height="24" viewBox="0 0 20 24" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="10" cy="12" r="6" stroke="black" stroke-width="2" fill="white"></circle>
+</svg>

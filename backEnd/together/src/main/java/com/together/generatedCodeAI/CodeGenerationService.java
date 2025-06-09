@@ -63,7 +63,7 @@ public class CodeGenerationService {
 
     // ERD Text 조회
     private String getErdText(ProjectEntity project) {
-        return detailRepo.findByProject(project).orElseThrow().getErdText();
+        return detailRepo.findByProject(project).orElseThrow().getErdJson();
     }
 
     // 코드 저장 처리 (공통 로직)

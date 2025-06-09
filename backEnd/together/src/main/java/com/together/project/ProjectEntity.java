@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.together.comment.CommentController;
 import com.together.comment.CommentEntity;
 import com.together.documentManger.FileEntity;
+import com.together.generatedCodeAI.GeneratedCodeEntity;
 import com.together.meeting.MeetingEntity;
 import com.together.notice.NoticeEntity;
 import com.together.privateNote.PrivateNoteEntity;
@@ -120,4 +121,7 @@ public class ProjectEntity{
     // ✅ 프로젝트에 속한 작업 일정들 (작업/일정 관리용)
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<WorkTaskEntity> workTasks = new ArrayList<>();
+
+    @OneToMany(mappedBy = "project")
+    private List<GeneratedCodeEntity> generatedCodes = new ArrayList<>();
 }

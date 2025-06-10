@@ -14,6 +14,16 @@
         <img :src="tool.icon" :alt="tool.label" class="icon-image" />
         <span class="icon-label">{{ tool.label }}</span>
       </div>
+
+      <!-- 코드 변환 버튼 (클래스 다이어그램에서만) -->
+      <button
+        v-if="currentDiagram === 'class'"
+        class="code-convert-btn"
+        @click="showCodeModal = true"
+      >
+        <span class="code-icon">🧑‍💻</span>
+        코드 변환
+      </button>
     </div>
 
     <!-- 다이어그램 종류 선택 탭 (아래 고정) -->
@@ -27,6 +37,10 @@
         {{ type.label }}
       </button>
     </div>
+
+    <!-- 코드 변환 모달 -->
+    <ClassCodeModal :codeResults="codeResults" v-if="showCodeModal" @close="showCodeModal = false" />
+
   </div>
 </template>
 
@@ -34,10 +48,13 @@
 import { ref, watch, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useToolStore } from '@/stores/toolStore'
+import ClassCodeModal from '@/components/konva/ClassCodeModal.vue' // 모달 import
 
 const router = useRouter()
 const route = useRoute()
 const toolStore = useToolStore()
+
+const showCodeModal = ref(false)
 
 const currentDiagram = ref('class')
 
@@ -68,7 +85,6 @@ onMounted(() => {
   syncTabWithRoute()
 })
 watch(() => route.path, () => {
-  // 라우터 반응성 보장 위해 nextTick 사용
   nextTick(syncTabWithRoute)
 })
 
@@ -80,7 +96,6 @@ const onDiagramTabClick = (type) => {
   }
 }
 
-// --- 나머지 기존 로직 그대로 ---
 const toolButtons = {
   class: [
     {
@@ -119,8 +134,6 @@ const onDragStart = (tool, event) => {
 }
 </script>
 
-
-
 <style scoped>
 .toolbox {
   width: 200px;
@@ -143,7 +156,7 @@ const onDragStart = (tool, event) => {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin-top: auto; /* 🔥 툴박스 하단으로 밀기 */
+  margin-top: auto;
 }
 
 .tab-btn {
@@ -195,4 +208,28 @@ const onDragStart = (tool, event) => {
   color: #333;
 }
 
+.code-convert-btn {
+  margin-top: 12px;
+  grid-column: span 2;
+  padding: 10px 0;
+  background: linear-gradient(90deg, #3d5afe, #00bcd4 70%);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  font-size: 16px;
+  cursor: pointer;
+  transition: 0.18s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  box-shadow: 0 2px 8px #0001;
+}
+.code-convert-btn:hover {
+  filter: brightness(1.08);
+}
+.code-icon {
+  font-size: 18px;
+}
 </style>

@@ -15,15 +15,21 @@
         @wheel="handleWheel"
       >
         <v-layer>
-          <ClassBox
-            v-for="box in classBoxes"
-            :key="box.id"
-            :config="box"
-            @update-position="updateBoxPosition"
-            @anchor-click="handleAnchorClick"
-            @start-edit="startEditing"
-            @contextmenu="handleBoxRightClick"
-          />
+<ClassBox
+  v-for="box in classBoxes"
+  :key="box.id"
+  :config="box"
+  @update-position="updateBoxPosition"
+  @anchor-click="handleAnchorClick"
+  @start-edit="startEditing"
+  @contextmenu="handleBoxRightClick"
+  @update-attribute="updateBoxAttribute"
+  @delete-attribute="deleteBoxAttribute"
+  @update-method="updateBoxMethod"
+  @delete-method="deleteBoxMethod"
+  @update-name="updateBoxName"
+/>
+
 
           <RelationshipArrow
             v-for="rel in relationships"
@@ -58,25 +64,48 @@
         <button @click="deleteClassBox">❌ 클래스 삭제</button>
       </div>
 
-      <input
-        v-if="editing.visible"
-        class="overlay-editor"
-        v-model="editing.value"
-        :style="{ top: editing.y + 'px', left: editing.x + 'px' }"
-        @blur="applyEdit"
-        @keydown.enter="applyEdit"
-      />
+<!-- 수정창 컨테이너: 입력창+삭제버튼을 flex로 묶어서 배치 -->
+<div
+  v-if="editing.visible"
+  class="overlay-editbox"
+  :style="{
+    top: editing.y + 'px',
+    left: editing.x + 'px',
+  }"
+>
+  <input
+    class="editbox-input"
+    v-model="editing.value"
+    @keydown.enter="applyEdit"
+    @blur="applyEdit"
+    autofocus
+    placeholder="내용 입력"
+  />
+  <button
+    v-if="editing.type !== 'name'"
+    class="editbox-delbtn"
+    @mousedown.prevent="deleteEditingItem"
+    title="삭제"
+  >
+    <svg width="20" height="20" viewBox="0 0 20 20">
+      <g>
+        <rect x="6" y="8.7" width="2" height="6" rx="1"/>
+        <rect x="12" y="8.7" width="2" height="6" rx="1"/>
+        <path d="M4.3 6.3h11.4l-1.1 10.1a1 1 0 0 1-1 .9H6.4a1 1 0 0 1-1-.9L4.3 6.3zm3.2-2.1a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v1.1h-5V4.2z" />
+      </g>
+    </svg>
+  </button>
+</div>
 
-<div v-if="saveStatus === 'saving'" class="save-toast saving">저장 중...</div>
-<div v-else-if="saveStatus === 'saved'" class="save-toast saved">저장됨</div>
-<div v-else-if="saveStatus === 'error'" class="save-toast error">저장 실패!</div>
 
+      <div v-if="showSavedMessage" class="save-toast">저장 완료✔️</div>
+      <div v-if="saveError" class="error-toast">저장 실패 ⚠️</div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from 'vue'
+import { ref, watch, onMounted, reactive  } from 'vue'
 import axios from 'axios'
 import { debounce } from 'lodash'
 import { useToolStore } from '@/stores/toolStore'
@@ -108,7 +137,14 @@ const arrowContextMenuVisible = ref(false)
 const contextMenuX = ref(0)
 const contextMenuY = ref(0)
 
-const editing = ref({ visible: false, value: '', x: 0, y: 0, boxId: null, type: '', index: null })
+const editing = reactive({
+  visible: false, // 수정 input 노출 여부
+  boxId: null,
+  type: '',    // 'name' | 'attribute' | 'method'
+  index: null, // attribute/method index, name이면 null
+  x: 0, y: 0,  // input 위치 (Stage 기준)
+  value: ''    // 수정할 값
+})
 const boxContextMenuVisible = ref(false)
 const boxMenuX = ref(0)
 const boxMenuY = ref(0)
@@ -116,7 +152,7 @@ const selectedBoxId = ref(null)
 
 const showSavedMessage = ref(false)
 const saveError = ref(false)
-const saveStatus = ref('idle')
+
 const hideAllMenus = () => {
   arrowContextMenuVisible.value = false
   boxContextMenuVisible.value = false
@@ -208,18 +244,45 @@ const getAnchorPosition = (boxId, direction) => {
   }
 }
 
-const startEditing = ({ boxId, type, index, x, y, value }) => {
-  editing.value = { visible: true, boxId, type, index, x, y, value }
+// ClassBox에서 emit('start-edit', { ... }) 받기
+function startEditing({ boxId, type, index, x, y, value }) {
+  editing.visible = true
+  editing.boxId = boxId
+  editing.type = type
+  editing.index = index
+  editing.x = x
+  editing.y = y
+  editing.value = value
 }
 
-const applyEdit = () => {
-  const { boxId, type, index, value } = editing.value
-  const box = classBoxes.value.find(b => b.id === boxId)
+// 입력 적용 (수정 완료)
+function applyEdit() {
+  if (!editing.visible) return
+  const box = classBoxes.value.find(b => b.id === editing.boxId)
+  if (!box) {
+    editing.visible = false
+    return
+  }
+  if (editing.type === 'name') {
+    box.name = editing.value
+  } else if (editing.type === 'attribute') {
+    box.attributes[editing.index] = editing.value
+  } else if (editing.type === 'method') {
+    box.methods[editing.index] = editing.value
+  }
+  editing.visible = false
+}
+// 속성/메서드 삭제는 휴지통 버튼 따로 띄우거나,
+// 입력창에서 editing.type/boxId/index로 직접 splice해도 됨
+function deleteEditingItem() {
+  const box = classBoxes.value.find(b => b.id === editing.boxId)
   if (!box) return
-  if (type === 'name') box.name = value
-  else if (type === 'attribute') box.attributes[index] = value
-  else if (type === 'method') box.methods[index] = value
-  editing.value.visible = false
+  if (editing.type === 'attribute') {
+    box.attributes.splice(editing.index, 1)
+  } else if (editing.type === 'method') {
+    box.methods.splice(editing.index, 1)
+  }
+  editing.visible = false
 }
 
 const addBendPoint = ({ relId, x, y }) => {
@@ -303,18 +366,51 @@ onMounted(async () => {
     console.error('❌ 초기 데이터 로드 실패:', err)
   }
 })
-const saveErd = debounce(async () => {
-  saveStatus.value = 'saving'
-  try {
-    // ...axios 저장 코드...
-    await axios.post('/design/upload', formData, config)
-    saveStatus.value = 'saved'
-    setTimeout(() => saveStatus.value = 'idle', 1200) // 1.2초 후 숨김
-  } catch (e) {
-    saveStatus.value = 'error'
-    setTimeout(() => saveStatus.value = 'idle', 3000)
+
+
+
+// 속성 추가/수정 (index: null이면 추가, 아니면 수정)
+function updateBoxAttribute({ boxId, index, value }) {
+  const box = classBoxes.value.find(b => b.id === boxId)
+  if (!box) return
+  if (index == null) {
+    box.attributes.push(value || '새 속성')
+  } else {
+    box.attributes[index] = value
   }
-}, 1000)
+}
+
+// 속성 삭제
+function deleteBoxAttribute({ boxId, index }) {
+  const box = classBoxes.value.find(b => b.id === boxId)
+  if (!box) return
+  box.attributes.splice(index, 1)
+}
+
+// 메서드 추가/수정
+function updateBoxMethod({ boxId, index, value }) {
+  const box = classBoxes.value.find(b => b.id === boxId)
+  if (!box) return
+  if (index == null) {
+    box.methods.push(value || '새 메서드')
+  } else {
+    box.methods[index] = value
+  }
+}
+
+// 메서드 삭제
+function deleteBoxMethod({ boxId, index }) {
+  const box = classBoxes.value.find(b => b.id === boxId)
+  if (!box) return
+  box.methods.splice(index, 1)
+}
+
+// 클래스명 수정
+function updateBoxName({ boxId, value }) {
+  const box = classBoxes.value.find(b => b.id === boxId)
+  if (!box) return
+  box.name = value
+}
 
 </script>
 
@@ -329,17 +425,7 @@ const saveErd = debounce(async () => {
   overflow: hidden;
   position: relative;
 }
-.overlay-editor {
-  position: absolute;
-  width: 140px;
-  height: 20px;
-  font-size: 14px;
-  border: 1px solid #ccc;
-  padding: 2px 6px;
-  z-index: 1000;
-  outline: none;
-  background: white;
-}
+
 .context-menu {
   position: absolute;
   background: white;
@@ -351,20 +437,72 @@ const saveErd = debounce(async () => {
 }
 .save-toast {
   position: fixed;
-  top: 24px;
-  right: 36px;
-  z-index: 9000;
-  background: #4b80ff;
-  color: #fff;
+  top: 20px;
+  right: 20px;
+  background: #4caf50;
+  color: white;
+  padding: 8px 16px;
   border-radius: 6px;
-  font-size: 15px;
-  padding: 10px 26px;
-  box-shadow: 0 4px 16px #0022;
-  transition: opacity .3s;
-  pointer-events: none;
+  z-index: 1000;
 }
-.save-toast.saving { background: #87b4ff; }
-.save-toast.saved { background: #31c984; }
-.save-toast.error { background: #ff5555; }
+.error-toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: #e53935;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 6px;
+  z-index: 1000;
+}
+.overlay-editbox {
+  position: absolute;
+  z-index: 1001;
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(44,62,80,0.12), 0 1.5px 6px rgba(44,62,80,0.06);
+  padding: 8px 14px 8px 14px;
+  gap: 10px;
+  border: 1.2px solid #d3dae6;
+  min-width: 150px;
+  min-height: 38px;
+  transition: box-shadow 0.18s, border 0.15s;
+}
+.overlay-editbox:focus-within {
+  box-shadow: 0 8px 24px rgba(44,62,80,0.18), 0 2px 10px rgba(44,62,80,0.11);
+  border-color: #4ba7fa;
+}
+.editbox-input {
+  border: none;
+  outline: none;
+  font-size: 16px;
+  background: transparent;
+  min-width: 110px;
+  padding: 2px 3px;
+  color: #232b39;
+}
+.editbox-input::placeholder {
+  color: #bbb;
+}
+.editbox-delbtn {
+  background: none;
+  border: none;
+  padding: 0 3px;
+  cursor: pointer;
+  transition: filter 0.14s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.editbox-delbtn svg {
+  fill: #ec7e7e;
+  transition: fill 0.2s;
+}
+.editbox-delbtn:hover svg {
+  fill: #d32f2f;
+  filter: drop-shadow(0 0 2px #f58b8b);
+}
 
 </style>

@@ -2,6 +2,8 @@ import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 
+const BASE_URL = 'http://25.12.59.4:3000'  // 여기만 바꾸면 끝!
+
 export default defineConfig({
   plugins: [vue()],
   resolve: {
@@ -12,51 +14,50 @@ export default defineConfig({
   server: {
     proxy: {
       '/auth': {
-        target: 'http://localhost:8081',
+        target: BASE_URL,
         changeOrigin: true,
         secure: false
       },
       '/projects': {
-        target: 'http://localhost:8081',
+        target: BASE_URL,
         changeOrigin: true,
         secure: false
       },
       '/planning': {
-        target: 'http://localhost:8081',
+        target: BASE_URL,
         changeOrigin: true,
         secure: false
       },
       '/notifications': {
-        target: 'http://localhost:8081',
+        target: BASE_URL,
         changeOrigin: true,
         secure: false
       },
       '/notices': {
-        target: 'http://localhost:8081',
+        target: BASE_URL,
         changeOrigin: true,
         secure: false
       },
       '/design': {
-        target: 'http://localhost:8081',
+        target: BASE_URL,
         changeOrigin: true,
         secure: false
       },
       '/work-tasks': {
-        target: 'http://localhost:8081',
+        target: BASE_URL,
         changeOrigin: true,
         secure: false
       },
       '/votes': {
-        target: 'http://localhost:8081',
+        target: BASE_URL,
         changeOrigin: true,
         secure: false
       },
       '/feedbacks': {
-        target: 'http://localhost:8081',
+        target: BASE_URL,
         changeOrigin: true,
         secure: false
       }
-      
     }
   }
 })

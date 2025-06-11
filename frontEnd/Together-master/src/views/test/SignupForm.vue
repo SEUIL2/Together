@@ -153,7 +153,7 @@
     };
   
     try {
-      const response = await axios.post("http://localhost:8081/auth/signup", signupData, {
+      const response = await axios.post("/auth/signup", signupData, {
         headers: { "Content-Type": "application/json" }
       });
       successMessage.value = response.data; // 예: "회원가입이 완료되었습니다."
@@ -168,7 +168,7 @@
     errorMessage.value = "";
   
     try {
-      const response = await axios.get(`http://localhost:8081/check-username?username=${userLoginId.value}`);
+      const response = await axios.get(`/check-username?username=${userLoginId.value}`);
       if (response.data.exists) {
         errorMessage.value = "이미 존재하는 아이디입니다.";
       } else {

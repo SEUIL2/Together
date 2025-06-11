@@ -364,8 +364,6 @@ selectSubItem(helpData[selectedCategory.value][0])
 }
 .notice-list::-webkit-scrollbar {
   display: none; /* Chrome, Safari, Opera */
-
-
 }
 
 .modal-header {

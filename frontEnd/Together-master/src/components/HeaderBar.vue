@@ -95,9 +95,9 @@ import axios from 'axios'
 import NotificationPopup from '@/components/NotificationPopup.vue'
 import ProfileSettingsModal from '@/components/ProfileSettingsModal.vue'
 
-const API_URL = 'http://localhost:8081'
-axios.defaults.baseURL = API_URL
-axios.defaults.withCredentials = true
+// const API_URL = 'http://25.12.59.4:3000'
+// axios.defaults.baseURL = API_URL
+// axios.defaults.withCredentials = true
 
 const router = useRouter()
 const route = useRoute()

@@ -23,7 +23,7 @@ export default {
 
     onMounted(async () => {
       try {
-        const response = await axios.get("http://localhost:8081/auth/me");
+        const response = await axios.get('/auth/me');
         currentUser.value = response.data;
         console.log("로그인된 사용자 정보:", response.data);
       } catch (error) {

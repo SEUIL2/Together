@@ -115,9 +115,9 @@ const emit = defineEmits(['close', 'updated'])
 const router = useRouter()
 
 // Axios 기본 설정
-const API_URL = 'http://localhost:8081'
-axios.defaults.baseURL = API_URL
-axios.defaults.withCredentials = true
+// const API_URL = 'http://25.12.59.4:3000'
+// axios.defaults.baseURL = API_URL
+// axios.defaults.withCredentials = true
 const authHeader = localStorage.getItem('authHeader')
 if (authHeader) axios.defaults.headers.common['Authorization'] = authHeader
 

@@ -13,7 +13,7 @@ public class CustomOpenAiService {
      * 클래스 다이어그램 JSON 기반 코드 생성 요청
      *
      * @param classDiagramJson - 저장된 클래스 다이어그램 JSON
-     * @param language         - 생성할 언어 : "java-SpringBoot", "nodeJS", "python-FastAPI", "csharp", "kotlin" 를 프론트에서 선택하게 만들어야됌
+     * @param language         - 생성할 언어 : "java-SpringBoot", "node.js-express", "python-FastAPI", "csharp", "kotlin" 를 프론트에서 선택하게 만들어야됌
      * @return AI가 응답한 생성된 코드 문자열
      */
     public String generateFromClassDiagram(String classDiagramJson, String language) {
@@ -60,15 +60,6 @@ public class CustomOpenAiService {
      * @return AI에 전달할 prompt 텍스트
      */
     private String buildErdPrompt(String json, String lang) {
-        /*return String.format("""
-            아래는 ERD 정보입니다.
-            이 ERD를 바탕으로 %s 백엔드 코드를 생성해주세요, 소스코드만 작성하면 됩니다.
-
-            JSON:
-            %s
-
-            코드만 응답해주세요.
-            """, lang, json);*/
 
         String instruction;
 
@@ -81,11 +72,15 @@ public class CustomOpenAiService {
             - Repository, Service, Controller는 작성하지 마세요.
             """;
 
-            case "nodejs" -> instruction = """
+            case "node.js-express" -> instruction = """
             아래는 ERD 정보입니다.
-            이 ERD를 기반으로 Node.js에서 사용할 Mongoose 모델 스키마만 작성해주세요.
-            - 각 테이블에 대응하는 Mongoose Schema를 작성해주세요.
-            - 라우터, 컨트롤러, 서비스 등은 포함하지 마세요.
+            이 ERD를 기반으로 **Node.js + Express 환경에서 사용할 Mongoose 모델(schema) 코드**만 생성해주세요.
+            
+            - 각 테이블에 해당하는 **Mongoose 스키마(schema)** 를 정의해주세요.
+            - 필요한 경우 관계 설정(`ref`)도 포함해주세요.
+            - **라우터, 컨트롤러, 서비스 코드 등은 작성하지 마세요.**
+            - **모든 코드는 JavaScript 기반이며 CommonJS 형식(require/module.exports)**을 사용해주세요.
+            - 가독성을 위해 들여쓰기와 주석을 적절히 사용해주세요.
             """;
 
             case "python-fastapi" -> instruction = """

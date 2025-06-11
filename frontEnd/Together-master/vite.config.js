@@ -2,8 +2,7 @@ import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 
-const BASE_URL = 'http://25.12.59.4:3000'  // 여기만 바꾸면 끝!
-
+const BASE_URL = 'http://localhost:8081'  // 여기만 바꾸면 끝!
 export default defineConfig({
   plugins: [vue()],
   resolve: {

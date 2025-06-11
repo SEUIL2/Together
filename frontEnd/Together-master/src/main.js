@@ -12,7 +12,7 @@ axios.defaults.withCredentials    = true
 async function fetchCsrfToken() {
     try {
         // 이 GET 호출이 CsrfFilter를 타며 Set-Cookie 헤더를 내려줍니다
-        await axios.get('http://25.12.59.4:3000/csrf')
+        await axios.get('http://localhost:8081/csrf')
     } catch (e) {
         console.error('CSRF 토큰 받아오기 실패', e)
     }

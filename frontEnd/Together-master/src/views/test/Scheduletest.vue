@@ -52,9 +52,9 @@ const filterMode = ref('all')
 let allRows = []
 
 // Axios 기본 설정 및 인증 헤더
-// axios.defaults.baseURL = 'http://25.12.59.4:3000'
+// axios.defaults.baseURL = 'http://localhost:8081'
 // axios.defaults.withCredentials = true
-axios.defaults.headers.common['Authorization'] = localStorage.getItem('authHeader')
+// axios.defaults.headers.common['Authorization'] = localStorage.getItem('authHeader')
 
 // 1) 프로젝트 정보 로드
 async function fetchProjectInfo() {

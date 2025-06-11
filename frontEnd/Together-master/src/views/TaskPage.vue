@@ -86,9 +86,9 @@ import draggable from 'vuedraggable'
 import 'dhtmlx-gantt/codebase/dhtmlxgantt.css'
 import gantt from 'dhtmlx-gantt'
 
-// axios.defaults.baseURL = 'http://25.12.59.4:3000'
+// axios.defaults.baseURL = 'http://localhost:8081'
 // axios.defaults.withCredentials = true
-axios.defaults.headers.common['Authorization'] = localStorage.getItem('authHeader')
+// axios.defaults.headers.common['Authorization'] = localStorage.getItem('authHeader')
 
 const route = useRoute()
 const isReadOnly = computed(() => route.query.readonly === 'true')

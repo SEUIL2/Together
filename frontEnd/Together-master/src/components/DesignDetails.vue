@@ -20,22 +20,37 @@
 
         <div v-if="item.editing">
           <textarea
-            class="detail-textarea"
-            v-model="item.content"
-            :placeholder="item.placeholder"
-            :readonly="readonly"
+              class="detail-textarea"
+              v-model="item.content"
+              :placeholder="item.placeholder"
+              :readonly="readonly"
           />
+
+          <!-- ✅ Figma 링크 자동 미리보기 (UI 디자인일 때만) -->
+          <div
+              v-if="item.type === 'ui' && isValidFigmaLink(item.content)"
+              class="figma-preview-box"
+          >
+            <iframe
+                :src="`https://www.figma.com/embed?embed_host=share&url=${item.content}`"
+                width="600"
+                height="400"
+                allowfullscreen
+                style="border: 1px solid #ccc; border-radius: 8px; margin-top: 10px;"
+            ></iframe>
+          </div>
+
           <div class="file-upload-container">
             <label class="custom-file-upload" :for="'file-upload-' + index" v-if="!readonly">
               파일 선택
             </label>
             <input
-              :id="'file-upload-' + index"
-              type="file"
-              multiple
-              @change="handleFileUpload($event, index)"
-              hidden
-              v-if="!readonly"
+                :id="'file-upload-' + index"
+                type="file"
+                multiple
+                @change="handleFileUpload($event, index)"
+                hidden
+                v-if="!readonly"
             />
             <div v-if="item.files.length > 0" class="file-list">
               <div class="file-display" v-for="(file, fIndex) in item.files" :key="fIndex">
@@ -157,6 +172,10 @@ function formatDate(dateString) {
   return new Date(dateString).toLocaleString()
 }
 
+function isValidFigmaLink(link) {
+  return link?.includes("figma.com")
+}
+
 async function saveItem(index) {
   if (props.readonly) return
   const item = designItems.value[index]
@@ -196,7 +215,7 @@ onMounted(async () => {
     })
 
     const completedCount = designItems.value.filter(item =>
-      item.content.trim() !== "" || item.files.length > 0
+        item.content.trim() !== "" || item.files.length > 0
     ).length
     emit('updateStepProgress', completedCount)
   } catch (err) {
@@ -208,6 +227,20 @@ onMounted(async () => {
 
 
 <style scoped>
+.figma-preview-box {
+  margin-top: 12px;
+}
+
+.detail-section {
+  background: white;
+  padding: 15px;
+  margin-bottom: 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+/* ...나머지 스타일은 그대로 유지 */
+
 .detail-section {
   background: white;
   padding: 15px;

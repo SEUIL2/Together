@@ -23,7 +23,7 @@ public class CodeGenerationController {
     /**
      * 클래스 다이어그램 기반으로 코드 생성 요청
      * - 프론트에서 전달한 클래스 다이어그램 기반 JSON을 바탕으로
-     * - 선택한 언어("java-SpringBoot", "nodeJS", "python-FastAPI", "csharp", "kotlin")에 대한 백엔드 코드를 생성 - 프론트에서 해당 항목들로 선택할 수 있게 해야됌
+     * - 선택한 언어("java-SpringBoot", "node.js-express", "python-FastAPI", "csharp", "kotlin")에 대한 백엔드 코드를 생성 - 프론트에서 해당 항목들로 선택할 수 있게 해야됌
      * - DB에 자동 저장됨
      */
     @PostMapping("/generate/class")

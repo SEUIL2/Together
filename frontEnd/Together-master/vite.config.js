@@ -42,6 +42,11 @@ export default defineConfig({
         changeOrigin: true,
         secure: false
       },
+      '/develop': {
+        target: BASE_URL,
+        changeOrigin: true,
+        secure: false
+      },
       '/work-tasks': {
         target: BASE_URL,
         changeOrigin: true,

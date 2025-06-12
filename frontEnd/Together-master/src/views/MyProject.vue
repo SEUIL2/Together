@@ -1,7 +1,7 @@
 <template>
   <div class="project-container">
-    <main class="main-content">
-      <section class="project-header">
+    <aside class="sidebar">
+      <section class="card project-info-card">
         <input
           type="file"
           ref="fileInput"
@@ -9,74 +9,77 @@
           style="display: none"
           @change="handleImageChange"
         />
-        <img
-          :src="projectImageUrl || defaultLogo"
-          :key="projectImageUrl"
-          alt="프로젝트 로고"
-          class="project-logo"
-          @click="!isReadOnly && triggerImageUpload()"
-          referrerpolicy="no-referrer"
-        />
+        <div class="logo-wrapper" @click="!isReadOnly && triggerImageUpload()">
+          <img
+            :src="projectImageUrl || defaultLogo"
+            alt="프로젝트 로고"
+            class="project-logo"
+            referrerpolicy="no-referrer"
+          />
+        </div>
 
-        <div class="project-info">
+        <!-- 이름 입력 박스: 가로 중앙 고정, 세로 중앙 정렬 -->
+        <div class="name-container">
           <input
             v-model="projectName"
+            ref="nameRef"
             class="project-name"
             placeholder="프로젝트 이름"
             :readonly="isReadOnly"
+            @input="autoSizeName"
           />
-          <textarea
-            v-model="projectDescription"
-            class="project-description"
-            placeholder="프로젝트에 대한 설명을 적어주세요"
-            :readonly="isReadOnly"
-          ></textarea>
-
-          <div class="team-list">
-            <span class="member" v-for="member in teamMembers" :key="member.id">
-              {{ member.name }}
-            </span>
-          </div>
         </div>
 
-        <div class="vertical-line"></div>
+        <textarea
+          v-model="projectDescription"
+          ref="descRef"
+          class="project-description"
+          placeholder="프로젝트 설명을 입력하세요"
+          :readonly="isReadOnly"
+          @input="autoResizeDescription"
+        ></textarea>
+
+        <div class="team-list">
+          <span class="member" v-for="member in teamMembers" :key="member.id">
+            {{ member.name }}
+          </span>
+        </div>
 
         <div class="progress-container">
-          <div class="progress-number">{{ progress }}%</div>
-          <div class="progress-row">
-            <span class="progress-label">작업 진행도</span>
-            <div class="progress-bar">
-              <div class="progress" :style="{ width: progress + '%' }"></div>
-            </div>
+          <div class="progress-label">작업 진행도 <strong>{{ progress }}%</strong></div>
+          <div class="progress-bar">
+            <div class="progress-fill" :style="{ width: progress + '%' }"></div>
           </div>
         </div>
       </section>
 
-      <section class="project-steps">
+      <section class="card steps-card">
         <div
-          class="step"
+          class="step-btn"
           v-for="(step, idx) in steps"
           :key="idx"
-          @click="selectStep(step.name)"
           :class="{ active: selectedStep === step.name }"
+          @click="selectStep(step.name)"
         >
-          <h4>{{ step.current }}/{{ step.total }}</h4>
-          <p>{{ step.name }}</p>
+          <div class="step-count">{{ step.current }}/{{ step.total }}</div>
+          <div class="step-name">{{ step.name }}</div>
         </div>
       </section>
-<component
-  :is="currentDetailComponent"
-  v-if="selectedStep && projectId"
-  :project-id="projectId"
-  :readonly="isReadOnly"
-  @updateStepProgress="updatePlanningProgress"
-/>
-  <FloatingHelpWidget @open-help="showHelp = true" />
-    <HelpModal v-if="showHelp" @close="showHelp = false" />
+    </aside>
+
+    <main class="detail-panel">
+      <component
+        :is="currentDetailComponent"
+        v-if="selectedStep && projectId"
+        :project-id="projectId"
+        :readonly="isReadOnly"
+        @updateStepProgress="updatePlanningProgress"
+      />
+      <FloatingHelpWidget @open-help="showHelp = true" />
+      <HelpModal v-if="showHelp" @close="showHelp = false" />
     </main>
   </div>
 </template>
-
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
@@ -193,7 +196,7 @@ if (!isReadOnly.value) {
 
 onMounted(async () => {
   try {
-    // 1. 🔍 프로젝트 정보
+    // 프로젝트 정보 불러오기
     let projectRes
     if (isReadOnly.value) {
       projectRes = await axios.get(`/projects/${routeProjectId.value}`, {
@@ -211,9 +214,9 @@ onMounted(async () => {
     projectName.value = projectRes.data.title
     projectImageUrl.value = projectRes.data.imageUrl || ''
 
-    // 2. 🔍 기획 항목
+    // 기획 데이터
     const planningRes = await axios.get('/planning/all', {
-      params: { projectId: projectId.value }, // ✅ 항상 명확히 전달
+      params: { projectId: projectId.value },
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true
     })
@@ -226,29 +229,48 @@ onMounted(async () => {
     }).length
     steps.value.find(s => s.name === '기획').current = planningCount
 
-    // 3. 🔍 설계 항목
+    // 설계 데이터
     const designRes = await axios.get('/design/all', {
       params: { projectId: projectId.value },
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true
     })
+    const designTypes = ['usecase', 'classDiagram', 'sequence', 'ui', 'erd', 'table', 'architecture', 'schedule']
+    const designCount = designTypes.filter(type => {
+      const entry = designRes.data[type]
+      if (!entry) return false
+      const hasText = entry.text && entry.text.trim() !== ''
+      const hasJson = entry.json && entry.json.trim() !== ''
+      const hasFiles = Array.isArray(entry.files) && entry.files.length > 0
+      return hasText || hasJson || hasFiles
+    }).length
+    steps.value.find(s => s.name === '설계').current = designCount
+// 개발 데이터
+const developRes = await axios.get('/develop/all', {
+  params: { projectId: projectId.value },
+  headers: { Authorization: localStorage.getItem('authHeader') },
+  withCredentials: true
+})
 
-const designTypes = [
-  'usecase', 'classDiagram', 'sequence', 'ui',
-  'erd', 'table', 'architecture', 'schedule'
-]
-const designCount = designTypes.filter(type => {
-  const entry = designRes.data[type]
+// 백엔드 DevelopAllResponseDto의 키와 동일하게 맞춤
+const developTypes = ['environment', 'versioning', 'commitRule', 'folder']
+
+const developCount = developTypes.filter(type => {
+  const entry = developRes.data[type]
   if (!entry) return false
+
+  // 텍스트가 있을 때
   const hasText = entry.text && entry.text.trim() !== ''
-  const hasJson = entry.json && entry.json.trim() !== ''
+  // 파일이 있을 때
   const hasFiles = Array.isArray(entry.files) && entry.files.length > 0
-  return hasText || hasJson || hasFiles
+
+  return hasText || hasFiles
 }).length
-steps.value.find(s => s.name === '설계').current = designCount
 
+// steps 배열에서 '개발' 스텝의 current 값 업데이트
+steps.value.find(s => s.name === '개발').current = developCount
 
-    // 4. 🔍 작업 항목
+    // 작업 항목
     const taskRes = await axios.get('/work-tasks/project', {
       params: { projectId: projectId.value },
       headers: { Authorization: localStorage.getItem('authHeader') },
@@ -256,229 +278,183 @@ steps.value.find(s => s.name === '설계').current = designCount
     })
     tasks.value = taskRes.data
 
-    // 5. 🔍 팀원
+    // 팀원
     const memberRes = await axios.get('/projects/members', {
       params: { projectId: projectId.value },
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true
     })
-    teamMembers.value = memberRes.data.map(member => ({
-      name: member.userName,
-      id: member.userId
-    }))
+    teamMembers.value = memberRes.data.map(member => ({ name: member.userName, id: member.userId }))
 
   } catch (err) {
     console.error('❌ 데이터 로딩 실패:', err)
   }
 })
-
 </script>
 
 <style scoped>
-html, body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  overflow: auto;  /* ← ✅ 여기에만 스크롤 허용 */
-}
-
 .project-container {
-  display: block;
-  width: 100%;
-  background-color: #fafafa;
-}
-
-
-.main-content {
-  margin: 0 auto;
-  padding: 20px;
-  max-width: 1100px;
-  width: 100%;
-  /* overflow-y: auto; ← ❌ 이거 지워 */
-}
-
-
-
-.project-header {
   display: flex;
-  align-items: center;
-  background: white;
-  border-radius: 10px;
-  padding: 20px;
-  margin-bottom: 20px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  gap: 10px;
+  padding: 24px;
+  background-color: #fafcff;
 }
-.project-logo {
-  width: 60px;
-  height: 60px;
-  margin-right: 15px;
-}
-.project-info {
+
+.sidebar {
+  width: 320px;
   display: flex;
   flex-direction: column;
-  flex: 1;
   gap: 10px;
 }
-.project-name {
-  font-size: 1.5rem;
-  font-weight: bold;
-  border: none;
-  outline: none;
-  background: none;
-}
-.project-description {
-  height: 20px;
-  border: none;
-  outline: none;
-  background: none;
-  resize: none;
+
+.card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
-.team-list {
-  margin-top: 10px;
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.member {
-  background-color: #eef4ff;
-  color: #3f8efc;
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 0.7rem;
-}
-
-.vertical-line {
-  width: 1px;
-  height: 80px;
-  background-color: #ddd;
-  margin: 0 20px;
-}
-
-.progress-container {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-}
-.progress-number {
-  font-size: 2rem;
-  color: #3f8efc;
-  font-weight: bold;
-  margin: 0;
-}
-.progress-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.progress-label {
-  font-size: 1rem;
-  color: #666;
-  white-space: nowrap;
-}
-.progress-bar {
-  width: 400px;
-  height: 10px;
-  background: #ddd;
-  border-radius: 5px;
-  overflow: hidden;
-}
-.progress {
-  height: 100%;
-  background: #3f8efc;
-}
-
-.project-steps {
-  display: flex;
-  align-items: center;
-  justify-content: space-around;
-  background: white;
-  padding: 15px;
-  margin-bottom: 20px;
-  border-radius: 10px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-}
-.step {
-  cursor: pointer;
-  position: relative;
-  flex: 1;
+.project-info-card {
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding: 0 10px;
-  transition: background-color 0.3s;
 }
-.step h4 {
-  color: #3f8efc;
-  font-size: 1.2rem;
-  margin: 0;
-  margin-bottom: 5px;
-}
-.step p {
-  font-size: 0.9rem;
-  margin: 0;
-}
-.step:not(:last-child)::after {
-  content: "";
-  position: absolute;
-  top: 15%;
-  bottom: 15%;
-  right: 0;
-  width: 1px;
-  background-color: #ddd;
-}
-.step.active {
-  background-color: #e6f0ff;
-  border-radius: 8px;
-}
-.step.active h4,
-.step.active p {
-  font-weight: bold;
-  color: #3f8efc;
-}
-.timeline {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: white;
-  padding: 15px;
-  margin-bottom: 20px;
-  border-radius: 10px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-}
-.timeline-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-.circle {
-  width: 12px;
-  height: 12px;
+
+.logo-wrapper {
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
-  background: #ddd;
+  background: #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  cursor: pointer;
 }
-.circle.active {
-  background: #3f8efc;
-}
-.timeline-text {
-  font-size: 0.8rem;
-  margin-top: 5px;
-}
+
 .project-logo {
   width: 60px;
   height: 60px;
-  border-radius: 10px;
+  border-radius: 50%;
   object-fit: cover;
+}
+
+.name-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 22px;           /* 고정 높이 */
+  margin-bottom: 16px;
+}
+
+.project-name {
+  font-size: 18px;
+  font-weight: 600;
+  border: none;
+  outline: none;
+  background: transparent;
+  width: auto;
+  min-width: 120px;
+  max-width: 100%;
+  white-space: pre;
+  text-align: center;
+}
+
+.project-description {
+  width: 100%;
+  min-height: 70px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 12px;
+  resize: none;
+  margin-bottom: 16px;
+}
+
+.team-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.member {
+  background: #eef6ff;
+  color: #0066cc;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+.progress-container {
+  width: 100%;
+}
+
+.progress-label {
+  font-size: 13px;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: #f2f2f2;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 0;
+}
+
+.progress-fill {
+  height: 100%;
+  background: #4a90e2;
+  transition: width 0.3s ease;
+}
+
+.steps-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.step-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 0;
+  background: #f9f9f9;
+  border-radius: 12px;
   cursor: pointer;
-  transition: 0.2s;
-  padding: 5px;
+  transition: background 0.2s;
+  height: 55px;
 }
 
-.project-logo:hover {
-  opacity: 0.8;
+.step-btn:hover {
+  background: #eef2f8;
 }
 
+.step-btn.active {
+  background: #e6f0ff;
+}
+
+.step-count {
+  font-size: 12px;
+  color: #555;
+  margin-bottom: 4px;
+}
+
+.step-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #222;
+}
+
+.detail-panel {
+  flex: 1;
+  background: #fff;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  min-height: 600px;
+}
 </style>

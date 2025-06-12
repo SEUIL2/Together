@@ -18,6 +18,7 @@
     "@mescius/spread-sheets-resources-ko": "^18.0.6",
     "@mescius/spread-sheets-shapes": "^18.0.6",
     "@mescius/spread-sheets-vue": "^18.0.6",
+    "@tinymce/tinymce-vue": "^6.2.0",
     "@vue/compat": "^3.5.13",
     "axios": "^1.8.2",
     "dayjs": "^1.11.13",

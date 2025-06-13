@@ -177,8 +177,7 @@ async function saveProfile() {
     await axiosInstance.put('/users/profile', {
       userName: userName.value,
       bio: bio.value,
-      profileImageUrl: profileImageUrl.value,
-      theme: theme.value
+      profileImageUrl: profileImageUrl.value
     })
     alert('프로필이 성공적으로 저장되었습니다.')
     emit('updated')

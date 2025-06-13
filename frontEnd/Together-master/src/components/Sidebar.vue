@@ -1,4 +1,4 @@
-<template>
+<!-- <template>
     <aside class="sidebar">
       <h3 class="sidebar-title"></h3>
       <ul class="menu">
@@ -114,4 +114,4 @@
     color: #3f8efc;
   }
   </style>
-  
+   -->

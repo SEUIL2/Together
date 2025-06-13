@@ -1,48 +1,59 @@
 <template>
-  <section class="detail-section">
-    <div class="timeline horizontal">
-      <div class="timeline-item" v-for="(item, index) in devItems" :key="index">
-        <div class="circle" :class="{ active: item.completed }"></div>
-        <p class="timeline-text">{{ item.name }}</p>
-      </div>
+  <section class="planning-details">
+    <!-- 상단 버튼 네비게이션 -->
+    <div class="nav-buttons">
+      <button
+        v-for="(item, idx) in devItems"
+        :key="idx"
+        :class="['nav-btn', { active: selectedIndex === idx, completed: item.completed }]"
+        @click="selectTab(idx)"
+      >
+        <span class="circle" :class="{ active: item.completed }"></span>
+        {{ item.name }}
+      </button>
     </div>
 
-    <div class="detail-inputs">
-      <div class="detail-box" v-for="(item, index) in devItems" :key="index">
-        <h3 class="detail-title" @click="toggleEdit(index)">
-          <div class="circle" :class="{ active: item.completed }"></div>
-          <span class="title-text">{{ item.name }}</span>
-          <i class="edit-icon" @click.stop="toggleEdit(index)">
-            <span v-if="!item.editing">&#9998;</span>
-            <img v-else src="@/assets/saveicon.png" alt="저장" class="save-icon" />
-          </i>
-        </h3>
+    <!-- 에디터/읽기전용 -->
+    <div class="editor-container">
+      <Editor
+        v-if="!readonly"
+        v-model="activeItem.content"
+        :init="editorConfig"
+        :api-key="editorConfig.apiKey"
+        :tinymce-script-src="`https://cdn.tiny.cloud/1/${editorConfig.apiKey}/tinymce/6/tinymce.min.js`"
+        @update:modelValue="onContentChange"
+      />
+      <div v-else class="readonly-content" v-html="activeItem.content"></div>
+    </div>
 
-        <div v-if="item.editing">
-          <div class="file-upload-container">
-            <label class="custom-file-upload" :for="'file-upload-' + index">파일 선택</label>
-            <input
-              :id="'file-upload-' + index"
-              type="file"
-              multiple
-              @change="handleFileUpload($event, index)"
-              hidden
-            />
-            <div v-if="item.files.length > 0" class="file-list">
-              <div class="file-display" v-for="(file, fIndex) in item.files" :key="fIndex">
-                <template v-if="file.isImage">
-                  <div class="image-wrapper">
-                    <img :src="file.data" class="image-preview" @click="openImageModal(file.data)" />
-                    <a :href="file.data" :download="file.name" class="file-name below">{{ file.name }}</a>
-                  </div>
-                </template>
-                <template v-else>
-                  <a :href="file.data" download="첨부파일" class="file-name">{{ file.name }}</a>
-                </template>
-                <span class="upload-date">({{ file.uploadDate }})</span>
-                <button class="delete-file-btn" @click="deleteFile(index, fIndex)">×</button>
-              </div>
-            </div>
+    <!-- 파일 및 이미지 업로드 -->
+    <div class="upload-section">
+      <div v-if="!readonly" class="upload-zone"
+           @click="fileInputRef.click()"
+           @dragover.prevent
+           @drop.prevent="handleDrop">
+        <input type="file" multiple ref="fileInputRef" @change="onFileSelect" hidden />
+        <div class="upload-message">
+          파일 또는 이미지를 드래그 혹은 클릭하여 업로드
+        </div>
+      </div>
+
+      <div class="file-grid">
+        <div v-for="(file, i) in activeItem.files" :key="i" class="file-card">
+          <button v-if="!readonly" class="file-delete-btn" @click.stop="removeFile(i)">×</button>
+          <template v-if="isImage(file.url)">
+            <img :src="toDrivePreview(file.url)" class="file-thumb" @click="openImageModal(file.url)" />
+          </template>
+          <template v-else>
+            <div class="file-icon">📄</div>
+          </template>
+          <div class="file-info">
+            <a
+              :href="file.url"
+              download
+              :title="extractFileName(file.url)"
+            >{{ extractFileName(file.url) }}</a>
+            <span class="file-date">{{ formatDate(file.uploadedAt) }}</span>
           </div>
         </div>
       </div>
@@ -59,273 +70,240 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
+import Editor from '@tinymce/tinymce-vue'
+import axios from 'axios'
 
-const devItems = ref([
-  { name: "개발 환경 설정", completed: false, files: [], editing: false },
-  { name: "버전 관리 전략", completed: false, files: [], editing: false },
-  { name: "커밋 메시지 규칙", completed: false, files: [], editing: false },
-  { name: "폴더 구조 및 파일 규칙", completed: false, files: [], editing: false }
+const fileInputRef = ref(null)
+const props = defineProps({ projectId: Number, readonly: Boolean })
+const emit = defineEmits(['updateStepProgress'])
+
+// 타입 이름을 백엔드 엔티티 필드명에 맞춤
+const devItems = reactive([
+  { name: '개발 환경 설정',      type: 'environment',  content: '', files: [], completed: false },
+  { name: '버전 관리 전략',      type: 'versioning',   content: '', files: [], completed: false },
+  { name: '커밋 메시지 규칙',    type: 'commitRule',   content: '', files: [], completed: false },
+  { name: '폴더 구조 및 파일 규칙', type: 'folder',      content: '', files: [], completed: false }
 ])
+
+const selectedIndex = ref(0)
+const activeItem = computed(() => devItems[selectedIndex.value])
 
 const showModal = ref(false)
 const modalImageSrc = ref("")
 
-watch(
-  devItems,
-  (newItems) => {
-    newItems.forEach(item => {
-      item.completed = item.files.length > 0
-    })
-  },
-  { deep: true }
-)
+const editorConfig = {
+  apiKey: '96jqrzcetlm5lwov39n7p1j9urvurkwl8ya18w22y816w94l',
+  height: 500,
+  language: 'ko_KR',
+  resize: false,
+  menubar: false,
+  branding: false,
+  statusbar: false,
+  paste_data_images: true,
+  file_picker_types: 'image',
+  plugins: 'lists link image table code autosave fullscreen',
+  toolbar: 'undo redo | bold italic underline | bullist numlist | table | image | code | fullscreen',
+  automatic_uploads: true,
 
-function toggleEdit(index) {
-  devItems.value[index].editing = !devItems.value[index].editing
-}
-
-function handleFileUpload(event, index) {
-  const selectedFiles = event.target.files
-  if (selectedFiles && selectedFiles.length > 0) {
-    for (let i = 0; i < selectedFiles.length; i++) {
-      const file = selectedFiles[i]
-      const reader = new FileReader()
-      reader.onload = function (e) {
-        const uploadDate = new Date().toLocaleString()
-        const isImage = file.type.startsWith("image/")
-        devItems.value[index].files.push({
-          name: file.name,
-          data: e.target.result,
-          uploadDate,
-          isImage
-        })
+  file_picker_callback: (callback, value, meta) => {
+    if (meta.filetype === 'image') {
+      const input = document.createElement('input')
+      input.type = 'file'
+      input.accept = 'image/*'
+      input.onchange = () => {
+        const file = input.files[0]
+        const reader = new FileReader()
+        reader.onload = e => callback(e.target.result, { alt: file.name })
+        reader.readAsDataURL(file)
       }
-      reader.readAsDataURL(file)
+      input.click()
     }
-    event.target.value = ""
+  },
+
+  images_upload_handler: async (blobInfo, success, failure) => {
+    try {
+      const form = new FormData()
+      form.append('type', activeItem.value.type)
+      form.append('projectId', props.projectId)
+      form.append('files', blobInfo.blob(), blobInfo.filename())
+
+      const res = await axios.post('/develop/upload', form, {
+        headers: { Authorization: localStorage.getItem('authHeader') },
+        withCredentials: true
+      })
+
+      const url = res.data.files[0].url
+      success(url)
+      activeItem.value.files.push({ url, uploadedAt: new Date().toISOString() })
+      markCompleted()
+    } catch {
+      failure('Upload error')
+    }
   }
 }
 
-function deleteFile(itemIndex, fileIndex) {
-  devItems.value[itemIndex].files.splice(fileIndex, 1)
+function selectTab(idx) {
+  selectedIndex.value = idx
 }
 
-function openImageModal(imageSrc) {
-  modalImageSrc.value = imageSrc
+function markCompleted() {
+  activeItem.value.completed =
+    Boolean(activeItem.value.content.trim()) ||
+    activeItem.value.files.length > 0
+  emit('updateStepProgress',
+    devItems.filter(i => i.completed).length
+  )
+}
+
+let saveTimeout
+function onContentChange(val) {
+  // **빈 문자열도 content에 기록**
+  activeItem.value.content = val
+  markCompleted()
+
+  clearTimeout(saveTimeout)
+  saveTimeout = setTimeout(async () => {
+    const form = new FormData()
+    form.append('type', activeItem.value.type)
+    // **항상 text 필드에 content를 담아서 보냄**
+    form.append('text', activeItem.value.content)
+    form.append('projectId', props.projectId)
+
+    try {
+      await axios.put('/develop/update', form, {
+        headers: { Authorization: localStorage.getItem('authHeader') },
+        withCredentials: true
+      })
+    } catch (err) {
+      console.error('자동 저장 실패', err)
+    }
+  }, 800)
+}
+
+function onFileSelect(e) {
+  uploadFiles(Array.from(e.target.files))
+}
+function handleDrop(e) {
+  uploadFiles(Array.from(e.dataTransfer.files))
+}
+function uploadFiles(files) {
+  const form = new FormData()
+  form.append('type', activeItem.value.type)
+  form.append('projectId', props.projectId)
+  files.forEach(f => form.append('files', f))
+
+  axios.post('/develop/upload', form, {
+    headers: { Authorization: localStorage.getItem('authHeader') },
+    withCredentials: true
+  })
+    .then(res => {
+      activeItem.value.files.push(...res.data.files)
+      markCompleted()
+    })
+    .catch(err => {
+      console.error('파일 업로드 오류', err)
+      alert('파일 업로드에 실패했습니다.')
+    })
+}
+
+async function removeFile(idx) {
+  const file = activeItem.value.files[idx]
+  try {
+    await axios.delete('/develop/delete-file', {
+      params: {
+        type: activeItem.value.type,
+        fileUrl: file.url
+      },
+      headers: { Authorization: localStorage.getItem('authHeader') },
+      withCredentials: true
+    })
+    activeItem.value.files.splice(idx, 1)
+    markCompleted()
+  } catch (err) {
+    console.error('파일 삭제 오류', err)
+    alert('파일 삭제에 실패했습니다.')
+  }
+}
+
+onMounted(async () => {
+  try {
+    const res = await axios.get('/develop/all', {
+      params: { projectId: props.projectId },
+      headers: { Authorization: localStorage.getItem('authHeader') },
+      withCredentials: true
+    })
+
+    devItems.forEach(item => {
+      // 백엔드에서 json 필드는 없으므로 text나 json 모두 담기
+      let html = res.data[item.type]?.json || res.data[item.type]?.text || ''
+      item.content = convertDownloadToView(html)
+      item.files   = res.data[item.type]?.files || []
+      item.completed =
+        Boolean(item.content.trim()) || item.files.length > 0
+    })
+    emit('updateStepProgress', devItems.filter(i => i.completed).length)
+  } catch (err) {
+    console.error('데이터 로딩 오류', err)
+  }
+})
+
+function convertDownloadToView(html) {
+  return html.replace(
+    /https:\/\/drive\.google\.com\/uc\?export=download&id=([a-zA-Z0-9_-]+)/g,
+    'https://drive.google.com/uc?export=view&id=$1'
+  )
+}
+const extractFileName = url => url.split('/').pop()
+const isImage = url =>
+  /\.(jpe?g|png|gif|bmp|webp)$/i.test(url) ||
+  url.includes('drive.google.com/')
+function toDrivePreview(url) {
+  if (url.includes('uc?export=download')) {
+    return url.replace('export=download', 'export=view')
+  }
+  return url
+}
+function openImageModal(url) {
+  modalImageSrc.value = url
   showModal.value = true
 }
-
 function closeModal() {
   showModal.value = false
 }
+const formatDate = date => new Date(date).toLocaleString()
 </script>
 
 <style scoped>
-.detail-section {
-  background: white;
-  padding: 15px;
-  margin-bottom: 20px;
-  border-radius: 10px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-}
+.planning-details { display: flex; flex-direction: column; gap: 10px; }
+.nav-buttons { display: flex; gap: 8px; }
+.nav-btn { display: flex; align-items: center; gap: 6px; padding: 8px 16px; border: 1px solid #ccc; border-radius: 12px; background: #fff; cursor: pointer; transition: background .2s, border-color .2s; }
+.nav-dot { width: 8px; height: 8px; border: 2px solid #4a90e2; border-radius: 50%; }
+.nav-dot.filled, .nav-btn.active .nav-dot, .nav-dot.selected { background: #4a90e2; }
+.nav-btn.active { background: #4a90e2; color: #fff; border-color: #4a90e2; }
+.nav-btn.completed:not(.active) { border-color: #4a90e2; }
+.editor-container { min-height: 320px; }
 
-.timeline.horizontal {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin: 20px 0;
-}
-
-.timeline-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.circle {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: #fff;
-  border: 2px solid #ddd;
-  margin-bottom: 0px;
-  margin-right: 8px;
-  transition: background-color 0.3s, border-color 0.3s;
-}
-
-.circle.active {
-  background: #3f8efc;
-  border-color: #3f8efc;
-}
-
-.timeline-text {
-  font-size: 0.8rem;
-}
-
-.detail-inputs {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.detail-box {
-  background: #f9f9f9;
-  border: 1px solid #ddd;
-  border-radius: 5px;
-  padding: 10px;
-}
-
-.detail-title {
-  margin: 4px 0 5px 0;
-  font-size: 1rem;
-  color: #333;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-}
-
-.title-text {
-  flex-grow: 1;
-  text-align: left;
-}
-
-.edit-icon {
-  font-size: 1.2rem;
-  cursor: pointer;
-  margin-left: 10px;
-}
-
-.save-icon {
-  width: 1em;
-  height: 1em;
-  vertical-align: middle;
-}
-
-.file-upload-container {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
-}
-
-.custom-file-upload {
-  display: inline-block;
-  padding: 4px 12px;
-  cursor: pointer;
-  background-color: #3f8efc;
-  color: #fff;
-  border-radius: 4px;
-  transition: background-color 0.3s;
-}
-
-.custom-file-upload:hover {
-  background-color: #2869c5;
-}
-
-.file-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.file-display {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.image-wrapper {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.image-preview {
-  width: 200px;
-  height: auto;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.file-name {
-  font-size: 0.9rem;
-  color: #3f8efc;
-  text-decoration: underline;
-  cursor: pointer;
-}
-
-.file-name.below {
-  margin-top: 4px;
-  font-size: 0.85rem;
-}
-
-.upload-date {
-  font-size: 0.8rem;
-  color: #888;
-}
-
-.delete-file-btn {
-  background-color: #ff4d4f;
-  color: white;
-  border: none;
-  padding: 0px 4px;
-  border-radius: 50%;
-  cursor: pointer;
-  font-size: 1rem;
-  line-height: 1;
-  transition: background-color 0.3s;
-}
-
-.delete-file-btn:hover {
-  background-color: #ff7875;
-}
-
-.edit-icon img {
-  width: 20px;
-  height: 20px;
-  vertical-align: middle;
-  cursor: pointer;
-}
-
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
+.upload-section { display: flex; flex-direction: column; gap: 0px; }
+.upload-zone { border: 2px dashed #4a90e2; border-radius: 8px; padding: 20px; text-align: center; color: #4a90e2; font-size: 14px; cursor: pointer; height: 60px;}
+.upload-zone:hover { background: rgba(74, 144, 226, 0.1); }
+.file-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 16px; }
+.file-card { position: relative; background: #fff; border: 1px solid #eee; border-radius: 8px; padding: 8px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+.file-delete-btn { position: absolute; top: 4px; right: 4px; background: #ff5c5c; color: #fff; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; font-size: 14px; line-height: 24px; padding: 0; }
+.file-thumb { width: 100%; height: 80px; object-fit: cover; border-radius: 4px; margin-bottom: 8px; }
+.file-icon { font-size: 48px; color: #ccc; margin-bottom: 8px; }
+.file-info { font-size: 12px; color: #333; display: flex; flex-direction: column; gap: 4px; }
+.file-info a {
+  display: block;
   width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.6);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.modal-content {
-  position: relative;
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  max-width: 80%;
-  max-height: 90%;
-  overflow: auto;
-}
-
-.modal-image {
-  max-width: 100%;
-  max-height: 80vh;
-  border-radius: 6px;
-}
-
-.modal-close {
-  position: absolute;
-  top: 8px;
-  right: 12px;
-  background: transparent;
-  border: none;
-  font-size: 2rem;
-  color: #999;
+  max-width: 140px;         /* 카드 너비에 맞게 조정 */
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: #4a90e2;
+  text-decoration: none;
   cursor: pointer;
 }
+.file-date { font-size: 10px; color: #999; }
+.readonly-content { padding: 12px; border: 1px solid #eee; border-radius: 8px; background: #f9f9f9; min-height: 200px; }
 </style>

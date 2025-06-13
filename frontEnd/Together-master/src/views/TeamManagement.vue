@@ -107,9 +107,13 @@ async function fetchCurrentUser() {
 // 팀원 및 학번, 프로필 이미지 로드
 async function fetchTeamMembers() {
   try {
+    const config = { withCredentials: true }
+    if (!isNaN(projectId)) {
+      config.params = { projectId }
+    }
     const { data } = await axios.get(
-        '/projects/members',  // ← ✅ 수정된 엔드포인트
-        { withCredentials: true }
+        '/projects/members',
+        config
     )
     teamMembers.value = data.map(member => ({
       userId: member.userId,

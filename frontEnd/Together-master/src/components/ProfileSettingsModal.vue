@@ -47,7 +47,7 @@
             <div class="color-picker-section">
               <div
                   class="color-circle"
-                  :style="{ backgroundColor: theme }"
+                  :style="{ backgroundColor: userColor }"
                   @click="toggleColorMenu"
               ></div>
               <div v-if="showColorMenu" class="color-menu">
@@ -127,7 +127,7 @@ const userName = ref('')
 const userEmail = ref('')
 const bio = ref('')
 const profileImageUrl = ref('')
-const theme = ref('#cccccc')
+const userColor = ref('#cccccc')
 const defaultImage = '/default-profile.png'
 const fileInput = ref(null)
 
@@ -158,7 +158,14 @@ async function fetchProfile() {
     userEmail.value        = data.userEmail
     bio.value              = data.bio
     profileImageUrl.value  = data.imageUrl ?? data.profileImageUrl
-    theme.value            = data.theme || theme.value
+    // 유저 색상 조회
+    try {
+      const memberRes = await axiosInstance.get('/projects/members')
+      const me = memberRes.data.find(m => m.userId === userId.value)
+      userColor.value = me?.userColor || userColor.value
+    } catch (colorErr) {
+      console.error('색상 조회 실패', colorErr)
+    }
   } catch (err) {
     console.error('프로필 조회 실패', err)
     if (err.response?.status === 401 || err.response?.status === 403) {
@@ -170,6 +177,8 @@ async function fetchProfile() {
     }
   }
 }
+
+
 
 // 프로필 저장
 async function saveProfile() {
@@ -231,7 +240,7 @@ async function selectColor(color) {
         null,
         { params: { colorHex: color } }
     )
-    theme.value = color
+    userColor.value = color
     showColorMenu.value = false
     alert('색상이 성공적으로 저장되었습니다.')
   } catch (err) {

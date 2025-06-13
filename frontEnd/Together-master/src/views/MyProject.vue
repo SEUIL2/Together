@@ -55,8 +55,8 @@
 
       <section class="card steps-card">
         <div
-          class="step-btn"
-          v-for="(step, idx) in steps"
+        class="step-btn"
+        v-for="(step, idx) in steps"
           :key="idx"
           :class="{ active: selectedStep === step.name }"
           @click="selectStep(step.name)"
@@ -65,6 +65,13 @@
           <div class="step-name">{{ step.name }}</div>
         </div>
       </section>
+      <button
+          v-if="!isReadOnly"
+          class="leave-btn"
+          @click="leaveProject"
+      >
+        프로젝트 탈퇴
+      </button>
     </aside>
 
     <main class="detail-panel">
@@ -149,6 +156,23 @@ const progress = computed(() => {
 
 function selectStep(stepName) {
   selectedStep.value = stepName
+}
+
+async function leaveProject() {
+  if (!projectId.value) return
+  const confirmLeave = confirm('정말 프로젝트에서 탈퇴하시겠습니까?')
+  if (!confirmLeave) return
+  try {
+    await axios.delete('/projects/leave', {
+      headers: { Authorization: localStorage.getItem('authHeader') },
+      withCredentials: true
+    })
+    alert('프로젝트에서 탈퇴되었습니다.')
+    window.location.href = '/'
+  } catch (err) {
+    console.error('프로젝트 탈퇴 실패:', err)
+    alert('프로젝트 탈퇴 중 오류가 발생했습니다.')
+  }
 }
 
 const currentDetailComponent = computed(() => {
@@ -456,5 +480,18 @@ steps.value.find(s => s.name === '개발').current = developCount
   padding: 24px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   min-height: 600px;
+}
+.leave-btn {
+  width: 100%;
+  margin-top: 10px;
+  padding: 8px 0;
+  background: #f44336;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.leave-btn:hover {
+  background: #d32f2f;
 }
 </style>

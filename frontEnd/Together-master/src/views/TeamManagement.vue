@@ -1,3 +1,8 @@
+
+frontEnd/Together-master/src/views/TeamManagement.vue
++63
+-14
+
 <template>
   <div class="team-management-container">
     <main class="main-content">
@@ -16,7 +21,7 @@
         </tr>
         </thead>
         <tbody>
-        <tr v-for="(member, idx) in teamMembers" :key="member.userId">
+        <tr v-for="member in studentMembers" :key="member.userId">
           <td>
             <img
                 :src="member.profileImageUrl || defaultAvatar"
@@ -27,12 +32,16 @@
           <td>{{ member.studentNumber }}</td>
           <td>
             <div class="name-with-avatar">
-              <div class="avatar-wrapper" @click="toggleColorPicker(idx)">
+              <div
+                  v-if="member.role === 'STUDENT'"
+                  class="avatar-wrapper"
+                  @click="toggleColorPicker(member)"
+              >
                 <span class="avatar" :style="{ backgroundColor: member.avatarColor }"></span>
               </div>
               <span>{{ member.userName }}</span>
               <div
-                  v-if="member.showColorPicker"
+                  v-if="member.role === 'STUDENT' && member.showColorPicker"
                   class="color-picker-menu"
                   @click.stop
               >
@@ -41,7 +50,7 @@
                     :key="color"
                     class="color-option"
                     :style="{ backgroundColor: color }"
-                    @click="setColor(idx, color)"
+                    @click="setColor(member, color)"
                 ></div>
               </div>
             </div>
@@ -49,6 +58,26 @@
           <td>
             <button class="evaluate-btn" @click="evaluateMember(member)">메모</button>
           </td>
+        </tr>
+        </tbody>
+      </table>
+
+      <h3 class="professor-section-title">담당교수</h3>
+      <table class="team-management-table">
+        <thead>
+        <tr>
+          <th>사진</th>
+          <th>이메일</th>
+          <th>이름</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr v-for="prof in professorMembers" :key="prof.userId">
+          <td>
+            <img :src="prof.profileImageUrl || defaultAvatar" alt="프로필" class="profile-img" />
+          </td>
+          <td>{{ prof.userEmail }}</td>
+          <td>{{ prof.userName }}</td>
         </tr>
         </tbody>
       </table>
@@ -71,7 +100,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import axios from 'axios'
 import { useRoute } from 'vue-router'
 import InviteModal from './InviteModal.vue'
@@ -92,6 +121,13 @@ const teamMembers = ref([])
 const showInviteModal = ref(false)
 const showMemoModal = ref(false)
 const memoTarget = ref(null)
+
+const studentMembers = computed(() =>
+    teamMembers.value.filter(m => m.role === 'STUDENT')
+)
+const professorMembers = computed(() =>
+    teamMembers.value.filter(m => m.role === 'PROFESSOR')
+)
 
 // 내 정보 불러오기
 async function fetchCurrentUser() {
@@ -117,10 +153,12 @@ async function fetchTeamMembers() {
     )
     teamMembers.value = data.map(member => ({
       userId: member.userId,
+      role: member.role,
       studentNumber: member.studentNumber || '',
+      userEmail: member.userEmail,
       userName: member.userName,
       profileImageUrl: member.profileImageUrl || null,
-      avatarColor: getRandomColor(),
+      avatarColor: member.userColor || getRandomColor(),
       showColorPicker: false,
       memo: '',
       noteId: null
@@ -159,7 +197,9 @@ function openInviteModal() {
 function handleInvite(invited) {
   teamMembers.value.push({
     userId: invited.userId,
+    role: invited.role,
     studentNumber: invited.studentNumber || invited.loginId,
+    userEmail: invited.userEmail,
     userName: invited.userName,
     profileImageUrl: null,
     avatarColor: getRandomColor(),
@@ -175,16 +215,19 @@ function evaluateMember(member) {
   showMemoModal.value = true
 }
 
-function toggleColorPicker(idx) {
-  teamMembers.value = teamMembers.value.map((m, i) => ({
+function toggleColorPicker(member) {
+  teamMembers.value = teamMembers.value.map(m => ({
     ...m,
-    showColorPicker: i === idx ? !m.showColorPicker : false
+    showColorPicker: m.userId === member.userId ? !m.showColorPicker : false
   }))
 }
 
-function setColor(idx, color) {
-  teamMembers.value[idx].avatarColor = color
-  teamMembers.value[idx].showColorPicker = false
+function setColor(member, color) {
+  const target = teamMembers.value.find(m => m.userId === member.userId)
+  if (target) {
+    target.avatarColor = color
+    target.showColorPicker = false
+  }
 }
 
 function getRandomColor() {
@@ -319,5 +362,12 @@ onMounted(async () => {
 .evaluate-btn:hover {
   background-color: #3f8efc;
   color: #fff;
+}
+
+.professor-section-title {
+  margin-top: 30px;
+  margin-bottom: 10px;
+  font-size: 1.1rem;
+  font-weight: bold;
 }
 </style>

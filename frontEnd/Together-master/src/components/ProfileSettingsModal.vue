@@ -153,7 +153,7 @@ async function fetchProfile() {
   try {
     const res = await axiosInstance.get('/users/profile')
     const data = res.data
-    userId.value           = data.userId ?? data.id
+    userId.value           = data.userId
     userName.value         = data.userName
     userEmail.value        = data.userEmail
     bio.value              = data.bio
@@ -227,8 +227,8 @@ async function selectColor(color) {
     return
   }
   try {
-    await axios.put(
-        `/members/${userId.value}/color`,
+    await axiosInstance.put(
+        `/projects/members/${userId.value}/color`,
         null,
         { params: { colorHex: color } }
     )

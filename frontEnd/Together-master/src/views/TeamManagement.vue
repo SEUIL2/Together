@@ -1,8 +1,3 @@
-
-frontEnd/Together-master/src/views/TeamManagement.vue
-+63
--14
-
 <template>
   <div class="team-management-container">
     <main class="main-content">
@@ -17,6 +12,7 @@ frontEnd/Together-master/src/views/TeamManagement.vue
           <th>사진</th>
           <th>학번</th>
           <th>이름</th>
+          <th>역할</th>
           <th>메모</th>
         </tr>
         </thead>
@@ -55,6 +51,7 @@ frontEnd/Together-master/src/views/TeamManagement.vue
               </div>
             </div>
           </td>
+          <td>{{ member.isLeader ? '팀장' : '팀원' }}</td>
           <td>
             <button class="evaluate-btn" @click="evaluateMember(member)">메모</button>
           </td>
@@ -161,7 +158,8 @@ async function fetchTeamMembers() {
       avatarColor: member.userColor || getRandomColor(),
       showColorPicker: false,
       memo: '',
-      noteId: null
+      noteId: null,
+      isLeader: member.isLeader ?? member.leader
     }))
     // 개인 메모 로드
     await Promise.all(
@@ -205,7 +203,8 @@ function handleInvite(invited) {
     avatarColor: getRandomColor(),
     showColorPicker: false,
     memo: '',
-    noteId: null
+    noteId: null,
+    isLeader: member.isLeader ?? member.leader
   })
   showInviteModal.value = false
 }

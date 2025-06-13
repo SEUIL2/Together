@@ -43,7 +43,7 @@ public class FeedbackEntity {
     @JoinColumn(name = "author_id")
     private UserEntity author; //작성자
 
-    @OneToMany(mappedBy = "feedback")
+    @OneToMany(mappedBy = "feedback", cascade = CascadeType.ALL)
     private List<FeedbackReadEntity> feedbacks = new ArrayList<>(); //피드백 읽었는지에 대한 엔티티
 
     private Boolean isRead = false;

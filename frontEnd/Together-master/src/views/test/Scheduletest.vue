@@ -84,7 +84,7 @@ async function fetchTeamMembers() {
   try {
     const { data } = await axios.get('/projects/members', { params: { projectId: projectId.value } })
     rawTeamMembers.value = data
-    teamMembers.value = data.map(u => ({ key: u.userName, label: u.userName, userId: u.userId }))
+    teamMembers.value = data.map(u => ({ key: u.userName, label: u.userName, userId: u.userId, color: u.userColor }))
   } catch (e) {
     console.error('팀원 정보 가져오기 실패', e)
   }
@@ -95,12 +95,14 @@ function flattenTask(task, parent = null) {
   const start = new Date(task.startDate)
   const end = new Date(task.endDate)
   const duration = Math.ceil((end - start) / (1000 * 60 * 60 * 24))
+  const member = rawTeamMembers.value.find(u => u.userName === task.assignedUserName)
   const row = [{
     id: task.id,
     text: task.title,
     start_date: task.startDate,
     duration,
     assignee: task.assignedUserName,
+    color: member?.userColor || null,
     parent
   }]
   if (task.childTasks) task.childTasks.forEach(c => row.push(...flattenTask(c, task.id)))
@@ -198,10 +200,11 @@ onMounted(async () => {
       const startStr = gantt.date.date_to_str("%Y-%m-%d")(task.start_date)
       const endStr   = gantt.date.date_to_str("%Y-%m-%d")(gantt.calculateEndDate({ start_date: task.start_date, duration: task.duration }))
       const sel      = rawTeamMembers.value.find(u => u.userName === task.assignee)
+      if (sel?.userColor) task.color = sel.userColor
       const payload  = { title: task.text, startDate: startStr, endDate: endStr, assignedUserId: sel?.userId ?? null, status: 'PENDING', parentTaskId: task.parent || null }
       axios.post('/work-tasks', payload)
-        .then(({ data }) => gantt.changeTaskId(tempId, data.id))
-        .catch(err => { console.error('작업 생성 실패', err); gantt.deleteTask(tempId) })
+          .then(({ data }) => gantt.changeTaskId(tempId, data.id))
+          .catch(err => { console.error('작업 생성 실패', err); gantt.deleteTask(tempId) })
     })
 
     gantt.attachEvent("onAfterTaskDrag", (id, mode) => {

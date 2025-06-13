@@ -258,7 +258,7 @@ async function deleteAccount() {
     await axiosInstance.delete('/auth/me')
     alert('회원 탈퇴가 완료되었습니다. 그동안 이용해 주셔서 감사합니다.')
     localStorage.removeItem('authHeader')
-    router.push('/')
+    router.push({ name: 'MainPage' })
   } catch (err) {
     console.error('회원 탈퇴 실패', err)
     alert('회원 탈퇴 중 오류가 발생했습니다.')

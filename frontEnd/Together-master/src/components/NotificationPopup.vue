@@ -25,8 +25,8 @@
           <div class="time">{{ formatTime(invite.createdAt) }}</div>
           <div class="actions">
             <button
-                class="accept-btn"
-                @click.stop="accept(invite.invitationId)"
+            class="accept-btn"
+            @click.stop="accept(invite)"
             >
               수락
             </button>
@@ -45,11 +45,13 @@
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { useRouter } from 'vue-router'
 import axios from 'axios'
 
 const showNotifications = ref(false)
 const invitations = ref([])
 const wrapperRef = ref(null)
+const router = useRouter()
 
 // 페이지 로딩 직후에도 unread-dot 표시를 위해, mounted 시 한 번만 알림 목록을 가져옵니다.
 async function fetchInvitations() {
@@ -77,16 +79,39 @@ function toggleNotifications() {
   }
 }
 
-async function accept(invitationId) {
+async function accept(invitation) {
   try {
     await axios.post(
-        `/projects/invite/${invitationId}/accept`,
+        `/projects/invite/${invitation.invitationId}/accept`,
         null,
         { withCredentials: true }
     )
     invitations.value = invitations.value.filter(
-        inv => inv.invitationId !== invitationId
+        inv => inv.invitationId !== invitation.invitationId
     )
+
+    const { data: me } = await axios.get('/auth/me', {
+      withCredentials: true
+    })
+    const roles = Array.isArray(me.roles) ? me.roles : []
+    const isProfessor = roles.some(r => r.authority === 'ROLE_PROFESSOR')
+
+    if (isProfessor) {
+      const res = await axios.get('/projects/my-projects/sorted-by-created', {
+        withCredentials: true
+      })
+      const projects = Array.isArray(res.data) ? res.data : []
+      const matched = projects.find(p => p.title === invitation.projectTitle)
+      if (matched && matched.projectId) {
+        router.push(
+            `/professor/project/${matched.projectId}?readonly=true&projectTitle=${encodeURIComponent(matched.title)}`
+        )
+      } else {
+        router.push('/professor/mainpage')
+      }
+    } else {
+      router.push('/MyProject')
+    }
   } catch (e) {
     console.error('초대 수락 실패', e)
   }

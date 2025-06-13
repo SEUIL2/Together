@@ -128,6 +128,7 @@ const userEmail = ref('')
 const bio = ref('')
 const profileImageUrl = ref('')
 const userColor = ref('#cccccc')
+const theme = ref('LIGHT')
 const defaultImage = '/default-profile.png'
 const fileInput = ref(null)
 
@@ -158,6 +159,7 @@ async function fetchProfile() {
     userEmail.value        = data.userEmail
     bio.value              = data.bio
     profileImageUrl.value  = data.imageUrl ?? data.profileImageUrl
+    theme.value            = data.theme || theme.value
     // 유저 색상 조회
     try {
       const memberRes = await axiosInstance.get('/projects/members')
@@ -186,7 +188,8 @@ async function saveProfile() {
     await axiosInstance.put('/users/profile', {
       userName: userName.value,
       bio: bio.value,
-      profileImageUrl: profileImageUrl.value
+      profileImageUrl: profileImageUrl.value,
+      theme: theme.value
     })
     alert('프로필이 성공적으로 저장되었습니다.')
     emit('updated')

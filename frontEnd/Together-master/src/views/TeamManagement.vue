@@ -104,10 +104,11 @@ async function fetchCurrentUser() {
 }
 
 // 팀원 및 학번, 프로필 이미지 로드
+// 팀원 및 학번, 프로필 이미지 로드
 async function fetchTeamMembers() {
   try {
     const { data } = await axios.get(
-        '/projects/members/role',
+        '/projects/members',  // ← ✅ 수정된 엔드포인트
         { withCredentials: true }
     )
     teamMembers.value = data.map(member => ({
@@ -128,6 +129,7 @@ async function fetchTeamMembers() {
     console.error('팀원 정보 가져오기 실패', e)
   }
 }
+
 
 // 개인 메모 조회 (PrivateNote API)
 async function loadNote(targetStudentId, idx) {

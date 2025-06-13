@@ -140,6 +140,17 @@ const axiosInstance = axios.create({
   withCredentials: true
 })
 
+axiosInstance.interceptors.request.use(config => {
+  const token = localStorage.getItem('authHeader')
+  if (token) {
+    config.headers.Authorization = token
+  } else {
+    delete config.headers.Authorization
+  }
+  return config
+})
+
+
 // Google Drive 다운로드 링크를 미리보기 링크로 변환
 const toDrivePreview = url =>
     url && url.includes('uc?export=download')

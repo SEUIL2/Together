@@ -140,6 +140,13 @@ const axiosInstance = axios.create({
   withCredentials: true
 })
 
+// Google Drive 다운로드 링크를 미리보기 링크로 변환
+const toDrivePreview = url =>
+    url && url.includes('uc?export=download')
+        ? url.replace('export=download', 'export=view')
+        : url
+
+
 // 색상 옵션
 const availableColors = ['#FF5733', '#33FF57', '#3357FF', '#FFD133', '#33FFF2']
 const showColorMenu = ref(false)
@@ -158,7 +165,7 @@ async function fetchProfile() {
     userName.value         = data.userName
     userEmail.value        = data.userEmail
     bio.value              = data.bio
-    profileImageUrl.value  = data.imageUrl ?? data.profileImageUrl
+    profileImageUrl.value  = toDrivePreview(data.imageUrl ?? data.profileImageUrl)
     theme.value            = data.theme || theme.value
     // 유저 색상 조회
     try {
@@ -218,7 +225,7 @@ async function onFileChange(e) {
         { headers: { 'Content-Type': 'multipart/form-data' } }
     )
     console.log('▶ upload response.data:', res.data)
-    profileImageUrl.value = res.data
+    profileImageUrl.value = toDrivePreview(res.data)
     alert('프로필 이미지가 업데이트되었습니다.')
   } catch (err) {
     console.error('이미지 업로드 실패', err)

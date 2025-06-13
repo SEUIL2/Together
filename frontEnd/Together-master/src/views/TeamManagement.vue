@@ -248,70 +248,88 @@ onMounted(async () => {
 
 <style scoped>
 .team-management-container {
-  width: 100%;
-  min-height: 100vh;
-  background-color: #fafafa;
+  background-color: #f0f2f5;
   display: flex;
   justify-content: center;
-  align-items: flex-start;
-  padding: 20px;
+  padding: 60px 20px;
+  min-height: 100vh;
   box-sizing: border-box;
 }
 
 .main-content {
   width: 100%;
-  max-width: 1000px;
-  background-color: #fff;
-  border-radius: 10px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-  padding: 20px;
+  max-width: 960px;
+  background-color: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+  padding: 32px 40px;
 }
 
 .team-management-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 30px;
+}
+
+.team-management-header h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1e1e1e;
 }
 
 .add-member-btn {
   background-color: #3f8efc;
-  color: #fff;
+  color: white;
   border: none;
-  padding: 8px 16px;
-  font-size: 0.9rem;
-  border-radius: 4px;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 500;
   cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.add-member-btn:hover {
+  background-color: #1d6fe6;
 }
 
 .team-management-table {
   width: 100%;
   border-collapse: collapse;
   background-color: #fff;
-  border-radius: 10px;
+  border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  margin-bottom: 30px;
 }
 
 .team-management-table th,
 .team-management-table td {
-  padding: 12px 16px;
+  padding: 16px 20px;
   text-align: left;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid #ececec;
   vertical-align: middle;
+  font-size: 0.95rem;
+}
+
+.team-management-table th {
+  background-color: #fafafa;
+  font-weight: 600;
+  color: #444;
 }
 
 .profile-img {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   object-fit: cover;
+  border: 1px solid #ddd;
 }
 
 .name-with-avatar {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   position: relative;
 }
 
@@ -328,24 +346,25 @@ onMounted(async () => {
 
 .color-picker-menu {
   position: absolute;
-  top: 28px;
+  bottom: 28px; /* 🔥 top → bottom */
   left: 0;
   display: flex;
   flex-wrap: wrap;
-  width: 100px;
+  width: 120px;
   background: #fff;
-  border: 1px solid #eee;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-  padding: 4px;
-  border-radius: 4px;
-  z-index: 100;
+  border: 1px solid #ddd;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+  padding: 6px;
+  border-radius: 6px;
+  z-index: 9999;
 }
 
+
 .color-option {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
-  margin: 2px;
+  margin: 3px;
   cursor: pointer;
 }
 
@@ -353,10 +372,12 @@ onMounted(async () => {
   background-color: #fff;
   border: 1px solid #3f8efc;
   color: #3f8efc;
-  padding: 4px 8px;
-  border-radius: 4px;
+  padding: 6px 12px;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
 }
 
 .evaluate-btn:hover {
@@ -365,9 +386,11 @@ onMounted(async () => {
 }
 
 .professor-section-title {
-  margin-top: 30px;
-  margin-bottom: 10px;
-  font-size: 1.1rem;
-  font-weight: bold;
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-top: 40px;
+  margin-bottom: 16px;
+  color: #1e1e1e;
 }
+
 </style>

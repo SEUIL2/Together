@@ -65,6 +65,10 @@ export default defineConfig({
       '/notes': {
         target: BASE_URL,
         changeOrigin: true,
+        secure: false },
+      '/memos': {
+        target: BASE_URL,
+        changeOrigin: true,
         secure: false }
     }
   }

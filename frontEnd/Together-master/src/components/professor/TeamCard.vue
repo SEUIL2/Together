@@ -34,8 +34,8 @@
       <button class="action-btn" @click="showNoticeModal = true">📢 공지사항</button>
       <button class="action-btn" @click="showVoteModal = true">🗳 투표</button>
 
-      <button class="action-btn" @click="showFeedbackModal = true">📝 피드백 내역</button>
-      <button class="action-btn">🧾 메모</button>
+      <button class="action-btn" @click="showFeedbackModal = true">📝 피드백 내역</button>␊
+      <button class="action-btn" @click="showMemoModal = true">🧾 메모</button>
     </div>
 
     <!-- 공지사항 모달 -->
@@ -47,9 +47,15 @@
 
     <!-- 피드백 모달 -->
     <FeedbackHistoryModal
-      v-if="showFeedbackModal"
-      :projectId="project.projectId"
-      @close="showFeedbackModal = false"
+        v-if="showFeedbackModal"
+        :projectId="project.projectId"
+        @close="showFeedbackModal = false"
+    />
+
+    <ProjectMemoModal
+        v-if="showMemoModal"
+        :projectId="project.projectId"
+        @close="showMemoModal = false"
     />
 <!-- 투표 모달 -->
 <VotingListModalWrapper
@@ -68,11 +74,13 @@ import { ref } from 'vue'
 import NoticeModal from '@/components/notice/NoticeModal.vue'
 import FeedbackHistoryModal from '@/components/feedback/FeedbackHistoryModal.vue'
 import VotingListModalWrapper from '@/components/dashboard/VotingListModalWrapper.vue'
+import ProjectMemoModal from '@/components/professor/ProjectMemoModal.vue'
 const props = defineProps({ project: Object })
 
 const showNoticeModal = ref(false)
 const showFeedbackModal = ref(false)
 const showVoteModal = ref(false)
+const showMemoModal = ref(false)
 
 </script>
 

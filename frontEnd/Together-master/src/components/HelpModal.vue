@@ -60,6 +60,8 @@ import storyboard from '@/assets/helpimage/storyboard.png'
 import system from '@/assets/helpimage/system.png'
 import uidesign from '@/assets/helpimage/uidesign.png'
 import usecase from '@/assets/helpimage/usecase.png'
+import classdiagram from '@/assets/helpimage/classdiagram.png'
+import erd from '@/assets/helpimage/erd.png'
 
 // 선택된 카테고리 및 항목
 const selectedCategory = ref('기획')
@@ -118,8 +120,8 @@ const helpData = {
     },
     {
       title: "클래스 다이어그램",
-      description: "데이터베이스 테이블 간의 관계를 정의합니다.",
-      image: "https://via.placeholder.com/400x200?text=ERD"
+      description: "클래스 다이어그램은 객체 지향 설계에서 시스템의 구조를 시각적으로 나타내는 중요한 도구입니다. 이 다이어그램은 시스템 내의 클래스들 간의 관계를 정의하며, 클래스가 가진 속성(attributes)과 메소드(methods)를 포함합니다. 또한, 클래스 간의 상속, 연관, 집합 관계 등을 통해 시스템의 객체들 간의 상호작용을 명확히 할 수 있습니다. 클래스 다이어그램은 UML(통합 모델링 언어) 표기법을 따르며, 시스템 분석 및 설계 단계에서 중요한 역할을 합니다. 이를 통해 개발자는 시스템의 구조를 효과적으로 이해하고, 객체 간의 관계를 추적할 수 있습니다.",
+      image: classdiagram
     },
         {
       title: "시퀀스 다이어그램",
@@ -133,8 +135,8 @@ const helpData = {
     },
         {
       title: "ER 다이어그램",
-      description: "화면 흐름 및 UI 구성을 나타냅니다.",
-      image: "https://via.placeholder.com/400x200?text=화면설계"
+      description: "ERD(Entity-Relationship Diagram)는 데이터베이스 설계에서 사용되는 시각적 도구로, 데이터 간의 관계를 모델링하는 데 사용됩니다. ERD는 엔터티(Entity), 속성(Attribute), 그리고 엔터티 간의 관계(Relationship)를 나타내며, 이를 통해 데이터베이스 구조를 명확하게 정의할 수 있습니다. 엔터티는 시스템에서 중요한 객체나 개념을 나타내고, 속성은 해당 엔터티의 특성이나 정보를 나타냅니다. 관계는 두 엔터티 간의 상호작용이나 연결을 설명하며, 관계의 종류는 1:1, 1:N, N:M 등으로 구분됩니다. ERD는 데이터베이스 설계의 기초를 제공하며, 데이터 모델링 과정에서 중요한 역할을 합니다.",
+      image: erd
     },
         {
       title: "테이블 명세서",

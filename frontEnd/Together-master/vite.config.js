@@ -61,7 +61,12 @@ export default defineConfig({
         target: BASE_URL,
         changeOrigin: true,
         secure: false
-      }
+      },
+      '/export': {
+        target: BASE_URL, // ← Spring Boot 서버 주소/포트로 변경
+        changeOrigin: true,
+        secure: false,
+      },
     }
   }
 })

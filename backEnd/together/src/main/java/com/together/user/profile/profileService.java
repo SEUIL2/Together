@@ -74,9 +74,14 @@ public class profileService {
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
 
-        user.setProfileImageUrl(imageUrl);
+        // ⭐️ 구글 드라이브 fileId 추출 → 미리보기 URL로 변환해서 저장!
+        String fileId = googleDriveService.extractDriveFileId(imageUrl);
+        String previewUrl = "https://drive.google.com/uc?id=" + fileId;
+
+        user.setProfileImageUrl(previewUrl);
         userRepository.save(user);
     }
+
 
     //이미지 삭제
 

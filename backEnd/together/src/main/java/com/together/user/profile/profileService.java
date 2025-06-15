@@ -30,10 +30,18 @@ public class profileService {
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
 
-        user.setUserName(dto.getUserName());
-        user.setBio(dto.getBio());
-        user.setProfileImageUrl(dto.getProfileImageUrl());
-        user.setTheme(dto.getTheme());
+        if (dto.getUserName() != null) {
+            user.setUserName(dto.getUserName());
+        }
+        if (dto.getBio() != null) {
+            user.setBio(dto.getBio());
+        }
+        if (dto.getProfileImageUrl() != null) {
+            user.setProfileImageUrl(dto.getProfileImageUrl());
+        }
+        if (dto.getTheme() != null) {
+            user.setTheme(dto.getTheme());
+        }
 
         userRepository.save(user);
     }
@@ -48,6 +56,7 @@ public class profileService {
                 .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
 
         return new UserProfileResponseDto(
+                user.getUserId(),
                 user.getUserName(),
                 user.getUserEmail(),
                 user.getBio(),

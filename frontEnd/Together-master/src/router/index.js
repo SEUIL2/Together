@@ -24,17 +24,12 @@ import HelpPage from '../views/help/HelpPage.vue'
 import AiFlow from '../views/AiFlow.vue'
 import ClassDiagramPage from '../views/toolview/classDiagramPage.vue'
 import ERDiagramPage from '../views/toolview/ErdDiagramPage.vue'
-import MemoTest from '../views/test/MemoTest.vue'
+import UseCasePage from '../views/toolview/UseCasePage.vue'
 const routes = [
   {
     path: '/',
     name: 'MainPage',
     component: MainPage,
-  },
-    {
-    path: '/MemoTest',
-    name: 'MemoTest',
-    component: MemoTest,
   },
   {
     path: '/MainPage2',
@@ -218,7 +213,11 @@ const routes = [
     name: 'ERDiagramPage ',
     component: ERDiagramPage 
   },
-
+    {
+    path: '/usecase-Diagram',
+    name: 'UseCasePage',
+    component: UseCasePage 
+  },
 ]
 
 const router = createRouter({

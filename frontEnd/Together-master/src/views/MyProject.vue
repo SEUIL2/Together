@@ -70,7 +70,15 @@
   <button class="export-btn" @click="downloadPdf" :disabled="!projectId">
     📄 PDF 문서 추출
   </button>
+        <button
+          v-if="!isReadOnly"
+          class="leave-btn"
+          @click="leaveProject"
+      >
+        프로젝트 탈퇴
+      </button>
 </section>
+
     </aside>
 
     <main class="detail-panel">
@@ -296,40 +304,6 @@ steps.value.find(s => s.name === '개발').current = developCount
     console.error('❌ 데이터 로딩 실패:', err)
   }
 })
-async function downloadPdf() {
-  try {
-    const res = await axios.get('/export/pdf', {
-      params: { projectId: projectId.value },          // ← projectId 값 잘 들어가는지 콘솔로도 확인!
-      responseType: 'blob',                            // ← 매우 중요!!
-      headers: {
-        Authorization: localStorage.getItem('authHeader'), // ← 이 값도 콘솔 찍어봐
-      },
-      withCredentials: true, // ← 세션 인증 시 필요
-    })
-
-    // ✅ Blob 다운로드 처리
-    const blob = new Blob([res.data], { type: 'application/pdf' })
-    const url = window.URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.setAttribute('download', '프로젝트_문서.pdf')
-    document.body.appendChild(link)
-    link.click()
-    link.remove()
-    window.URL.revokeObjectURL(url)
-  } catch (err) {
-    console.error('❌ PDF 다운로드 실패:', err)
-
-    // ⚠️ 응답이 HTML인 경우 로그 찍기
-    if (err.response?.data instanceof Blob) {
-      const text = await err.response.data.text()
-      console.warn('❗ 서버 응답 내용:', text)
-    }
-
-    alert('PDF 문서 추출 중 오류가 발생했습니다.')
-  }
-}
-
 </script>
 
 <style scoped>
@@ -517,4 +491,17 @@ async function downloadPdf() {
   background-color: #148aff;
 }
 
+.leave-btn {
+  width: 100%;
+  margin-top: 10px;
+  padding: 8px 0;
+  background: #f44336;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.leave-btn:hover {
+  background: #d32f2f;
+}
 </style>

@@ -47,7 +47,7 @@
             <div class="color-picker-section">
               <div
                   class="color-circle"
-                  :style="{ backgroundColor: theme }"
+                  :style="{ backgroundColor: userColor }"
                   @click="toggleColorMenu"
               ></div>
               <div v-if="showColorMenu" class="color-menu">
@@ -127,9 +127,35 @@ const userName = ref('')
 const userEmail = ref('')
 const bio = ref('')
 const profileImageUrl = ref('')
-const theme = ref('#cccccc')
+const userColor = ref('#cccccc')
+const theme = ref('LIGHT')
 const defaultImage = '/default-profile.png'
 const fileInput = ref(null)
+
+const axiosInstance = axios.create({
+  baseURL: 'http://localhost:8081', // 꼭 백엔드 주소 맞게
+  headers: {
+    'Authorization': localStorage.getItem('authHeader') || ''
+  },
+  withCredentials: true
+})
+
+axiosInstance.interceptors.request.use(config => {
+  const token = localStorage.getItem('authHeader')
+  if (token) {
+    config.headers.Authorization = token
+  } else {
+    delete config.headers.Authorization
+  }
+  return config
+})
+
+
+// Google Drive 다운로드 링크를 미리보기 링크로 변환
+const toDrivePreview = url =>
+    url && url.includes('uc?export=download')
+        ? url.replace('export=download', 'export=view')
+        : url
 
 // 색상 옵션
 const availableColors = ['#FF5733', '#33FF57', '#3357FF', '#FFD133', '#33FFF2']
@@ -143,24 +169,40 @@ function closeModal() {
 // 프로필 조회 및 userId 설정
 async function fetchProfile() {
   try {
-    const res = await axios.get('/users/profile')
+    const res = await axiosInstance.get('/users/profile')
     const data = res.data
-    userId.value           = data.userId ?? data.id
+    userId.value           = data.userId
     userName.value         = data.userName
     userEmail.value        = data.userEmail
     bio.value              = data.bio
-    profileImageUrl.value  = data.imageUrl ?? data.profileImageUrl
+    profileImageUrl.value  = toDrivePreview(data.imageUrl ?? data.profileImageUrl)
     theme.value            = data.theme || theme.value
+    // 유저 색상 조회
+    try {
+      const memberRes = await axiosInstance.get('/projects/members')
+      const me = memberRes.data.find(m => m.userId === userId.value)
+      userColor.value = me?.userColor || userColor.value
+    } catch (colorErr) {
+      console.error('색상 조회 실패', colorErr)
+    }
   } catch (err) {
     console.error('프로필 조회 실패', err)
-    alert('프로필 정보를 불러오는 중 오류가 발생했습니다.')
+    if (err.response?.status === 401 || err.response?.status === 403) {
+      alert('로그인 세션이 만료되었습니다. 다시 로그인해주세요.')
+      localStorage.removeItem('authHeader')
+      router.push('/login')
+    } else {
+      alert('프로필 정보를 불러오는 중 오류가 발생했습니다.')
+    }
   }
 }
+
+
 
 // 프로필 저장
 async function saveProfile() {
   try {
-    await axios.put('/users/profile', {
+    await axiosInstance.put('/users/profile', {
       userName: userName.value,
       bio: bio.value,
       profileImageUrl: profileImageUrl.value,
@@ -187,13 +229,13 @@ async function onFileChange(e) {
   const formData = new FormData()
   formData.append('image', file)
   try {
-    const res = await axios.post(
+    const res = await axiosInstance.put(
         '/users/profile/image',
         formData,
         { headers: { 'Content-Type': 'multipart/form-data' } }
     )
     console.log('▶ upload response.data:', res.data)
-    profileImageUrl.value = res.data
+    profileImageUrl.value = toDrivePreview(res.data)
     alert('프로필 이미지가 업데이트되었습니다.')
   } catch (err) {
     console.error('이미지 업로드 실패', err)
@@ -213,12 +255,12 @@ async function selectColor(color) {
     return
   }
   try {
-    await axios.put(
-        `/members/${userId.value}/color`,
+    await axiosInstance.put(
+        `/projects/members/${userId.value}/color`,
         null,
         { params: { colorHex: color } }
     )
-    theme.value = color
+    userColor.value = color
     showColorMenu.value = false
     alert('색상이 성공적으로 저장되었습니다.')
   } catch (err) {
@@ -233,10 +275,10 @@ async function deleteAccount() {
   if (!ok) return
 
   try {
-    await axios.delete('/auth/me')
+    await axiosInstance.delete('/auth/me')
     alert('회원 탈퇴가 완료되었습니다. 그동안 이용해 주셔서 감사합니다.')
     localStorage.removeItem('authHeader')
-    router.push('/')
+    router.push({ name: 'MainPage' })
   } catch (err) {
     console.error('회원 탈퇴 실패', err)
     alert('회원 탈퇴 중 오류가 발생했습니다.')

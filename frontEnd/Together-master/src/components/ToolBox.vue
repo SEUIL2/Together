@@ -15,9 +15,9 @@
         <span class="icon-label">{{ tool.label }}</span>
       </div>
 
-      <!-- 코드 변환 버튼 (클래스 다이어그램에서만) -->
+      <!-- 클래스/ERD 다이어그램에서만 코드 변환 버튼 노출 -->
       <button
-        v-if="currentDiagram === 'class'"
+        v-if="currentDiagram === 'class' || currentDiagram === 'erd'"
         class="code-convert-btn"
         @click="showCodeModal = true"
       >
@@ -38,9 +38,19 @@
       </button>
     </div>
 
-    <!-- 코드 변환 모달 -->
-    <ClassCodeModal :codeResults="codeResults" v-if="showCodeModal" @close="showCodeModal = false" />
-
+    <!-- 코드 변환 모달: class/erd 분기 -->
+    <ClassCodeModal
+      v-if="showCodeModal && currentDiagram === 'class'"
+      :codeId="classCodeId"
+      :codeName="classCodeName"
+      @close="showCodeModal = false"
+    />
+    <ErdCodeModal
+      v-if="showCodeModal && currentDiagram === 'erd'"
+      :codeId="erdCodeId"
+      :codeName="erdCodeName"
+      @close="showCodeModal = false"
+    />
   </div>
 </template>
 
@@ -48,47 +58,47 @@
 import { ref, watch, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useToolStore } from '@/stores/toolStore'
-import ClassCodeModal from '@/components/konva/ClassCodeModal.vue' // 모달 import
+import ClassCodeModal from '@/components/konva/ClassCodeModal.vue'
+import ErdCodeModal from '@/components/konva/ErdCodeModal.vue'
 
 const router = useRouter()
 const route = useRoute()
 const toolStore = useToolStore()
-
 const showCodeModal = ref(false)
-
 const currentDiagram = ref('class')
 
+// 코드 모달용 ID/이름 (예시, 실제로는 페이지/상황에 맞게 동기화 필요)
+const classCodeId = ref(null)
+const classCodeName = ref('MyClass')
+const erdCodeId = ref(null)
+const erdCodeName = ref('MyERD')
+
+// 다이어그램 종류 정의
 const diagramTypes = [
   { label: '클래스', value: 'class', path: '/class-diagram' },
   { label: 'ERD', value: 'erd', path: '/erd-diagram' },
-  { label: '정보구조도', value: 'info', path: '/InfoStructurePage' },
-  { label: '유스케이스', value: 'usecase', path: '/UseCasePage' }
+  { label: '정보구조도', value: 'info', path: '/info-structure' },
+  { label: '유스케이스', value: 'usecase', path: '/usecase-diagram' }
 ]
 
-// 라우터 경로 → 다이어그램 value 맵핑
+// 경로 → 다이어그램 타입 변환
 function getDiagramTypeByRoute(path) {
   if (path.startsWith('/class-diagram')) return 'class'
   if (path.startsWith('/erd-diagram')) return 'erd'
-  if (path.startsWith('/InfoStructurePage')) return 'info'
-  if (path.startsWith('/UseCasePage')) return 'usecase'
-  return 'class' // 기본값
+  if (path.startsWith('/info-structure')) return 'info'
+  if (path.startsWith('/usecase-diagram')) return 'usecase'
+  return 'class'
 }
 
-// route.path 바뀔 때마다 무조건 맞춰줌
+// 경로와 탭 싱크
 const syncTabWithRoute = () => {
   const type = getDiagramTypeByRoute(route.path)
   currentDiagram.value = type
 }
+onMounted(syncTabWithRoute)
+watch(() => route.path, () => nextTick(syncTabWithRoute))
 
-// 최초 진입 + 경로 변경 시
-onMounted(() => {
-  syncTabWithRoute()
-})
-watch(() => route.path, () => {
-  nextTick(syncTabWithRoute)
-})
-
-// 버튼 클릭하면 경로까지 강제로 맞춰줌
+// 탭 클릭 시 경로 이동
 const onDiagramTabClick = (type) => {
   if (currentDiagram.value !== type.value) {
     currentDiagram.value = type.value
@@ -96,6 +106,7 @@ const onDiagramTabClick = (type) => {
   }
 }
 
+// 각 다이어그램별 툴 버튼 정의
 const toolButtons = {
   class: [
     {
@@ -106,29 +117,49 @@ const toolButtons = {
     }
   ],
   erd: [
-    { label: '테이블', type: 'box', subtype: 'table', icon: new URL('@/assets/table.png', import.meta.url).href }
+    {
+      label: '테이블',
+      type: 'box',
+      subtype: 'table',
+      icon: new URL('@/assets/table.png', import.meta.url).href
+    }
   ],
   info: [
-    { label: '페이지', type: 'box', subtype: 'page', icon: '/assets/tool-icons/page.svg' },
-    { label: '링크', type: 'relationship', subtype: 'link', icon: '/assets/tool-icons/link.svg' }
+    {
+      label: '페이지',
+      type: 'box',
+      subtype: 'page',
+      icon: '/assets/tool-icons/page.svg'
+    },
+    {
+      label: '링크',
+      type: 'relationship',
+      subtype: 'link',
+      icon: '/assets/tool-icons/link.svg'
+    }
   ],
   usecase: [
-    { label: '액터', type: 'box', subtype: 'actor', icon: '/assets/tool-icons/actor.svg' },
-    { label: '유스케이스', type: 'box', subtype: 'usecase', icon: '/assets/tool-icons/usecase.svg' },
-    { label: 'include', type: 'relationship', subtype: 'include', icon: '/assets/tool-icons/include.svg' },
-    { label: 'extend', type: 'relationship', subtype: 'extend', icon: '/assets/tool-icons/extend.svg' }
+    {
+      label: '액터',
+      type: 'box',
+      subtype: 'actor',
+      icon: new URL('@/assets/actor.png', import.meta.url).href
+    },
+    {
+      label: '유스케이스',
+      type: 'box',
+      subtype: 'usecase',
+      icon: new URL('@/assets/circle.png', import.meta.url).href
+    },
   ]
 }
 
-const selectTool = (tool) => {
-  toolStore.setSelectedTool(tool)
-}
-
+// 툴 선택/드래그
+const selectTool = (tool) => toolStore.setSelectedTool(tool)
 const isSelected = (tool) => {
   const selected = toolStore.selectedTool
   return selected && selected.type === tool.type && selected.subtype === tool.subtype
 }
-
 const onDragStart = (tool, event) => {
   event.dataTransfer.setData('application/json', JSON.stringify(tool))
 }
@@ -145,20 +176,18 @@ const onDragStart = (tool, event) => {
   display: flex;
   flex-direction: column;
 }
-
 .icon-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: flex-start;
 }
-
 .diagram-tabs {
   display: flex;
   flex-direction: column;
   gap: 8px;
   margin-top: auto;
 }
-
 .tab-btn {
   padding: 10px;
   background-color: white;
@@ -168,13 +197,11 @@ const onDragStart = (tool, event) => {
   font-weight: bold;
   text-align: left;
 }
-
 .tab-btn.active {
   background-color: #007bff;
   color: white;
   border-color: #007bff;
 }
-
 .icon-button {
   display: flex;
   flex-direction: column;
@@ -186,28 +213,23 @@ const onDragStart = (tool, event) => {
   transition: 0.2s;
   width: 100px;
 }
-
 .icon-button:hover {
   background-color: #e8f0fe;
 }
-
 .icon-button.selected {
   border-color: #007bff;
   background-color: #dbefff;
 }
-
 .icon-image {
   width: 36px;
   height: 36px;
   margin-bottom: 4px;
 }
-
 .icon-label {
   font-size: 13px;
   text-align: center;
   color: #333;
 }
-
 .code-convert-btn {
   margin-top: 12px;
   grid-column: span 2;
@@ -225,6 +247,8 @@ const onDragStart = (tool, event) => {
   justify-content: center;
   gap: 7px;
   box-shadow: 0 2px 8px #0001;
+  width: 100%;
+  margin-top: 300px
 }
 .code-convert-btn:hover {
   filter: brightness(1.08);

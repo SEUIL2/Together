@@ -127,7 +127,7 @@ function isValidFigmaLink(content) {
 }
 
 const PAGE_LINKS = {
-  usecase: '/usecase-page',
+  usecase: '/usecase-diagram',
   classDiagram: '/class-diagram',
   erd: '/erd-diagram',
   schedule: '/Scheduletest'

@@ -12,11 +12,12 @@
           <th>사진</th>
           <th>학번</th>
           <th>이름</th>
+          <th>역할</th>
           <th>메모</th>
         </tr>
         </thead>
         <tbody>
-        <tr v-for="(member, idx) in teamMembers" :key="member.userId">
+        <tr v-for="member in studentMembers" :key="member.userId">
           <td>
             <img
                 :src="member.profileImageUrl || defaultAvatar"
@@ -27,12 +28,16 @@
           <td>{{ member.studentNumber }}</td>
           <td>
             <div class="name-with-avatar">
-              <div class="avatar-wrapper" @click="toggleColorPicker(idx)">
+              <div
+                  v-if="member.role === 'STUDENT'"
+                  class="avatar-wrapper"
+                  @click="toggleColorPicker(member)"
+              >
                 <span class="avatar" :style="{ backgroundColor: member.avatarColor }"></span>
               </div>
               <span>{{ member.userName }}</span>
               <div
-                  v-if="member.showColorPicker"
+                  v-if="member.role === 'STUDENT' && member.showColorPicker"
                   class="color-picker-menu"
                   @click.stop
               >
@@ -41,14 +46,35 @@
                     :key="color"
                     class="color-option"
                     :style="{ backgroundColor: color }"
-                    @click="setColor(idx, color)"
+                    @click="setColor(member, color)"
                 ></div>
               </div>
             </div>
           </td>
+          <td>{{ member.isLeader ? '팀장' : '팀원' }}</td>
           <td>
             <button class="evaluate-btn" @click="evaluateMember(member)">메모</button>
           </td>
+        </tr>
+        </tbody>
+      </table>
+
+      <h3 class="professor-section-title">담당교수</h3>
+      <table class="team-management-table">
+        <thead>
+        <tr>
+          <th>사진</th>
+          <th>이메일</th>
+          <th>이름</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr v-for="prof in professorMembers" :key="prof.userId">
+          <td>
+            <img :src="prof.profileImageUrl || defaultAvatar" alt="프로필" class="profile-img" />
+          </td>
+          <td>{{ prof.userEmail }}</td>
+          <td>{{ prof.userName }}</td>
         </tr>
         </tbody>
       </table>
@@ -71,7 +97,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import axios from 'axios'
 import { useRoute } from 'vue-router'
 import InviteModal from './InviteModal.vue'
@@ -93,6 +119,13 @@ const showInviteModal = ref(false)
 const showMemoModal = ref(false)
 const memoTarget = ref(null)
 
+const studentMembers = computed(() =>
+    teamMembers.value.filter(m => m.role === 'STUDENT')
+)
+const professorMembers = computed(() =>
+    teamMembers.value.filter(m => m.role === 'PROFESSOR')
+)
+
 // 내 정보 불러오기
 async function fetchCurrentUser() {
   try {
@@ -104,21 +137,29 @@ async function fetchCurrentUser() {
 }
 
 // 팀원 및 학번, 프로필 이미지 로드
+// 팀원 및 학번, 프로필 이미지 로드
 async function fetchTeamMembers() {
   try {
+    const config = { withCredentials: true }
+    if (!isNaN(projectId)) {
+      config.params = { projectId }
+    }
     const { data } = await axios.get(
-        '/projects/members/role',
-        { withCredentials: true }
+        '/projects/members',
+        config
     )
     teamMembers.value = data.map(member => ({
       userId: member.userId,
+      role: member.role,
       studentNumber: member.studentNumber || '',
+      userEmail: member.userEmail,
       userName: member.userName,
       profileImageUrl: member.profileImageUrl || null,
-      avatarColor: getRandomColor(),
+      avatarColor: member.userColor || getRandomColor(),
       showColorPicker: false,
       memo: '',
-      noteId: null
+      noteId: null,
+      isLeader: member.isLeader ?? member.leader
     }))
     // 개인 메모 로드
     await Promise.all(
@@ -128,6 +169,7 @@ async function fetchTeamMembers() {
     console.error('팀원 정보 가져오기 실패', e)
   }
 }
+
 
 // 개인 메모 조회 (PrivateNote API)
 async function loadNote(targetStudentId, idx) {
@@ -153,13 +195,16 @@ function openInviteModal() {
 function handleInvite(invited) {
   teamMembers.value.push({
     userId: invited.userId,
+    role: invited.role,
     studentNumber: invited.studentNumber || invited.loginId,
+    userEmail: invited.userEmail,
     userName: invited.userName,
     profileImageUrl: null,
     avatarColor: getRandomColor(),
     showColorPicker: false,
     memo: '',
-    noteId: null
+    noteId: null,
+    isLeader: member.isLeader ?? member.leader
   })
   showInviteModal.value = false
 }
@@ -169,16 +214,19 @@ function evaluateMember(member) {
   showMemoModal.value = true
 }
 
-function toggleColorPicker(idx) {
-  teamMembers.value = teamMembers.value.map((m, i) => ({
+function toggleColorPicker(member) {
+  teamMembers.value = teamMembers.value.map(m => ({
     ...m,
-    showColorPicker: i === idx ? !m.showColorPicker : false
+    showColorPicker: m.userId === member.userId ? !m.showColorPicker : false
   }))
 }
 
-function setColor(idx, color) {
-  teamMembers.value[idx].avatarColor = color
-  teamMembers.value[idx].showColorPicker = false
+function setColor(member, color) {
+  const target = teamMembers.value.find(m => m.userId === member.userId)
+  if (target) {
+    target.avatarColor = color
+    target.showColorPicker = false
+  }
 }
 
 function getRandomColor() {
@@ -199,70 +247,88 @@ onMounted(async () => {
 
 <style scoped>
 .team-management-container {
-  width: 100%;
-  min-height: 100vh;
-  background-color: #fafafa;
+  background-color: #f0f2f5;
   display: flex;
   justify-content: center;
-  align-items: flex-start;
-  padding: 20px;
+  padding: 60px 20px;
+  min-height: 100vh;
   box-sizing: border-box;
 }
 
 .main-content {
   width: 100%;
-  max-width: 1000px;
-  background-color: #fff;
-  border-radius: 10px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-  padding: 20px;
+  max-width: 960px;
+  background-color: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+  padding: 32px 40px;
 }
 
 .team-management-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 30px;
+}
+
+.team-management-header h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1e1e1e;
 }
 
 .add-member-btn {
   background-color: #3f8efc;
-  color: #fff;
+  color: white;
   border: none;
-  padding: 8px 16px;
-  font-size: 0.9rem;
-  border-radius: 4px;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 500;
   cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.add-member-btn:hover {
+  background-color: #1d6fe6;
 }
 
 .team-management-table {
   width: 100%;
   border-collapse: collapse;
   background-color: #fff;
-  border-radius: 10px;
+  border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  margin-bottom: 30px;
 }
 
 .team-management-table th,
 .team-management-table td {
-  padding: 12px 16px;
+  padding: 16px 20px;
   text-align: left;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid #ececec;
   vertical-align: middle;
+  font-size: 0.95rem;
+}
+
+.team-management-table th {
+  background-color: #fafafa;
+  font-weight: 600;
+  color: #444;
 }
 
 .profile-img {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   object-fit: cover;
+  border: 1px solid #ddd;
 }
 
 .name-with-avatar {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   position: relative;
 }
 
@@ -279,24 +345,25 @@ onMounted(async () => {
 
 .color-picker-menu {
   position: absolute;
-  top: 28px;
+  bottom: 28px; /* 🔥 top → bottom */
   left: 0;
   display: flex;
   flex-wrap: wrap;
-  width: 100px;
+  width: 120px;
   background: #fff;
-  border: 1px solid #eee;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-  padding: 4px;
-  border-radius: 4px;
-  z-index: 100;
+  border: 1px solid #ddd;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+  padding: 6px;
+  border-radius: 6px;
+  z-index: 9999;
 }
 
+
 .color-option {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
-  margin: 2px;
+  margin: 3px;
   cursor: pointer;
 }
 
@@ -304,14 +371,25 @@ onMounted(async () => {
   background-color: #fff;
   border: 1px solid #3f8efc;
   color: #3f8efc;
-  padding: 4px 8px;
-  border-radius: 4px;
+  padding: 6px 12px;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
 }
 
 .evaluate-btn:hover {
   background-color: #3f8efc;
   color: #fff;
 }
+
+.professor-section-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-top: 40px;
+  margin-bottom: 16px;
+  color: #1e1e1e;
+}
+
 </style>

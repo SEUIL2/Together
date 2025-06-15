@@ -3,6 +3,7 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 
 const BASE_URL = 'http://localhost:8081'  // 여기만 바꾸면 끝!
+
 export default defineConfig({
   plugins: [vue()],
   resolve: {
@@ -12,61 +13,20 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/auth': {
-        target: BASE_URL,
-        changeOrigin: true,
-        secure: false
-      },
-      '/projects': {
-        target: BASE_URL,
-        changeOrigin: true,
-        secure: false
-      },
-      '/planning': {
-        target: BASE_URL,
-        changeOrigin: true,
-        secure: false
-      },
-      '/notifications': {
-        target: BASE_URL,
-        changeOrigin: true,
-        secure: false
-      },
-      '/notices': {
-        target: BASE_URL,
-        changeOrigin: true,
-        secure: false
-      },
-      '/design': {
-        target: BASE_URL,
-        changeOrigin: true,
-        secure: false
-      },
-      '/develop': {
-        target: BASE_URL,
-        changeOrigin: true,
-        secure: false
-      },
-      '/work-tasks': {
-        target: BASE_URL,
-        changeOrigin: true,
-        secure: false
-      },
-      '/votes': {
-        target: BASE_URL,
-        changeOrigin: true,
-        secure: false
-      },
-      '/feedbacks': {
-        target: BASE_URL,
-        changeOrigin: true,
-        secure: false
-      },
-      '/export': {
-        target: BASE_URL, // ← Spring Boot 서버 주소/포트로 변경
-        changeOrigin: true,
-        secure: false,
-      },
+      '/auth':        { target: BASE_URL, changeOrigin: true, secure: false },
+      '/projects':    { target: BASE_URL, changeOrigin: true, secure: false },
+      '/planning':    { target: BASE_URL, changeOrigin: true, secure: false },
+      '/notifications': { target: BASE_URL, changeOrigin: true, secure: false },
+      '/notices':     { target: BASE_URL, changeOrigin: true, secure: false },
+      '/design':      { target: BASE_URL, changeOrigin: true, secure: false },
+      '/develop':     { target: BASE_URL, changeOrigin: true, secure: false },
+      '/work-tasks':  { target: BASE_URL, changeOrigin: true, secure: false },
+      '/votes':       { target: BASE_URL, changeOrigin: true, secure: false },
+      '/feedbacks':   { target: BASE_URL, changeOrigin: true, secure: false },
+      '/notes':       { target: BASE_URL, changeOrigin: true, secure: false },
+      '/memos':       { target: BASE_URL, changeOrigin: true, secure: false },
+      '/export':      { target: BASE_URL, changeOrigin: true, secure: false },
+      '/api':         { target: BASE_URL, changeOrigin: true, secure: false },
     }
   }
 })

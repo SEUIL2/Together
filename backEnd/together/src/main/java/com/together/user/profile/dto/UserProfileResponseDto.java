@@ -12,6 +12,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserProfileResponseDto {
+    private Long userId;           // 사용자 ID
     private String userName;         // 이름
     private String userEmail;        // 이메일 (변경 불가)
     private String bio;              // 자기소개

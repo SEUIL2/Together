@@ -57,14 +57,23 @@ public class profileController {
             @RequestPart("image") MultipartFile imageFile) {
 
         try {
+            // 1. 업로드(여전히 downloadUrl 반환)
             String imageUrl = googleDriveService.uploadImageToGoogleDrive(imageFile);
+
+            // 2. profileService에서 미리보기 URL로 DB에 저장
             profileService.updateUserProfileImage(userDetails.getUser().getUserId(), imageUrl);
-            return ResponseEntity.ok(imageUrl);
+
+            // 3. 응답도 미리보기 URL로 변환해서 내려줌
+            String fileId = googleDriveService.extractDriveFileId(imageUrl);
+            String previewUrl = "https://drive.google.com/uc?id=" + fileId;
+
+            return ResponseEntity.ok(previewUrl); // ⭐️ 미리보기 URL 반환!
         } catch (Exception e) {
             log.error("프로필 이미지 업로드 실패", e);
             return ResponseEntity.status(500).body("이미지 업로드 실패: " + e.getMessage());
         }
     }
+
     //이미지삭제
     @DeleteMapping("/profile/image")
     public ResponseEntity<String> deleteProfileImage(

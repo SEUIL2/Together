@@ -84,7 +84,9 @@ public class ProjectController {
             log.error("프로젝트 생성 실패", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
+
     }
+    //프로젝트 이미지 업로드
     @PutMapping("/image")
     public ResponseEntity<String> updateProjectImage(
             @CurrentProject(required = false) Long projectId,
@@ -95,9 +97,17 @@ public class ProjectController {
         }
 
         try {
+            // 1. Google Drive에 업로드 (downloadUrl 반환)
             String imageUrl = googleDriveService.uploadImageToGoogleDrive(imageFile);
+
+            // 2. 미리보기 URL로 변환해서 DB 저장
             projectService.updateProjectImage(projectId, imageUrl);
-            return ResponseEntity.ok(imageUrl);
+
+            // 3. 미리보기 URL로 응답도 내려줌
+            String fileId = googleDriveService.extractDriveFileId(imageUrl);
+            String previewUrl = "https://drive.google.com/uc?id=" + fileId;
+            return ResponseEntity.ok(previewUrl);
+
         } catch (Exception e) {
             return ResponseEntity.status(500).body("이미지 업로드 실패");
         }
@@ -248,6 +258,26 @@ public class ProjectController {
             @AuthenticationPrincipal UserDetailsImpl userDetails
     ) {
         List<TeamMemberDto> members = projectService.getProjectMembers(projectId);
+        return ResponseEntity.ok(members);
+    }
+
+    // ✅ 프로젝트 팀원 학생만 조회
+    @GetMapping("/members/students")
+    public ResponseEntity<List<TeamMemberDto>> getStudentMembers(
+            @CurrentProject(required = false) Long projectId,
+            @AuthenticationPrincipal UserDetailsImpl userDetails
+    ) {
+        List<TeamMemberDto> members = projectService.getStudentMembers(projectId);
+        return ResponseEntity.ok(members);
+    }
+
+    // ✅ 프로젝트 담당 교수만 조회
+    @GetMapping("/members/professors")
+    public ResponseEntity<List<TeamMemberDto>> getProfessorMembers(
+            @CurrentProject(required = false) Long projectId,
+            @AuthenticationPrincipal UserDetailsImpl userDetails
+    ) {
+        List<TeamMemberDto> members = projectService.getProfessorMembers(projectId);
         return ResponseEntity.ok(members);
     }
 

@@ -19,6 +19,7 @@ import com.together.vote.entity.VoteEntity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.format.annotation.DateTimeFormat;
+import com.together.project.ProjectDetail.test.TestRowEntity;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -124,4 +125,8 @@ public class ProjectEntity{
 
     @OneToMany(mappedBy = "project")
     private List<GeneratedCodeEntity> generatedCodes = new ArrayList<>();
+
+    // 2. 테스트 표 행 리스트(단위/통합 테스트 행 모두 포함)
+    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<TestRowEntity> testRows = new ArrayList<>();
 }

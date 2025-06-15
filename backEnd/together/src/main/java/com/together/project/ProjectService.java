@@ -149,7 +149,14 @@ public class ProjectService {
         ProjectEntity project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new RuntimeException("프로젝트를 찾을 수 없습니다."));
 
-        project.setImageUrl(imageUrl); // ✅ URL 업데이트
+        // 1. 구글 드라이브 fileId 추출
+        String fileId = googleDriveService.extractDriveFileId(imageUrl);
+
+        // 2. 미리보기용 previewUrl로 변환
+        String previewUrl = "https://drive.google.com/uc?id=" + fileId;
+
+        // 3. DB에 저장
+        project.setImageUrl(previewUrl);
         projectRepository.save(project);
     }
     /**
@@ -335,6 +342,46 @@ public class ProjectService {
                     null, // 교수는 userColor 없음
                     professor.getProfileImageUrl(),
                     false // 교수는 팀장 아님
+            ));
+        }
+        return members;
+    }
+
+    // 학생만 조회
+    public List<TeamMemberDto> getStudentMembers(Long projectId) {
+        ProjectEntity project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new RuntimeException("프로젝트를 찾을 수 없습니다."));
+        Long leaderId = project.getLeader() != null ? project.getLeader().getUserId() : null;
+
+        List<TeamMemberDto> members = new ArrayList<>();
+        for (StudentEntity student : project.getStudents()) {
+            members.add(new TeamMemberDto(
+                    student.getUserId(),
+                    student.getUserName(),
+                    student.getUserEmail(),
+                    "STUDENT",
+                    student.getUserColor(),
+                    student.getProfileImageUrl(),
+                    leaderId != null && leaderId.equals(student.getUserId())
+            ));
+        }
+        return members;
+    }
+
+    // 교수만 조회
+    public List<TeamMemberDto> getProfessorMembers(Long projectId) {
+        ProjectEntity project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new RuntimeException("프로젝트를 찾을 수 없습니다."));
+        List<TeamMemberDto> members = new ArrayList<>();
+        for (ProfessorEntity professor : project.getProfessors()) {
+            members.add(new TeamMemberDto(
+                    professor.getUserId(),
+                    professor.getUserName(),
+                    professor.getUserEmail(),
+                    "PROFESSOR",
+                    null,
+                    professor.getProfileImageUrl(),
+                    false
             ));
         }
         return members;

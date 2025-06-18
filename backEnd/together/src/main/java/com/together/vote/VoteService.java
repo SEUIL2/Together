@@ -174,7 +174,7 @@ public class VoteService {
 
         // 2. 기본 로직
         Optional<UserEntity> userOptional = userRepository.findById(userId);
-        Optional<VoteEntity> voteOptional = voteRepository.findById(voteId);
+
         Optional<VoteItemEntity> voteItemOptional = voteItemRepository.findById(voteItemId);
 
         if (userOptional.isPresent() && voteItemOptional.isPresent()) {

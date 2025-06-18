@@ -32,7 +32,8 @@ public class GoogleDriveService {
     private final ProjectRepository projectRepository;
 
     // 파일 업로드 후 공개 설정
-    private void makeFilePublic(String fileId) throws IOException {
+    public void makeFilePublic(String fileId) throws IOException {
+
         Permission permission = new Permission();
         permission.setType("anyone");  // 모든 사용자 허용
         permission.setRole("reader");  // 읽기 전용 권한 부여
@@ -40,6 +41,7 @@ public class GoogleDriveService {
         googleDrive.permissions()
                 .create(fileId, permission)
                 .execute();
+
     }
 
     // ✅ 파일 업로드 (Google Drive + DB 저장)

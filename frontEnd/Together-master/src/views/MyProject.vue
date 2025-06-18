@@ -10,12 +10,22 @@
           @change="handleImageChange"
         />
         <div class="logo-wrapper" @click="!isReadOnly && triggerImageUpload()">
-          <img
-            :src="projectImageUrl || defaultLogo"
-            alt="프로젝트 로고"
-            class="project-logo"
-            referrerpolicy="no-referrer"
-          />
+           <!-- 프로젝트 이미지가 있을 때만 프로젝트 이미지를 렌더링, 없으면 기본 로고 -->
+  <img
+    v-if="projectImageUrl"
+    :src="projectImageUrl"
+    :key="projectImageUrl"  
+    alt="프로젝트 로고"
+    class="project-logo"
+    referrerpolicy="no-referrer"
+  />
+  <img
+    v-else
+    :src="defaultLogo"
+    alt="기본 로고"
+    class="project-logo"
+    referrerpolicy="no-referrer"
+  />
         </div>
 
         <!-- 이름 입력 박스: 가로 중앙 고정, 세로 중앙 정렬 -->
@@ -268,6 +278,11 @@ onMounted(async () => {
         withCredentials: true
       })
     }
+
+    // 📌 콘솔로 응답 객체 전체 확인
+    console.log('프로젝트 응답:', projectRes.data);
+    // 콘솔로 imageUrl 값만 확인
+    console.log('imageUrl:', projectRes.data.imageUrl);
 
     projectId.value = projectRes.data.projectId
     projectName.value = projectRes.data.title

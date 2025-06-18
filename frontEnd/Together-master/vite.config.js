@@ -26,6 +26,7 @@ export default defineConfig({
       '/notes':       { target: BASE_URL, changeOrigin: true, secure: false },
       '/memos':       { target: BASE_URL, changeOrigin: true, secure: false },
       '/export':      { target: BASE_URL, changeOrigin: true, secure: false },
+      '/users':       { target: BASE_URL, changeOrigin: true, secure: false },
       '/api':         { target: BASE_URL, changeOrigin: true, secure: false },
     }
   }

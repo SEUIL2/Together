@@ -204,7 +204,7 @@ function handleInvite(invited) {
     showColorPicker: false,
     memo: '',
     noteId: null,
-    isLeader: member.isLeader ?? member.leader
+    isLeader: invited.isLeader ?? invited.leader
   })
   showInviteModal.value = false
 }

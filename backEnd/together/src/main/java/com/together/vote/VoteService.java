@@ -18,6 +18,7 @@ import com.together.vote.repository.VoteResponseRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -59,6 +60,24 @@ public class VoteService {
             vote.setUser(user); // 작성자 설정 (UserEntity)
             vote.setProject(project); // 프로젝트 설정 (ProjectEntity)
 
+            vote.setDeadlineSelection(voteDTO.isDeadlineSelection());
+            vote.setAnonymous(voteDTO.isAnonymous());
+
+            // 마감기한 설정: deadlineSelection이 true일 경우에만 마감기한 설정
+            if (voteDTO.isDeadlineSelection()) {
+                if (voteDTO.getDeadLine() == null) {
+                    throw new IllegalStateException("마감기한을 설정해야 합니다.");
+                }
+                vote.setDeadLine(voteDTO.getDeadLine());
+
+                // 마감기한이 설정되어 있고, 이미 지나간 경우에는 투표를 생성할 수 없도록 방지
+                if (voteDTO.getDeadLine().before(new Date())) {
+                    throw new IllegalStateException("마감기한이 지난 투표는 생성할 수 없습니다.");
+                }
+            } else {
+                vote.setDeadLine(null); // 마감기한이 없는 경우 null 처리
+            }
+
             // 투표 항목 추가
             // VoteDTO의 항목들을 순회하면서 VoteItemEntity로 변환하여 추가
             for (String option : voteDTO.getOptions()) {
@@ -86,6 +105,8 @@ public class VoteService {
 
         return null;  // 사용자 또는 프로젝트가 없으면 null 반환
     }
+
+
 
     // 특정 프로젝트의 투표 조회
     public List<VoteEntity> getVotesByProject(Long projectId) {
@@ -136,7 +157,17 @@ public class VoteService {
     // 사용자 투표 응답 저장
     public VoteResponseEntity createVoteResponse(Long userId, Long voteId, Long voteItemId) {
 
-        // 1. 이미 투표했는지 체크
+        // 투표가 마감되었는지 확인
+        Optional<VoteEntity> voteOptional = voteRepository.findById(voteId);
+        if (voteOptional.isPresent()) {
+            VoteEntity vote = voteOptional.get();
+
+            if (vote.isDeadlineSelection() && vote.getDeadLine().before(new Date())) {
+                throw new IllegalStateException("마감기한이 지난 투표에는 응답할 수 없습니다.");
+            }
+        }
+
+        // 나머지 투표 응답 처리
         if (voteResponseRepository.existsByUserUserIdAndVoteVoteId(userId, voteId)) {
             throw new IllegalStateException("이미 이 투표에 참여했습니다.");
         }
@@ -146,20 +177,20 @@ public class VoteService {
         Optional<VoteEntity> voteOptional = voteRepository.findById(voteId);
         Optional<VoteItemEntity> voteItemOptional = voteItemRepository.findById(voteItemId);
 
-        if (userOptional.isPresent() && voteOptional.isPresent() && voteItemOptional.isPresent()) {
+        if (userOptional.isPresent() && voteItemOptional.isPresent()) {
             UserEntity user = userOptional.get();
             VoteEntity vote = voteOptional.get();
             VoteItemEntity voteItem = voteItemOptional.get();
 
             VoteResponseEntity voteResponse = new VoteResponseEntity();
             voteResponse.setUser(user);
-            voteResponse.setVote(vote);
+            voteResponse.setVote(voteItem.getVote());
             voteResponse.setVoteItem(voteItem);
 
             return voteResponseRepository.save(voteResponse);
         }
 
-        return null;  // 사용자, 투표 또는 항목이 존재하지 않으면 null 반환
+        return null;  // 사용자 또는 투표 항목이 존재하지 않으면 null 반환
     }
 
     //투표 상세정보 반환
@@ -173,8 +204,9 @@ public class VoteService {
             voteDetailDTO.setVoteId(vote.getVoteId());
             voteDetailDTO.setTitle(vote.getTitle());
             voteDetailDTO.setCreatedDate(vote.getCreatedDate());
-            voteDetailDTO.setUserName(vote.getUser().getUserName());
-
+            voteDetailDTO.setDeadlineSelection(vote.isDeadlineSelection());
+            voteDetailDTO.setDeadLine(vote.getDeadLine());
+            voteDetailDTO.setAnonymous(vote.isAnonymous());
 
             List<VoteItemResultDTO> itemResults = vote.getVoteItems().stream().map(item -> {
                 VoteItemResultDTO dto = new VoteItemResultDTO();

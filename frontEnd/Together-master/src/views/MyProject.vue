@@ -123,6 +123,51 @@ function triggerImageUpload() {
   fileInput.value.click()
 }
 
+// 👇 여기서부터 추가!
+async function downloadPdf() {
+  if (!projectId.value) return;
+  try {
+    const response = await axios.get(
+      `/export/pdf`,
+      {
+        params: { projectId: projectId.value },
+        headers: { Authorization: localStorage.getItem('authHeader') },
+        withCredentials: true,
+        responseType: 'blob',
+      }
+    );
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `project_${projectId.value}.pdf`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  } catch (err) {
+    alert('PDF 추출에 실패했습니다.');
+    console.error(err);
+  }
+}
+
+async function leaveProject() {
+  if (!projectId.value) return;
+  if (!confirm('정말로 프로젝트를 탈퇴하시겠습니까?')) return;
+  try {
+    await axios.delete('/projects/leave', {
+      params: { projectId: projectId.value },
+      headers: { Authorization: localStorage.getItem('authHeader') },
+      withCredentials: true,
+    });
+    alert('프로젝트에서 성공적으로 나갔습니다.');
+    window.location.reload();
+  } catch (err) {
+    alert('프로젝트 탈퇴에 실패했습니다.');
+    console.error(err);
+  }
+}
+// 👆 여기까지 추가!
+
 async function handleImageChange(event) {
   const file = event.target.files[0]
   if (!file || !projectId.value || isReadOnly.value) return

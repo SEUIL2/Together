@@ -28,6 +28,12 @@ public class VoteEntity {
     @Temporal(TemporalType.TIMESTAMP)
     private Date createdDate = new Date(); // 생성 날짜
 
+    private Date deadLine = new Date(); //마감 기한
+
+    private boolean deadlineSelection; //마감기한 On,Off
+
+    private boolean anonymous; //익명 On,Off
+
     @ManyToOne
     @JoinColumn(name = "user_id")
     @JsonIgnore

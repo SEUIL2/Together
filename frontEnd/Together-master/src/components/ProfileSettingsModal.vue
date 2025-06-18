@@ -1,3 +1,4 @@
+나의 말:
 <template>
   <div v-if="visible" class="modal-overlay">
     <div class="modal-container">
@@ -250,10 +251,10 @@ async function selectColor(color) {
   }
   try {
     await axiosInstance.put(
-        `/projects/members/${userId.value}/color`,
-        null,
+        /projects/members/${userId.value}/color,
+    null,
         { params: { colorHex: color } }
-    )
+  )
     userColor.value = color
     showColorMenu.value = false
     alert('색상이 성공적으로 저장되었습니다.')

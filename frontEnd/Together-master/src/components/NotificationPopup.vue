@@ -8,20 +8,20 @@
         alt="알림 아이콘"
     />
 
-    <!-- 읽지 않은 알림(초대)이 하나라도 있으면 파란 점 표시 -->
-    <span v-if="invitations.length > 0" class="unread-dot"></span>
+    <!-- 읽지 않은 알림(초대 + 일반)이 하나라도 있으면 파란 점 표시 -->
+    <span v-if="unreadCount > 0" class="unread-dot"></span>
 
     <div v-if="showNotifications" class="notification-popup">
-      <p v-if="invitations.length === 0">초대 알림이 없습니다.</p>
+      <p v-if="invitations.length === 0 && notifications.length === 0">알림이 없습니다.</p>
       <ul v-else>
         <li
-            v-for="invite in invitations"
-            :key="invite.invitationId"
-            class="invitation-item"
-        >
-          <div class="message">
-            {{ invite.projectTitle }} 프로젝트에 초대되었습니다.
-          </div>
+        v-for="invite in invitations"
+        :key="`invite-${invite.invitationId}`"
+        class="invitation-item"
+        >␊
+        <div class="message">
+          {{ invite.projectTitle }} 프로젝트에 초대되었습니다.
+        </div>
           <div class="time">{{ formatTime(invite.createdAt) }}</div>
           <div class="actions">
             <button
@@ -38,18 +38,30 @@
             </button>
           </div>
         </li>
+        <li
+            v-for="noti in notifications"
+            :key="`noti-${noti.id}`"
+            class="notification-item"
+        >
+          <div class="message">{{ noti.message }}</div>
+          <div class="time">{{ formatTime(noti.createdAt) }}</div>
+          <div class="actions">
+            <button class="confirm-btn" @click.stop="confirm(noti)">확인</button>
+          </div>
+        </li>
       </ul>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 
 const showNotifications = ref(false)
 const invitations = ref([])
+const notifications = ref([])
 const wrapperRef = ref(null)
 const router = useRouter()
 
@@ -71,11 +83,21 @@ async function fetchInvitations() {
   }
 }
 
+async function fetchUnreadNotifications() {
+  try {
+    const resp = await axios.get('/notifications/unread', { withCredentials: true })
+    notifications.value = Array.isArray(resp.data) ? resp.data : []
+  } catch (e) {
+    console.error('일반 알림 조회 실패', e)
+  }
+}
+
 function toggleNotifications() {
   showNotifications.value = !showNotifications.value
   // 팝업을 열 때마다 최신 목록으로 갱신
   if (showNotifications.value) {
     fetchInvitations()
+    fetchUnreadNotifications()
   }
 }
 
@@ -132,6 +154,17 @@ async function reject(invitationId) {
   }
 }
 
+async function confirm(noti) {
+  try {
+    await axios.post(`/notifications/${noti.id}/read`, null, { withCredentials: true })
+    notifications.value = notifications.value.filter(n => n.id !== noti.id)
+    router.push('/dashboard')
+  } catch (e) {
+    console.error('알림 확인 실패', e)
+  }
+}
+
+
 function formatTime(dateStr) {
   if (!dateStr) return ''
   const d = new Date(dateStr)
@@ -156,6 +189,8 @@ onMounted(() => {
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleClickOutside)
 })
+
+const unreadCount = computed(() => invitations.value.length + notifications.value.length)
 </script>
 
 <style scoped>
@@ -214,6 +249,18 @@ onBeforeUnmount(() => {
 }
 
 .invitation-item:last-child {
+  border-bottom: none;
+}
+
+.notification-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.notification-item:last-child {
   border-bottom: none;
 }
 

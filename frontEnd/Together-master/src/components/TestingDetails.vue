@@ -63,17 +63,29 @@ function formatDate(dateStr) {
   return new Date(dateStr).toLocaleDateString()
 }
 
+function mapRow(raw) {
+  const member = teamMembers.value.find(m => m.userName === raw.authorName)
+  return {
+    rowId: raw.id,
+    itemName: raw.itemName,
+    description: raw.description,
+    authorId: member ? member.userId : null,
+    createdAt: raw.createdDate,
+    completed: raw.completed,
+  }
+}
+
 async function fetchRows() {
   for (const tab of testTabs) {
     const { data } = await axios.get('/api/test-rows/list', {
       params: { tableType: tab.type }
     })
-    tab.rows = data
+    tab.rows = data.map(mapRow)
   }
 }
 
 async function fetchTeamMembers() {
-  const { data } = await axios.get('/api/project-members')
+  const { data } = await axios.get('/projects/members')
   teamMembers.value = data
 }
 
@@ -86,7 +98,7 @@ async function addRow(tableType) {
     }
   })
   const tab = testTabs.find(t => t.type === tableType)
-  tab.rows.push(data)
+  tab.rows.push(mapRow(data))
 }
 
 async function saveRow(tableType, row) {
@@ -105,9 +117,9 @@ async function toggleCompleted(tableType, row) {
   row.completed = data.completed
 }
 
-onMounted(() => {
-  fetchRows()
-  fetchTeamMembers()
+onMounted(async () => {
+  await fetchTeamMembers()
+  await fetchRows()
 })
 </script>
 

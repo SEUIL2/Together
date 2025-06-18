@@ -28,7 +28,10 @@ public class VoteController {
      * 투표 생성 요청 예시:
      * {
      *     "title": "졸업작품 개발 방향 투표",  // 투표 제목
-     *     "options": ["프론트엔드 개발", "백엔드 개발"]  // 투표 항목들
+     *     "options": ["프론트엔드 개발", "백엔드 개발"],  // 투표 항목들
+     *     "deadlineSelection": true,  // 마감기한 설정 여부 (true = 마감기한 있음)
+     *     "deadLine": "2025-06-30T12:00:00",  // 마감기한 (ISO 8601 형식)
+     *     "anonymous": true  // 익명 투표 여부 (true = 익명 투표)
      * }
      * @AuthenticationPrincipal - 자동 추출
      * @param voteDTO - 투표 데이터 (제목, 항목들)
@@ -54,14 +57,6 @@ public class VoteController {
      * AuthenticationPrincipal - 자동 추출
      * @return ResponseEntity<List<VoteEntity>> - 프로젝트에 속한 모든 투표 리스트 반환
      */
-//    @GetMapping("/project")
-//    public ResponseEntity<List<VoteEntity>> getVotesByProject(
-//            @CurrentProject(required = false) Long projectId,
-//            @AuthenticationPrincipal UserDetailsImpl userDetails) {
-//
-//        List<VoteEntity> votes = voteService.getVotesByProject(projectId);
-//        return ResponseEntity.ok(votes);  // 투표 목록 반환
-//    }
     @GetMapping("/project")
     public ResponseEntity<List<VoteListDTO>> getVotesByProject(
             @CurrentProject(required = false) Long projectId,
@@ -130,26 +125,13 @@ public class VoteController {
      * 투표 응답 예시:
      * {
      *     "user": 3, // 응답한 사용자 ID
-     *     "voteItemId": 1 // 선택한 투표 항목 ID
+     *     "voteItemId": 1, // 선택한 투표 항목 ID
      * }
      * @param voteId - 응답을 달고자 하는 투표 ID
      * @param voteResponseDTO - 투표 응답 데이터 (사용자 ID, 투표 항목 ID)
      * @return ResponseEntity<?> - 생성된 응답 객체 반환
      * 중복 응답시 409
      */
-//    @PostMapping("/{voteId}/response")
-//    public ResponseEntity<?> createVoteResponse(@PathVariable Long voteId, @RequestBody VoteResponseDTO voteResponseDTO) {
-//        try {
-//            VoteResponseEntity voteResponse = voteService.createVoteResponse(voteResponseDTO.getUserId(), voteId, voteResponseDTO.getVoteItemId());
-//            if (voteResponse != null) {
-//                log.info("투표 응답 성공");
-//                return ResponseEntity.ok(voteResponse);  // 응답 생성 성공
-//            }
-//        }catch (IllegalStateException e){
-//            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage()); // 409 Conflict
-//        }
-//        return ResponseEntity.badRequest().body(null);  // 응답 생성 실패
-//    }
     @PostMapping("/{voteId}/response")
     public ResponseEntity<?> createVoteResponse(
             @PathVariable Long voteId,

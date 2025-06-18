@@ -41,6 +41,7 @@
 
     <!-- 하단 카드 -->
     <div class="dashboard-bottom">
+      <!-- 공지사항 카드 -->
       <div class="card notice-card-wrapper">
         <div class="card-header">
           <h3 class="board-title" @click="showAllModal = true">공지사항</h3>
@@ -48,21 +49,26 @@
         </div>
         <NoticeList :notices="notices" @selectNotice="openNoticeDetail" />
       </div>
+
+      <!-- 팀 투표 카드 -->
       <div class="card">
-        <VotingList />
+        <div class="card-header" style="display:flex; align-items:center; justify-content:space-between;">
+          <h3 class="board-title">팀 투표</h3>
+          <button class="create-btn" @click="showVoteCreateModal = true">+</button>
+        </div>
+        <VotingList @created="onVoteCreated" />
       </div>
-<!-- 피드백 내역 카드 -->
-<div class="card">
-  <div class="card-header">
-    <h3 class="board-title" @click="showFeedbackModal = true">피드백 내역</h3>
-  </div>
-  <FeedbackHistoryList :projectId="projectId" />
-</div>
 
-
+      <!-- 피드백 내역 카드 -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="board-title" @click="showFeedbackModal = true">피드백 내역</h3>
+        </div>
+        <FeedbackHistoryList :projectId="projectId" />
+      </div>
     </div>
 
-    <!-- 모달 -->
+    <!-- 공지 생성 모달 -->
     <NoticeCreateModal
       v-if="showCreateModal"
       :writerName="currentUserName"
@@ -70,6 +76,14 @@
       @close="showCreateModal = false"
     />
 
+    <!-- 팀 투표 생성 모달 -->
+    <VoteCreateModal
+      v-if="showVoteCreateModal"
+      @close="showVoteCreateModal = false"
+      @created="onVoteCreated"
+    />
+
+    <!-- 전체 공지사항 모달 -->
     <div v-if="showAllModal" class="modal-overlay">
       <div class="modal-content notice-modal">
         <div class="modal-header">
@@ -80,6 +94,7 @@
       </div>
     </div>
 
+    <!-- 공지 상세 모달 -->
     <NoticeDetailModal
       v-if="showNoticeModal"
       :notice="selectedNotice"
@@ -87,12 +102,13 @@
       @update="handleUpdateNotice"
       @delete="handleDeleteNotice"
     />
-    <FeedbackHistoryModal
-  v-if="showFeedbackModal"
-  :projectId="projectId"
-  @close="showFeedbackModal = false"
-/>
 
+    <!-- 피드백 모달 -->
+    <FeedbackHistoryModal
+      v-if="showFeedbackModal"
+      :projectId="projectId"
+      @close="showFeedbackModal = false"
+    />
   </div>
 </template>
 
@@ -107,10 +123,13 @@ import NoticeCreateModal from '@/components/notice/NoticeCreateModal.vue'
 import AllTasksCard from '@/components/dashboard/AllTasksCard.vue'
 import MyTasksCard from '@/components/dashboard/MyTasksCard.vue'
 import VotingList from '@/components/dashboard/VotingList.vue'
+import VoteCreateModal from '@/components/dashboard/VoteCreateModal.vue'
 import FeedbackHistoryList from '@/components/feedback/FeedbackHistoryList.vue'
 import FeedbackHistoryModal from '@/components/feedback/FeedbackHistoryModal.vue'
 
 const showFeedbackModal = ref(false)
+const showVoteCreateModal = ref(false)
+const showVotingListModal = ref(false)
 
 const route = useRoute()
 const projectId = ref(route.params.projectId || null)
@@ -126,8 +145,8 @@ const showAllModal = ref(false)
 
 const progress = computed(() => {
   const total = tasks.value.length
-  const done = tasks.value.filter(t => t.status === 'COMPLETED').length
-  return total ? Math.round((done / total) * 100) : 0
+  const completed = tasks.value.filter(t => t.status === 'COMPLETED').length
+  return total ? Math.round((completed / total) * 100) : 0
 })
 
 const remainingTasks = computed(() =>
@@ -143,7 +162,7 @@ async function fetchNotices() {
     })
 
     notices.value = res.data
-      .sort((a, b) => new Date(b.createdDate) - new Date(a.createdDate)) // ✅ 최신순 정렬
+      .sort((a, b) => new Date(b.createdDate) - new Date(a.createdDate))
       .map(n => ({
         ...n,
         writerName: n.writerName || n.authorName || n.userName || currentUserName.value
@@ -152,7 +171,6 @@ async function fetchNotices() {
     console.error('공지사항 불러오기 실패:', e)
   }
 }
-
 
 // 공지 생성
 async function handleCreateNotice(newNotice) {
@@ -229,7 +247,14 @@ function openNoticeDetail(notice) {
   selectedNotice.value = notice
   showNoticeModal.value = true
 }
+
+// 투표 생성 완료 후 VotingList 새로고침 트리거
+function onVoteCreated() {
+  showVoteCreateModal.value = false
+  // VotingList에서 @created emit 받아서 내부적으로 fetchVotes() 호출해주는 구조라면 OK!
+}
 </script>
+
 
 
 <style scoped>
@@ -271,15 +296,29 @@ function openNoticeDetail(notice) {
 .info-content .label {
   font-size: 12px;
 }
+.progress-container {
+  width: 100%;
+}
+
+.progress-label {
+  font-size: 13px;
+  color: #333;
+  margin-bottom: 8px;
+}
+
 .progress-bar {
+  width: 400px;
   height: 8px;
-  background: #ddd;
+  background: #f2f2f2;
   border-radius: 4px;
   overflow: hidden;
-  margin-top: 4px;
+  margin-bottom: 0;
 }
+
 .progress-fill {
-  background: #3f8efc;
+  height: 100%;
+  background: #4a90e2;
+  transition: width 0.3s ease;
 }
 
 .dashboard-mid {

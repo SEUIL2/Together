@@ -25,6 +25,7 @@ import AiFlow from '../views/AiFlow.vue'
 import ClassDiagramPage from '../views/toolview/classDiagramPage.vue'
 import ERDiagramPage from '../views/toolview/ErdDiagramPage.vue'
 import UseCasePage from '../views/toolview/UseCasePage.vue'
+import InfoStructurePage from '../views/toolview/InfoStructurePage.vue'
 const routes = [
   {
     path: '/',
@@ -206,17 +207,58 @@ const routes = [
   {
     path: '/class-Diagram',
     name: 'ClassDiagramPage ',
-    component: ClassDiagramPage 
+    component: ClassDiagramPage ,
+    props: route => ({ projectId: route.query.projectId })
   },
+  {
+  path: '/class-diagram/:projectId',
+  name: 'ClassDiagram',
+  component: () => import('@/views/toolview/ClassDiagramPage.vue'),
+  props: route => ({
+    projectId: Number(route.params.projectId),
+    readonly: route.query.readonly === 'true',
+    projectTitle: route.query.projectTitle || ''
+  }),
+  meta: { requiresAuth: true }
+},
+
     {
     path: '/erd-Diagram',
     name: 'ERDiagramPage ',
     component: ERDiagramPage 
   },
+  {
+  path: '/erd-diagram/:projectId',
+  name: 'ERDDiagram',
+  component: () => import('@/views/toolview/ErdDiagramPage.vue'),
+  props: route => ({
+    projectId: Number(route.params.projectId),
+    readonly: route.query.readonly === 'true',
+    projectTitle: route.query.projectTitle || ''
+  }),
+  meta: { requiresAuth: true }
+},
+
     {
     path: '/usecase-Diagram',
     name: 'UseCasePage',
     component: UseCasePage 
+  },
+{
+  path: '/usecase-diagram/:projectId',
+  name: 'UseCaseDiagram',
+  component: () => import('@/views/toolview/UseCasePage.vue'),
+  props: route => ({
+    projectId: Number(route.params.projectId),
+    readonly: route.query.readonly === 'true',
+    projectTitle: route.query.projectTitle || ''
+  }),
+  meta: { requiresAuth: true }
+},
+      {
+    path: '/info-structure',
+    name: 'InfoStructurePage',
+    component: InfoStructurePage 
   },
 ]
 

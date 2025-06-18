@@ -1,7 +1,7 @@
 <template>
   <div class="erd-layout" @click=closeAllMenus @wheel="onWheel">
     <div v-if="saveStatus === 'saving'" class="save-toast saving">저장 중...</div>
-<div v-else-if="saveStatus === 'saved'" class="save-toast saved">저장됨</div>
+<div v-else-if="saveStatus === 'saved'" class="save-toast saved">💾 저장 완료</div>
 <div v-else-if="saveStatus === 'error'" class="save-toast error">저장 실패!</div>
 
     <ToolBox />
@@ -227,19 +227,19 @@ const boxMenuY = ref(0)
 const selectedBox = ref(null)
 
 // 중간점 추가는 context menu에서만!
-function addMidPointAtContextMenu() {
-  const rel = selectedRel.value
-  if (!rel) return
-  const from = findAnchor(rel.from.boxId, rel.from.direction)
-  const to = findAnchor(rel.to.boxId, rel.to.direction)
-  const mid = {
-    x: (from.x + to.x) / 2 + 40,
-    y: (from.y + to.y) / 2 + 30
-  }
-  rel.midPoints = rel.midPoints || []
-  rel.midPoints.push(mid)
-  contextMenuVisible.value = false
-}
+// function addMidPointAtContextMenu() {
+//   const rel = selectedRel.value
+//   if (!rel) return
+//   const from = findAnchor(rel.from.boxId, rel.from.direction)
+//   const to = findAnchor(rel.to.boxId, rel.to.direction)
+//   const mid = {
+//     x: (from.x + to.x) / 2 + 40,
+//     y: (from.y + to.y) / 2 + 30
+//   }
+//   rel.midPoints = rel.midPoints || []
+//   rel.midPoints.push(mid)
+//   contextMenuVisible.value = false
+// }
 
 function handleAddMidPoint({ rel, x, y }) {
   rel.midPoints = rel.midPoints || []
@@ -397,6 +397,11 @@ function onWheel(e) {
     scale.value = newScale
   }
 }
+const props = defineProps({
+  projectId: Number,
+  readonly: Boolean,
+  projectTitle: String
+})
 const saveStatus = ref('idle')
 const saveErd = debounce(async () => {
   saveStatus.value = 'saving' // 저장 중 표시
@@ -425,16 +430,14 @@ watch([boxes, relationships], saveErd, { deep: true })
 
 
 onMounted(async () => {
-  const token = localStorage.getItem('authHeader')
-  if (token) {
-    axios.defaults.headers.common['Authorization'] = token
-  }
-
   try {
-    const res = await axios.get('/design/all')
-    // 👇 ERD도 이 구조!
-    const { erd } = res.data
+    const res = await axios.get('/design/all', {
+      params: { projectId: props.projectId },
+      headers: { Authorization: localStorage.getItem('authHeader') },
+      withCredentials: true
+    })
 
+    const { erd } = res.data
     if (erd?.json) {
       const parsed = JSON.parse(erd.json)
       boxes.value = parsed.boxes || []
@@ -445,13 +448,9 @@ onMounted(async () => {
       boxes.value = []
       relationships.value = []
     }
-
   } catch (err) {
     console.error('❌ ERD 초기 데이터 로드 실패:', err)
-    boxes.value = []
-    relationships.value = []
   }
-
 })
 
 </script>
@@ -537,8 +536,8 @@ onMounted(async () => {
   transition: opacity .3s;
   pointer-events: none;
 }
-.save-toast.saving { background: #87b4ff; }
-.save-toast.saved { background: #31c984; }
+.save-toast.saving { background: #000000; }
+.save-toast.saved { background: #000000; }
 .save-toast.error { background: #ff5555; }
 
 </style>

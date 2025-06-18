@@ -12,43 +12,64 @@
       </button>
     </div>
 
-<!-- 🔹 에디터 영역 -->
-<div class="editor-container">
-  <!-- UI 디자인 항목일 때 -->
-  <template v-if="activeItem.type === 'ui'">
-    <textarea
-      v-model="activeItem.content"
-      class="basic-textarea"
-      :readonly="readonly"
-      placeholder="Figma 링크 또는 UI 설명 입력"
-      @input="onContentChange($event.target.value)"
-    ></textarea>
+    <!-- 🔹 에디터 영역 -->
+    <div class="editor-container">
+      <!-- 🔸 UI 디자인 -->
+      <template v-if="activeItem.type === 'ui'">
+        <textarea
+          v-model="activeItem.content"
+          class="basic-textarea"
+          :readonly="readonly"
+          placeholder="Figma 링크 또는 UI 설명 입력"
+          @input="onContentChange($event.target.value)"
+        ></textarea>
 
-    <!-- 🔥 Figma 링크 임베드 -->
-    <iframe
-      v-if="isValidFigmaLink(activeItem.content)"
-      :src="convertToFigmaEmbed(extractFigmaUrl(activeItem.content))"
-      width="100%"
-      height="500"
-      allowfullscreen
-      style="margin-top: 12px; border: 1px solid #ccc; border-radius: 8px;"
-    ></iframe>
-  </template>
+        <!-- Figma 임베드 -->
+        <iframe
+          v-if="isValidFigmaLink(activeItem.content)"
+          :src="convertToFigmaEmbed(extractFigmaUrl(activeItem.content))"
+          width="100%"
+          height="500"
+          allowfullscreen
+          style="margin-top: 12px; border: 1px solid #ccc; border-radius: 8px;"
+        ></iframe>
+      </template>
 
-  <!-- 그 외 항목일 때 -->
-  <template v-else>
-    <Editor
-      v-if="!readonly"
-      v-model="activeItem.content"
-      :init="editorConfig"
-      :api-key="editorConfig.apiKey"
-      :tinymce-script-src="`https://cdn.tiny.cloud/1/${editorConfig.apiKey}/tinymce/6/tinymce.min.js`"
-      @update:modelValue="onContentChange"
-    />
-    <div v-else class="readonly-content" v-html="activeItem.content"></div>
-  </template>
-</div>
+      <!-- 🔸 시퀀스 다이어그램 -->
+      <template v-else-if="activeItem.type === 'sequence'">
+        <textarea
+          v-model="activeItem.content"
+          class="basic-textarea"
+          :readonly="readonly"
+          placeholder="draw.io 공유 링크 또는 설명 입력"
+          @input="onContentChange($event.target.value)"
+        ></textarea>
 
+        <!-- draw.io 임베드 -->
+        <iframe
+          v-if="isValidDrawioLink(activeItem.content)"
+          :src="convertToDrawioEmbed(activeItem.content)"
+          width="100%"
+          height="500"
+          frameborder="0"
+          allowfullscreen
+          style="margin-top: 12px; border: 1px solid #ccc; border-radius: 8px;"
+        ></iframe>
+      </template>
+
+      <!-- 🔸 그 외 항목 (TinyMCE 에디터) -->
+      <template v-else>
+        <Editor
+          v-if="!readonly"
+          v-model="activeItem.content"
+          :init="editorConfig"
+          :api-key="editorConfig.apiKey"
+          :tinymce-script-src="`https://cdn.tiny.cloud/1/${editorConfig.apiKey}/tinymce/6/tinymce.min.js`"
+          @update:modelValue="onContentChange"
+        />
+        <div v-else class="readonly-content" v-html="activeItem.content"></div>
+      </template>
+    </div>
 
     <!-- 🔹 파일 업로드 영역 -->
     <div class="upload-section">
@@ -85,13 +106,15 @@
 </template>
 
 
+
 <script setup> 
 import { ref, reactive, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import axios from 'axios'
 import Editor from '@tinymce/tinymce-vue'
 
 const router = useRouter()
+const route = useRoute()
 const fileInputRef = ref(null)
 const props = defineProps({ projectId: Number, readonly: Boolean })
 const emit = defineEmits(['updateStepProgress'])
@@ -103,7 +126,6 @@ function extractFigmaUrl(content) {
   const match = text.match(/https:\/\/www\.figma\.com\/(file|design)\/[^\s<"]+/)
   return match ? match[0] : ''
 }
-
 
 function convertToFigmaEmbed(link) {
   if (!link) return ''
@@ -125,6 +147,32 @@ function convertToFigmaEmbed(link) {
 function isValidFigmaLink(content) {
   return extractFigmaUrl(content) !== ''
 }
+function isValidDrawioLink(content) {
+  return typeof content === 'string' && content.includes('viewer.diagrams.net')
+}
+
+function convertToDrawioEmbed(link) {
+  try {
+    if (!link) return ''
+
+    // 이미 viewer 주소면 그대로 사용
+    if (link.includes('viewer.diagrams.net')) return link
+
+    // app.diagrams.net 주소에서 G파일ID 추출
+    const match = link.match(/#G([a-zA-Z0-9_-]+)/)
+    if (match && match[1]) {
+      const fileId = match[1]
+      const driveUrl = `https://drive.google.com/uc?id=${fileId}`
+      return `https://viewer.diagrams.net/?highlight=0000ff&edit=_blank&layers=1&nav=1#U${encodeURIComponent(driveUrl)}`
+    }
+
+    return ''
+  } catch (e) {
+    console.warn('draw.io 변환 실패:', e)
+    return ''
+  }
+}
+
 
 const PAGE_LINKS = {
   usecase: '/usecase-diagram',
@@ -198,12 +246,25 @@ const editorConfig = {
 
 function selectTab(idx) {
   const type = designItems[idx].type
+
   if (['usecase', 'classDiagram', 'erd', 'schedule'].includes(type)) {
-    router.push(PAGE_LINKS[type])
+    const basePath = PAGE_LINKS[type]
+    const projectId = props.projectId
+    const readonly = props.readonly ?? route.query.readonly === 'true'
+    const projectTitle = props.projectTitle || route.query.projectTitle || '프로젝트'
+
+    router.push({
+      path: `${basePath}/${projectId}`,
+      query: {
+        readonly,
+        projectTitle
+      }
+    })
   } else {
     selectedIndex.value = idx
   }
 }
+
 
 function markCompleted() {
   const content = activeItem.value.content
@@ -300,22 +361,23 @@ onMounted(async () => {
       withCredentials: true
     })
 
-    designItems.forEach(item => {
-      const rawData = res.data[item.type]
-      const raw = item.type === 'ui'
-        ? rawData?.text || rawData?.json || ''
-        : rawData?.json || rawData?.text || ''
-      item.content = item.type === 'ui'
-        ? raw
-        : convertDownloadToView(raw)
-      item.files = rawData?.files || []
-      item.completed =
-        (typeof item.content === 'string' && item.content.trim() !== '') || item.files.length > 0
-    })
+designItems.forEach(item => {
+  const rawData = res.data[item.type]
 
-    console.log('🧪 저장된 UI 내용:', activeItem.value.content)
-    console.log('🧪 추출된 링크:', extractFigmaUrl(activeItem.value.content))
-    console.log('🔥 서버 응답:', res.data)
+  // ❗ UI는 json 무시하고 text만 사용
+  const raw = item.type === 'ui'
+    ? rawData?.text || ''
+    : rawData?.json || rawData?.text || ''
+
+  item.content = item.type === 'ui'
+    ? raw
+    : convertDownloadToView(raw)
+
+  item.files = rawData?.files || []
+  item.completed =
+    (typeof item.content === 'string' && item.content.trim() !== '') || item.files.length > 0
+})
+
 
     emit('updateStepProgress', designItems.filter(i => i.completed).length)
   } catch (err) {

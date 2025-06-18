@@ -20,7 +20,8 @@
       fill="white"
       stroke="#555"
       :strokeWidth="2"
-      draggable
+      :draggable="true"
+  :dragCursor="'move'"
       @dragmove="e => onMidDrag(e, idx)"
       @dragstart="() => emit('mid-drag-start')"    
       @dragend="() => emit('mid-drag-end')"       

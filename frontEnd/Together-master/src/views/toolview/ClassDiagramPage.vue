@@ -310,6 +310,11 @@ const handleWheel = (e) => {
 }
 
 const saveToServer = async () => {
+  if (props.readonly) {
+    console.log('🔒 읽기 전용 모드입니다. 저장하지 않습니다.')
+    return
+  }
+
   const formData = new FormData()
   formData.append('type', 'classDiagram')
   formData.append('json', JSON.stringify({
@@ -317,8 +322,11 @@ const saveToServer = async () => {
     relationships: relationships.value
   }))
 
+  if (props.projectId) {
+    formData.append('projectId', props.projectId)
+  }
+
   try {
-    // 🔥 학생이면 projectId 전달하지 않음
     await axios.put('/design/update', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     })
@@ -333,26 +341,24 @@ const saveToServer = async () => {
   }
 }
 
+const props = defineProps({
+  projectId: Number,
+  readonly: Boolean,
+  projectTitle: String
+})
 
 const autoSave = debounce(saveToServer, 1000)
 watch([classBoxes, relationships], autoSave, { deep: true })
 
 onMounted(async () => {
-  const token = localStorage.getItem('authHeader')
-  console.log('✅ authHeader:', token)
-
-  if (token) {
-    axios.defaults.headers.common['Authorization'] = token
-  }
-
   try {
-    const me = await axios.get('/auth/me')
-    console.log('✅ /auth/me 응답:', me.data)
+    const res = await axios.get('/design/all', {
+      params: { projectId: props.projectId },
+      headers: { Authorization: localStorage.getItem('authHeader') },
+      withCredentials: true
+    })
 
-    // ✅ 클래스 다이어그램 불러오기
-    const res = await axios.get('/design/all')
     const { classDiagram } = res.data
-
     if (classDiagram?.json) {
       const parsed = JSON.parse(classDiagram.json)
       classBoxes.value = parsed.classes || []
@@ -360,12 +366,14 @@ onMounted(async () => {
       console.log('✅ 클래스 다이어그램 불러오기 성공:', parsed)
     } else {
       console.warn('⚠️ 저장된 클래스 다이어그램이 없습니다.')
+      classBoxes.value = []
+      relationships.value = []
     }
-
   } catch (err) {
-    console.error('❌ 초기 데이터 로드 실패:', err)
+    console.error('❌ 클래스 다이어그램 초기 데이터 로드 실패:', err)
   }
 })
+
 
 
 

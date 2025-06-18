@@ -71,28 +71,24 @@ const handleLogin = async () => {
       withCredentials: true
     })
 
+    // ⭐️ 로그인한 사용자의 이름을 localStorage에 저장!
+    localStorage.setItem('userName', res.data.userName)
+
     successMessage.value = '로그인 성공!'
     window.dispatchEvent(new Event('login-success'))
 
-const roles = res.data.roles || []
-const isProfessor = roles.some(role => role.authority === 'ROLE_PROFESSOR')
+    const roles = res.data.roles || []
+    const isProfessor = roles.some(role => role.authority === 'ROLE_PROFESSOR')
+    const projectId = res.data.projectId
+    const hasProject = typeof projectId === 'number' && projectId > 0
 
-// ✅ 프로젝트 하나라도 있으면 true
-const projectId = res.data.projectId
-const hasProject = typeof projectId === 'number' && projectId > 0
-
-console.log('✅ 교수 여부:', isProfessor)
-console.log('✅ 프로젝트 ID:', projectId)
-console.log('✅ 프로젝트 있음?:', hasProject)
-
-if (isProfessor) {
-  router.push('/professor/mainpage')
-} else if (hasProject) {
-  router.push('/MyProject')
-} else {
-  router.push('/MainPage2')
-}
-
+    if (isProfessor) {
+      router.push('/professor/mainpage')
+    } else if (hasProject) {
+      router.push('/MyProject')
+    } else {
+      router.push('/MainPage2')
+    }
 
   } catch (error) {
     if (error.response?.status === 403) {

@@ -56,19 +56,21 @@ onMounted(async () => {
 
 const loadFeedbacks = async () => {
   try {
-    const res = await axios.get('/feedbacks/my', {
-      params: { projectId: props.projectId }, // 🔥 꼭 필요!
+    // ✅ 전체 피드백을 보기 위해 /feedbacks/project로 변경, page는 'all'로 넘김(백엔드에서 처리 필요)
+    const res = await axios.get('/feedbacks/project', {
+      params: { projectId: props.projectId, page: 'all' },
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true
     })
 
-    feedbacks.value = res.data
+    feedbacks.value = res.data.sort(
+      (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+    )
 
     console.log('📥 피드백 응답:', res.data)
     feedbacks.value.forEach(fb => {
       console.log(`🧾 [${fb.feedbackId}] (${fb.page}) ${fb.text} | 작성자: ${fb.authorId} | isRead: ${fb.isRead}`)
     })
-
   } catch (err) {
     console.error('❌ 피드백 내역 불러오기 실패:', err)
   }

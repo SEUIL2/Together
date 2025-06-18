@@ -83,6 +83,10 @@
 
 <script setup>
 import { ref, reactive, watch, onMounted, nextTick } from 'vue'
+import { useRoute } from 'vue-router'
+import axios from 'axios'
+import debounce from 'lodash/debounce'
+
 import ToolBox from '@/components/ToolBox.vue'
 import ActorNode from '@/components/usecase/ActorNode.vue'
 import UsecaseNode from '@/components/usecase/UsecaseNode.vue'
@@ -103,8 +107,16 @@ const scale = ref(1)
 const minScale = 0.4
 const maxScale = 2.2
 
+const props = defineProps({
+  projectId: Number,
+  readonly: Boolean,
+  projectTitle: String
+})
+
+console.log('✅ props.projectId:', props.projectId)  // 여기에 1이 나와야 정상
+
+
 const connectState = ref({ start: null })
-// ===== Anchor 점 클릭(관계선 연결) =====
 const handleAnchorClick = (info) => {
   if (!connectState.value.start) {
     connectState.value.start = info
@@ -119,7 +131,6 @@ const handleAnchorClick = (info) => {
   }
 }
 
-// ===== 드래그 & 드롭으로 노드 추가 =====
 const handleDrop = (e) => {
   const data = e.dataTransfer.getData('application/json')
   if (!data) return
@@ -150,7 +161,6 @@ function getRelativePos(e) {
   }
 }
 
-// ===== 노드 이동 처리 =====
 const updateActorPosition = (id, x, y) => {
   const item = actors.value.find(a => a.id === id)
   if (item) {
@@ -166,7 +176,6 @@ const updateUsecasePosition = (id, x, y) => {
   }
 }
 
-// ===== 컨텍스트 메뉴 관련 =====
 const contextMenu = reactive({
   visible: false,
   x: 0,
@@ -215,7 +224,6 @@ const toggleLinkType = (target) => {
   contextMenu.visible = false
 }
 
-// ===== 좌표 계산 =====
 const findAnchor = (anchorObj) => {
   if (!anchorObj || !anchorObj.nodeId || !anchorObj.direction) return { x: 0, y: 0 }
   let node
@@ -244,7 +252,6 @@ const findAnchor = (anchorObj) => {
   return { x: 0, y: 0 }
 }
 
-// ==== 이름 변경 모달 관리 ==== //
 const nameEditModal = ref(false)
 const nameEditTarget = ref({ type: '', id: '' })
 const nameEditValue = ref('')
@@ -277,22 +284,53 @@ function closeNameEdit() {
   nameEditTarget.value = { type: '', id: '' }
 }
 
-// ==== 자동 저장/로드 + 휠 줌 ==== //
-function saveDiagram() {
-  const data = {
+// === 저장 관련 ===
+const route = useRoute()
+const saveStatus = ref('idle')
+
+const saveUsecase = debounce(async () => {
+  const readonly = route.query.readonly === 'true'
+  if (readonly) {
+    console.log('🔒 읽기 전용 모드입니다. 저장하지 않습니다.')
+    return
+  }
+
+  saveStatus.value = 'saving'
+
+  const jsonData = {
     actors: actors.value,
     usecases: usecases.value,
-    links: links.value,
+    links: links.value
   }
-  localStorage.setItem('usecase-diagram', JSON.stringify(data))
-}
-let timer = null
-function debounceSave() {
-  clearTimeout(timer)
-  timer = setTimeout(saveDiagram, 700)
-}
-watch([actors, usecases, links], debounceSave, { deep: true })
 
+  const formData = new FormData()
+  formData.append('type', 'usecase')
+  formData.append('json', JSON.stringify(jsonData))
+
+  const projectId = route.query.projectId
+  if (projectId) {
+    formData.append('projectId', projectId)
+  }
+
+  const token = localStorage.getItem('authHeader')
+  const headers = token ? { Authorization: token } : {}
+
+  try {
+    await axios.post('/design/upload', formData, { headers })
+    saveStatus.value = 'saved'
+    setTimeout(() => saveStatus.value = 'idle', 1200)
+    console.log('✅ 유스케이스 다이어그램 저장 성공')
+  } catch (err) {
+    console.error('❌ 유스케이스 저장 실패:', err)
+    saveStatus.value = 'error'
+    setTimeout(() => saveStatus.value = 'idle', 3000)
+    alert('⚠️ 유스케이스 저장 중 오류 발생')
+  }
+}, 1000)
+
+watch([actors, usecases, links], saveUsecase, { deep: true })
+
+// === 줌 기능 ===
 const handleWheel = (e) => {
   if (!e.evt.ctrlKey) return
   e.evt.preventDefault()
@@ -303,16 +341,38 @@ const handleWheel = (e) => {
   scale.value = nextScale
 }
 
-onMounted(() => {
-  const saved = localStorage.getItem('usecase-diagram')
-  if (saved) {
-    const data = JSON.parse(saved)
-    actors.value = data.actors || []
-    usecases.value = data.usecases || []
-    links.value = data.links || []
+// === 불러오기 ===
+onMounted(async () => {
+  try {
+    const res = await axios.get('/design/all', {
+      params: { projectId: props.projectId },
+      headers: { Authorization: localStorage.getItem('authHeader') },
+      withCredentials: true
+    })
+
+    const { usecase } = res.data
+    if (usecase?.json) {
+      const parsed = JSON.parse(usecase.json)
+      actors.value = parsed.actors || []
+      usecases.value = parsed.usecases || []
+      links.value = parsed.links || []
+      console.log('✅ 유스케이스 불러오기 성공:', parsed)
+    } else {
+      console.warn('⚠️ 저장된 유스케이스 데이터가 없습니다.')
+      actors.value = []
+      usecases.value = []
+      links.value = []
+    }
+  } catch (err) {
+    console.error('❌ 유스케이스 초기 데이터 로드 실패:', err)
   }
 })
+
+
+
 </script>
+
+
 
 <style scoped>
 .diagram-layout {

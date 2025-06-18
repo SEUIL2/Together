@@ -41,7 +41,7 @@ if (!projectId) {
 }
 
     // ✅ 피드백 가져오기
-    const res = await axios.get('/feedbacks/my', {
+    const res = await axios.get('/feedbacks/project', {
       params: { projectId },
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true

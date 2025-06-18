@@ -134,7 +134,8 @@ const defaultImage = '/default-profile.png'
 const fileInput = ref(null)
 
 const axiosInstance = axios.create({
-  baseURL: 'http://localhost:8081', // 꼭 백엔드 주소 맞게
+ // baseURL: 'http://localhost:8081', // 꼭 백엔드 주소 맞게
+   baseURL: 'http://25.12.59.4:3000', // 건우 주소
   headers: {
     'Authorization': localStorage.getItem('authHeader') || ''
   },

@@ -250,11 +250,11 @@ async function selectColor(color) {
     return
   }
   try {
-    await axiosInstance.put(
-        /projects/members/${userId.value}/color,
-    null,
-        { params: { colorHex: color } }
-  )
+     await axiosInstance.put(
+             `/projects/members/${userId.value}/color`,
+             null,
+             { params: { colorHex: color } }
+         )
     userColor.value = color
     showColorMenu.value = false
     alert('색상이 성공적으로 저장되었습니다.')

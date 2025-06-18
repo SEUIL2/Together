@@ -11,4 +11,5 @@ public class VoteDetailDTO {
     private String title;
     private Date createdDate;
     private List<VoteItemResultDTO> items;
+    private String userName;
 }

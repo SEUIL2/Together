@@ -15,7 +15,9 @@
     </div>
 
     <!-- 편집 영역 -->
-    <div class="editor-container">
+    <div class="editor-container" @contextmenu.prevent="handleRightClick" style="position: relative">
+
+    
       <Editor
         v-if="!readonly"
         v-model="activeItem.content"
@@ -57,6 +59,36 @@
 
         </div>
       </div>
+            <div
+  v-for="fb in feedbacks"
+  :key="fb.feedbackId"
+  class="feedback-marker"
+  :style="{ top: fb.y + 'px', left: fb.x + 'px', position: 'absolute' }"
+  @click="selectedFeedback = fb"
+>
+  📌
+</div>
+
+<!-- 피드백 팝업 -->
+<FeedbackPopup
+  v-if="selectedFeedback"
+  :fb="selectedFeedback"
+  :readonly="true"
+  @read="handleReadFeedback"
+  @close="selectedFeedback = null"
+/>
+
+<!-- 피드백 입력창 (교수 전용) -->
+<FeedbackInput
+  v-if="showFeedbackInput"
+  :x="feedbackPosition.x"
+  :y="feedbackPosition.y"
+  :page="'planning-details'"
+  :readonly="true"
+  :projectId="resolvedProjectId"
+  @close="showFeedbackInput = false"
+  @submitted="() => { showFeedbackInput = false; loadFeedbacks() }"
+/>
     </div>
   </section>
 </template>
@@ -65,11 +97,52 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import axios from 'axios'
 import Editor from '@tinymce/tinymce-vue'
+import FeedbackInput from '@/components/feedback/FeedbackInput.vue'
+import FeedbackPopup from '@/components/feedback/FeedbackPopup.vue'
+import { useFeedback } from '@/composables/useFeedback'
 
 const fileInputRef = ref(null)
 const props = defineProps({ projectId: Number, readonly: Boolean })
+const resolvedProjectId = computed(() => props.projectId || Number(route.params.projectId))
 const emit = defineEmits(['updateStepProgress'])
 
+const feedbacks = ref([])
+const showFeedbackInput = ref(false)
+const feedbackPosition = ref({ x: 0, y: 0 })
+const selectedFeedback = ref(null)
+const { markFeedbackAsRead } = useFeedback()
+
+function handleRightClick(e) {
+  const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft
+  const scrollTop = window.pageYOffset || document.documentElement.scrollTop
+
+  feedbackPosition.value = {
+    x: e.clientX + scrollLeft,
+    y: e.clientY + scrollTop
+  }
+
+  showFeedbackInput.value = true
+}
+
+
+function handleReadFeedback(id) {
+  markFeedbackAsRead(id)
+  feedbacks.value = feedbacks.value.filter(fb => fb.feedbackId !== id)
+  selectedFeedback.value = null
+}
+
+async function loadFeedbacks() {
+  try {
+    const { data } = await axios.get('/feedbacks/project', {
+      params: { page: 'planning-details', projectId: resolvedProjectId.value },
+      headers: { Authorization: localStorage.getItem('authHeader') },
+      withCredentials: true
+    })
+    feedbacks.value = data.filter(fb => !fb.isRead)
+  } catch (err) {
+    console.error('❌ 피드백 불러오기 실패:', err)
+  }
+}
 const planningItems = reactive([
   { name: '프로젝트 동기', type: 'motivation', content: '', files: [], completed: false },
   { name: '프로젝트 목표', type: 'goal', content: '', files: [], completed: false },
@@ -211,6 +284,7 @@ async function removeFile(idx) {
 
 onMounted(async () => {
   try {
+    // 기존 planning 데이터 불러오기
     const res = await axios.get('/planning/all', {
       params: { projectId: props.projectId },
       headers: { Authorization: localStorage.getItem('authHeader') },
@@ -222,10 +296,15 @@ onMounted(async () => {
       item.completed = Boolean(item.content.trim()) || item.files.length > 0
     })
     emit('updateStepProgress', planningItems.filter(i => i.completed).length)
+
+    // 🔥 여기서 피드백도 불러오기
+    await loadFeedbacks()
+
   } catch (err) {
     console.error('데이터 로딩 오류', err)
   }
 })
+
 
 const extractFileName = url => url.split('/').pop()
 const isImage = url => /\.(jpe?g|png|gif|bmp|webp)$/i.test(url)
@@ -264,4 +343,9 @@ const formatDate = date => new Date(date).toLocaleString()
 }
 .file-date { font-size: 10px; color: #999; }
 .readonly-content { padding: 12px; border: 1px solid #eee; border-radius: 8px; background: #f9f9f9; min-height: 200px; }
+.feedback-marker {
+  font-size: 20px;
+  cursor: pointer;
+}
+
 </style>

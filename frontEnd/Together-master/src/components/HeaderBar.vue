@@ -16,9 +16,9 @@
   </button>
 </li>
         <li>
-  <button :class="{ active: $route.path.includes('/DashBoard') || $route.path.includes('/professor/dashboard') }" @click="goMyDashBoard">
-    대시보드
-  </button>
+  <li v-if="!isProfessorReadOnly">
+  <button :class="{ active: $route.path === '/DashBoard' }" @click="goMyDashBoard">대시보드</button>
+</li>
 </li>
 <li>
   <button :class="{ active: $route.path.includes('/TaskPage') || $route.path.includes('/professor/task') }" @click="goMyTask">

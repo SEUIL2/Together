@@ -1,5 +1,5 @@
 <template>
-  <div class="task-board-page">
+  <div class="task-board-page" @contextmenu.prevent="handleRightClick" style="position: relative">
     <!-- 검색 + 필터 -->
     <div class="search-bar">
       <input v-model="searchTerm" @input="onSearch" type="text" placeholder="작업 검색..." />
@@ -12,15 +12,15 @@
     <hr class="divider" />
 
     <div class="board">
-      <!-- 작업 목록 -->
-      <div class="column">
-        <h3><span>작업 목록</span></h3>
+      <!-- 작업 컬럼들 -->
+      <div class="column" v-for="(tasks, status) in taskColumns" :key="status">
+        <h3><span>{{ columnTitles[status] }}</span></h3>
         <draggable
-          v-model="pendingList"
+          v-model="taskColumns[status]"
           itemKey="id"
           :group="{ name: 'tasks' }"
           :disabled="isReadOnly"
-          @change="evt => onTaskDrop(evt, 'PENDING')"
+          @change="evt => onTaskDrop(evt, status)"
           class="task-list"
         >
           <template #item="{ element: task }">
@@ -32,48 +32,41 @@
         </draggable>
       </div>
 
-      <!-- 진행 중 -->
-      <div class="column">
-        <h3><span>진행 중</span></h3>
-        <draggable
-          v-model="inProgressList"
-          itemKey="id"
-          :group="{ name: 'tasks' }"
-          :disabled="isReadOnly"
-          @change="evt => onTaskDrop(evt, 'IN_PROGRESS')"
-          class="task-list"
-        >
-          <template #item="{ element: task }">
-            <div class="card" @dblclick="openLightbox(task.id)">
-              <div class="card-title">{{ task.title }}</div>
-              <div class="card-assignee">{{ task.assignedUserName }}</div>
-            </div>
-          </template>
-        </draggable>
+      <!-- 📌 피드백 마커 -->
+      <div
+        v-for="(fb, index) in feedbacks"
+        :key="index"
+        class="feedback-marker"
+        :style="{ top: fb.y + 'px', left: fb.x + 'px', position: 'absolute', zIndex: 10 }"
+        @click="selectedFeedback = fb"
+      >
+        📌
       </div>
 
-      <!-- 완료 -->
-      <div class="column">
-        <h3><span>완료</span></h3>
-        <draggable
-          v-model="completedList"
-          itemKey="id"
-          :group="{ name: 'tasks' }"
-          :disabled="isReadOnly"
-          @change="evt => onTaskDrop(evt, 'COMPLETED')"
-          class="task-list"
-        >
-          <template #item="{ element: task }">
-            <div class="card" @dblclick="openLightbox(task.id)">
-              <div class="card-title">{{ task.title }}</div>
-              <div class="card-assignee">{{ task.assignedUserName }}</div>
-            </div>
-          </template>
-        </draggable>
+      <!-- 피드백 팝업 -->
+      <div style="position: absolute; z-index: 20">
+        <FeedbackPopup
+          v-if="selectedFeedback"
+          :fb="selectedFeedback"
+          :readonly="true"
+          @read="handleReadFeedback"
+          @close="selectedFeedback = null"
+        />
       </div>
+
+      <!-- 피드백 입력창 (교수 전용) -->
+      <FeedbackInput
+        v-if="showFeedbackInput"
+        :x="feedbackPosition.x"
+        :y="feedbackPosition.y"
+        :page="'task-board'"
+        :readonly="true"
+        :projectId="Number(route.params.projectId)"
+        @close="showFeedbackInput = false"
+        @submitted="() => { showFeedbackInput = false; loadFeedbacks() }"
+      />
     </div>
 
-    <!-- 숨겨진 Gantt 영역 -->
     <div ref="ganttHidden" style="width:0;height:0;overflow:hidden;"></div>
   </div>
 </template>
@@ -83,12 +76,11 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import axios from 'axios'
 import draggable from 'vuedraggable'
-import 'dhtmlx-gantt/codebase/dhtmlxgantt.css'
 import gantt from 'dhtmlx-gantt'
-
-// axios.defaults.baseURL = 'http://localhost:8081'
-// axios.defaults.withCredentials = true
-// axios.defaults.headers.common['Authorization'] = localStorage.getItem('authHeader')
+import 'dhtmlx-gantt/codebase/dhtmlxgantt.css'
+import FeedbackInput from '@/components/feedback/FeedbackInput.vue'
+import FeedbackPopup from '@/components/feedback/FeedbackPopup.vue'
+import { useFeedback } from '@/composables/useFeedback'
 
 const route = useRoute()
 const isReadOnly = computed(() => route.query.readonly === 'true')
@@ -98,11 +90,48 @@ const searchTerm = ref('')
 const filterMode = ref('all')
 const currentUser = ref('')
 const workTasks = ref([])
-const pendingList = ref([])
-const inProgressList = ref([])
-const completedList = ref([])
 const rawTeamMembers = ref([])
 const teamMembers = ref([])
+const columnTitles = { PENDING: '작업 목록', IN_PROGRESS: '진행 중', COMPLETED: '완료' }
+const taskColumns = ref({ PENDING: [], IN_PROGRESS: [], COMPLETED: [] })
+
+const feedbacks = ref([])
+const showFeedbackInput = ref(false)
+const feedbackPosition = ref({ x: 0, y: 0 })
+const selectedFeedback = ref(null)
+const { markFeedbackAsRead } = useFeedback()
+
+function handleRightClick(e) {
+  if (!isReadOnly.value) return
+  const sectionRect = e.currentTarget.getBoundingClientRect()
+  feedbackPosition.value = {
+    x: e.clientX - sectionRect.left + e.currentTarget.scrollLeft,
+    y: e.clientY - sectionRect.top + e.currentTarget.scrollTop
+  }
+  showFeedbackInput.value = true
+}
+
+async function loadFeedbacks() {
+  try {
+    const res = await axios.get('/feedbacks/project', {
+      params: {
+        page: 'task-board',
+        projectId: route.params.projectId
+      },
+      headers: { Authorization: localStorage.getItem('authHeader') },
+      withCredentials: true
+    })
+    feedbacks.value = res.data.filter(fb => !fb.isRead)
+  } catch (err) {
+    console.error('❌ 피드백 불러오기 오류:', err)
+  }
+}
+
+function handleReadFeedback(id) {
+  markFeedbackAsRead(id)
+  feedbacks.value = feedbacks.value.filter(fb => fb.feedbackId !== id)
+  selectedFeedback.value = null
+}
 
 async function fetchCurrentUser() {
   if (isReadOnly.value) return
@@ -143,26 +172,18 @@ async function fetchTasks() {
 }
 
 function splitByStatus(filteredTasks) {
-  pendingList.value = filteredTasks.filter(t => t.status === 'PENDING')
-  inProgressList.value = filteredTasks.filter(t => t.status === 'IN_PROGRESS')
-  completedList.value = filteredTasks.filter(t => t.status === 'COMPLETED')
+  taskColumns.value.PENDING = filteredTasks.filter(t => t.status === 'PENDING')
+  taskColumns.value.IN_PROGRESS = filteredTasks.filter(t => t.status === 'IN_PROGRESS')
+  taskColumns.value.COMPLETED = filteredTasks.filter(t => t.status === 'COMPLETED')
 }
 
 function onSearch() {
   const q = searchTerm.value.trim().toLowerCase()
   let filtered = workTasks.value
-
-  if (q) {
-    filtered = filtered.filter(t => t.title.toLowerCase().includes(q))
-  }
-
+  if (q) filtered = filtered.filter(t => t.title.toLowerCase().includes(q))
   if (filterMode.value === 'mine') {
-    filtered = filtered.filter(t =>
-      t.assignedUserName && currentUser.value &&
-      t.assignedUserName.trim() === currentUser.value.trim()
-    )
+    filtered = filtered.filter(t => t.assignedUserName?.trim() === currentUser.value.trim())
   }
-
   splitByStatus(filtered)
 }
 
@@ -175,17 +196,8 @@ function flattenTask(t, parent = null) {
   const start = new Date(t.startDate)
   const end = new Date(t.endDate)
   const dur = Math.ceil((end - start) / (1000 * 60 * 60 * 24))
-  const row = [{
-    id: t.id,
-    text: t.title,
-    start_date: t.startDate,
-    duration: dur,
-    assignee: t.assignedUserName,
-    parent
-  }]
-  if (t.childTasks) {
-    t.childTasks.forEach(c => row.push(...flattenTask(c, t.id)))
-  }
+  const row = [{ id: t.id, text: t.title, start_date: t.startDate, duration: dur, assignee: t.assignedUserName, parent }]
+  if (t.childTasks) t.childTasks.forEach(c => row.push(...flattenTask(c, t.id)))
   return row
 }
 
@@ -227,7 +239,7 @@ onMounted(async () => {
   await fetchCurrentUser()
   await fetchTeamMembers()
   await fetchTasks()
-
+  await loadFeedbacks()
   gantt.init(ganttHidden.value)
 
   gantt.config.readonly = isReadOnly.value
@@ -286,7 +298,6 @@ onMounted(async () => {
 </script>
 
 
-
 <style scoped>
 .task-board-page {
   padding: 32px;
@@ -322,6 +333,7 @@ onMounted(async () => {
   max-width: 1200px;
   margin: 0 auto;
   height: 100%;
+  min-height: 550px;
 }
 .column {
   display: flex;
@@ -372,5 +384,19 @@ onMounted(async () => {
   border-top: 1px solid #bbbbbb;
   width: 87%;
   margin: 12px auto;
+}
+.feedback-marker {
+  font-size: 18px;
+  cursor: pointer;
+  position: absolute;
+}
+.popup-container {
+  position: absolute;
+  z-index: 9999; /* 마커보다 위로 */
+  background: white;
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 </style>

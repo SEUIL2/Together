@@ -28,8 +28,7 @@
         </div>
       </div>
     </div>
-
-    <!-- 중간 작업 카드 -->
+ <!-- 중간 작업 카드 -->
     <div class="dashboard-mid">
       <div class="card">
         <AllTasksCard :tasks="tasks" />
@@ -53,7 +52,8 @@
       <!-- 팀 투표 카드 -->
       <div class="card">
         <div class="card-header" style="display:flex; align-items:center; justify-content:space-between;">
-          <h3 class="board-title">팀 투표</h3>
+          <!-- 타이틀 클릭 시 투표 전체 모달 오픈 -->
+          <h3 class="board-title" @click="showVotingListModal = true">팀 투표</h3>
           <button class="create-btn" @click="showVoteCreateModal = true">+</button>
         </div>
         <VotingList @created="onVoteCreated" />
@@ -94,6 +94,17 @@
       </div>
     </div>
 
+    <!-- 전체 팀 투표 모달 -->
+    <div v-if="showVotingListModal" class="modal-overlay">
+      <div class="modal-content voting-modal">
+        <div class="modal-header">
+          <h4>전체 팀 투표</h4>
+          <button class="close-btn" @click="showVotingListModal = false">×</button>
+        </div>
+        <VotingList @created="onVoteCreated" />
+      </div>
+    </div>
+
     <!-- 공지 상세 모달 -->
     <NoticeDetailModal
       v-if="showNoticeModal"
@@ -129,7 +140,7 @@ import FeedbackHistoryModal from '@/components/feedback/FeedbackHistoryModal.vue
 
 const showFeedbackModal = ref(false)
 const showVoteCreateModal = ref(false)
-const showVotingListModal = ref(false)
+const showVotingListModal = ref(false)  // 팀 투표 전체 모달
 
 const route = useRoute()
 const projectId = ref(route.params.projectId || null)
@@ -207,21 +218,21 @@ async function handleUpdateNotice(updated) {
   }
 }
 
-// 공지 삭제
-async function handleDeleteNotice(noticeId) {
-  if (!confirm('정말 삭제하시겠습니까?')) return
-  try {
-    await axios.delete(`/notices/delete/${noticeId}`, {
-      headers: { Authorization: localStorage.getItem('authHeader') },
-      withCredentials: true
-    })
-    showNoticeModal.value = false
-    await fetchNotices()
-  } catch (e) {
-    console.error('공지사항 삭제 실패:', e)
-    alert('삭제 중 오류가 발생했습니다.')
-  }
-}
+// // 공지 삭제
+// async function handleDeleteNotice(noticeId) {
+//   if (!confirm('정말 삭제하시겠습니까?')) return
+//   try {
+//     await axios.delete(`/notices/delete/${noticeId}`, {
+//       headers: { Authorization: localStorage.getItem('authHeader') },
+//       withCredentials: true
+//     })
+//     showNoticeModal.value = false
+//     await fetchNotices()
+//   } catch (e) {
+//     console.error('공지사항 삭제 실패:', e)
+//     alert('삭제 중 오류가 발생했습니다.')
+//   }
+// }
 
 // 초기 로드
 onMounted(async () => {
@@ -254,8 +265,6 @@ function onVoteCreated() {
   // VotingList에서 @created emit 받아서 내부적으로 fetchVotes() 호출해주는 구조라면 OK!
 }
 </script>
-
-
 
 <style scoped>
 .dashboard-container {

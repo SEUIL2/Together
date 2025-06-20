@@ -1,5 +1,5 @@
 <template>
-  <div class="test-table-container">
+  <div class="test-table-container" @contextmenu.prevent="handleRightClick" style="position: relative">
     <div class="nav-buttons">
       <button
           v-for="(tab, idx) in testTabs"
@@ -16,7 +16,7 @@
     <table class="test-table">
       <thead>
       <tr>
-        <th></th> <!-- 삭제 열 -->
+        <th></th>
         <th>테스트 항목명</th>
         <th>설명</th>
         <th>작성자</th>
@@ -33,7 +33,6 @@
           @mouseover="hoveredRow = row.rowId"
           @mouseleave="hoveredRow = null"
       >
-        <!-- 삭제 아이콘 셀 -->
         <td class="delete-cell">
           <button
               v-if="hoveredRow === row.rowId"
@@ -44,8 +43,6 @@
             🗑️
           </button>
         </td>
-
-        <!-- 나머지 셀 -->
         <td><input v-model="row.itemName" @blur="saveRow(currentTab.type, row)" /></td>
         <td><input v-model="row.description" @blur="saveRow(currentTab.type, row)" /></td>
         <td>
@@ -65,12 +62,41 @@
         </td>
       </tr>
       </tbody>
-
     </table>
 
     <button @click="addRow(currentTab.type)">+</button>
 
+    <!-- 피드백 마커 -->
+    <div
+      v-for="fb in feedbacks"
+      :key="fb.feedbackId"
+      class="feedback-marker"
+      :style="{ top: fb.y + 'px', left: fb.x + 'px', position: 'absolute' }"
+      @click="selectedFeedback = fb"
+    >
+      📌
+    </div>
 
+    <!-- 피드백 팝업 -->
+    <FeedbackPopup
+      v-if="selectedFeedback"
+      :fb="selectedFeedback"
+      :readonly="true"
+      @read="handleReadFeedback"
+      @close="selectedFeedback = null"
+    />
+
+    <!-- 피드백 입력 -->
+    <FeedbackInput
+      v-if="showFeedbackInput"
+      :x="feedbackPosition.x"
+      :y="feedbackPosition.y"
+      :page="'test-table'"
+      :readonly="true"
+      :projectId="resolvedProjectId"
+      @close="showFeedbackInput = false"
+      @submitted="() => { showFeedbackInput = false; loadFeedbacks() }"
+    />
   </div>
 </template>
 
@@ -78,6 +104,9 @@
 import { ref, reactive, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import axios from '@/utils/axiosInstance'
+import FeedbackPopup from '@/components/feedback/FeedbackPopup.vue'
+import FeedbackInput from '@/components/feedback/FeedbackInput.vue'
+import { useFeedback } from '@/composables/useFeedback'
 
 const props = defineProps({ projectId: Number })
 const route = useRoute()
@@ -89,17 +118,49 @@ const testTabs = reactive([
 ])
 const selectedIndex = ref(0)
 const teamMembers = ref([])
-
 const currentTab = computed(() => testTabs[selectedIndex.value])
-
 const hoveredRow = ref(null)
+
+// 피드백 관련 상태
+const feedbacks = ref([])
+const selectedFeedback = ref(null)
+const showFeedbackInput = ref(false)
+const feedbackPosition = ref({ x: 0, y: 0 })
+const { markFeedbackAsRead } = useFeedback()
+
+function handleRightClick(e) {
+  const rect = e.currentTarget.getBoundingClientRect()
+  feedbackPosition.value = {
+    x: e.clientX - rect.left + e.currentTarget.scrollLeft,
+    y: e.clientY - rect.top + e.currentTarget.scrollTop
+  }
+  showFeedbackInput.value = true
+}
+
+function handleReadFeedback(id) {
+  markFeedbackAsRead(id)
+  feedbacks.value = feedbacks.value.filter(fb => fb.feedbackId !== id)
+  selectedFeedback.value = null
+}
+
+async function loadFeedbacks() {
+  try {
+    const { data } = await axios.get('/feedbacks/project', {
+      params: { page: 'test-table', projectId: resolvedProjectId.value },
+      headers: { Authorization: localStorage.getItem('authHeader') },
+      withCredentials: true
+    })
+    feedbacks.value = data.filter(fb => !fb.isRead)
+  } catch (err) {
+    console.error('❌ 피드백 불러오기 실패:', err)
+  }
+}
 
 async function deleteRow(rowId) {
   if (!confirm('이 항목을 삭제하시겠습니까?')) return
   await axios.delete(`/api/test-rows/delete/${rowId}`)
   currentTab.value.rows = currentTab.value.rows.filter(r => r.rowId !== rowId)
 }
-
 
 function formatDate(dateStr) {
   return new Date(dateStr).toLocaleDateString()
@@ -171,8 +232,10 @@ async function toggleCompleted(tableType, row) {
 onMounted(async () => {
   await fetchTeamMembers()
   await fetchRows()
+  await loadFeedbacks()
 })
 </script>
+
 
 <style scoped>
 .test-table-container {

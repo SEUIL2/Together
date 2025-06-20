@@ -47,21 +47,31 @@ onMounted(async () => {
     const { data: me } = await axios.get('/auth/me', { withCredentials: true })
     currentUserId.value = me.userId
     console.log('🙋 사용자 ID:', currentUserId.value)
+    await loadFeedbacks(me.role) // 사용자 역할도 함께 전달
   } catch (err) {
     console.error('🙅 사용자 정보 불러오기 실패:', err)
   }
-
-  await loadFeedbacks()
 })
 
-const loadFeedbacks = async () => {
+const loadFeedbacks = async (role) => {
   try {
-    // ✅ 전체 피드백을 보기 위해 /feedbacks/project로 변경, page는 'all'로 넘김(백엔드에서 처리 필요)
-    const res = await axios.get('/feedbacks/project', {
-      params: { projectId: props.projectId, page: 'all' },
-      headers: { Authorization: localStorage.getItem('authHeader') },
-      withCredentials: true
-    })
+    let res
+
+    if (role === 'PROFESSOR') {
+      // 교수는 전체 피드백 조회
+      res = await axios.get('/feedbacks/project', {
+        params: { projectId: props.projectId, page: 'all' },
+        headers: { Authorization: localStorage.getItem('authHeader') },
+        withCredentials: true
+      })
+    } else {
+      // 학생은 자신의 피드백만 조회
+      res = await axios.get('/feedbacks/my', {
+        params: { projectId: props.projectId },
+        headers: { Authorization: localStorage.getItem('authHeader') },
+        withCredentials: true
+      })
+    }
 
     feedbacks.value = res.data.sort(
       (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
@@ -75,6 +85,7 @@ const loadFeedbacks = async () => {
     console.error('❌ 피드백 내역 불러오기 실패:', err)
   }
 }
+
 
 const deleteFeedback = async (id) => {
   if (!confirm('정말 삭제하시겠습니까?')) return

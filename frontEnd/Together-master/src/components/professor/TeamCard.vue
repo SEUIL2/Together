@@ -34,7 +34,7 @@
       <button class="action-btn" @click="showNoticeModal = true">📢 공지사항</button>
       <button class="action-btn" @click="showVoteModal = true">🗳 투표</button>
 
-      <button class="action-btn" @click="showFeedbackModal = true">📝 피드백 내역</button>␊
+      <button class="action-btn" @click="showFeedbackModal = true">📝 피드백 내역</button>
       <button class="action-btn" @click="showMemoModal = true">🧾 메모</button>
     </div>
 

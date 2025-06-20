@@ -22,6 +22,25 @@
 
     <!-- Gantt 컨테이너 -->
     <div ref="ganttContainer" class="gantt-container"></div>
+
+    <!-- 피드백 마커 (학생 전용 표시) -->
+    <FeedbackLayer
+      v-if="!isReadOnly"
+      :page="'task-board'"
+      :readonly="true"
+    />
+
+    <!-- 피드백 입력창 (교수 전용) -->
+    <FeedbackInput
+      v-if="showFeedbackInput"
+      :x="feedbackX"
+      :y="feedbackY"
+      :page="'task-board'"
+      :readonly="true"
+      :project-id="projectId"
+      @close="showFeedbackInput = false"
+      @submitted="showFeedbackInput = false"
+    />
   </div>
 </template>
 
@@ -32,18 +51,15 @@ import axios from 'axios'
 import 'dhtmlx-gantt/codebase/dhtmlxgantt.css'
 import gantt from 'dhtmlx-gantt'
 
-// 라우트 및 읽기 전용 플래그
+import FeedbackInput from '@/components/feedback/FeedbackInput.vue'
+import FeedbackLayer from '@/components/feedback/FeedbackLayer.vue'
+
 const route = useRoute()
 const isReadOnly = computed(() => route.query.readonly === 'true')
 const routeProjectId = computed(() => Number(route.params.projectId))
-
-// Gantt 컨테이너 ref
 const ganttContainer = ref(null)
-
-// 프로젝트 ID 상태
 const projectId = ref(routeProjectId.value || null)
 
-// 사용자/팀/작업 상태
 const currentUser = ref('')
 const rawTeamMembers = ref([])
 const teamMembers = ref([])
@@ -51,12 +67,11 @@ const searchTerm = ref('')
 const filterMode = ref('all')
 let allRows = []
 
-// Axios 기본 설정 및 인증 헤더
-// axios.defaults.baseURL = 'http://localhost:8081'
-// axios.defaults.withCredentials = true
-// axios.defaults.headers.common['Authorization'] = localStorage.getItem('authHeader')
+// 피드백 상태
+const showFeedbackInput = ref(false)
+const feedbackX = ref(0)
+const feedbackY = ref(0)
 
-// 1) 프로젝트 정보 로드
 async function fetchProjectInfo() {
   try {
     const res = isReadOnly.value && projectId.value
@@ -68,7 +83,6 @@ async function fetchProjectInfo() {
   }
 }
 
-// 2) 현재 사용자 정보 로드
 async function fetchCurrentUser() {
   if (isReadOnly.value) return
   try {
@@ -79,7 +93,6 @@ async function fetchCurrentUser() {
   }
 }
 
-// 3) 팀원 정보 로드
 async function fetchTeamMembers() {
   try {
     const { data } = await axios.get('/projects/members', { params: { projectId: projectId.value } })
@@ -90,7 +103,6 @@ async function fetchTeamMembers() {
   }
 }
 
-// 4) 트리 구조를 flat 배열로 변환
 function flattenTask(task, parent = null) {
   const start = new Date(task.startDate)
   const end = new Date(task.endDate)
@@ -109,12 +121,9 @@ function flattenTask(task, parent = null) {
   return row
 }
 
-// 5) 서버에서 작업 목록 불러오기
 async function fetchTasksFromServer() {
   try {
-    const res = isReadOnly.value && projectId.value
-      ? await axios.get(`/work-tasks/project`, { params: { projectId: projectId.value } })
-      : await axios.get('/work-tasks/project', { params: { projectId: projectId.value } })
+    const res = await axios.get('/work-tasks/project', { params: { projectId: projectId.value } })
     allRows = res.data.flatMap(t => flattenTask(t))
     onSearch()
   } catch (e) {
@@ -122,14 +131,12 @@ async function fetchTasksFromServer() {
   }
 }
 
-// Gantt 렌더링 함수
 function renderGantt(rows) {
   gantt.clearAll()
   gantt.parse({ data: rows, links: [] })
   gantt.render()
 }
 
-// 검색 및 필터 처리
 function onSearch() {
   let rows = allRows
   const q = searchTerm.value.trim().toLowerCase()
@@ -138,13 +145,11 @@ function onSearch() {
   renderGantt(rows)
 }
 
-// 필터 모드 전환
 function setFilter(mode) {
   filterMode.value = mode
   onSearch()
 }
 
-// Gantt 초기 설정
 function setupGantt() {
   gantt.plugins({ drag_timeline: true })
   gantt.locale.date.month_full = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월']
@@ -164,13 +169,11 @@ function setupGantt() {
   gantt.config.end_date    = new Date(2025,11,31)
   gantt.config.date_format = "%Y-%m-%d"
 
-  // 읽기 모드에 따라 편집 기능 토글
   gantt.config.readonly      = isReadOnly.value
   gantt.config.drag_move     = !isReadOnly.value
   gantt.config.drag_resize   = !isReadOnly.value
   gantt.config.drag_progress = !isReadOnly.value
 
-  // 컬럼 설정 (비읽기 모드일 때만 + 버튼)
   gantt.config.columns = [
     { name:'text',       label:'작업',   tree:true, width:130, align:'center', resize:true },
     { name:'start_date', label:'시작일', width:100, align:'center', resize:true },
@@ -186,6 +189,14 @@ function setupGantt() {
   ]
 }
 
+function onRightClick(event) {
+  if (!isReadOnly.value) return
+  event.preventDefault()
+  feedbackX.value = event.clientX
+  feedbackY.value = event.clientY
+  showFeedbackInput.value = true
+}
+
 onMounted(async () => {
   await fetchProjectInfo()
   await fetchCurrentUser()
@@ -194,6 +205,9 @@ onMounted(async () => {
   await nextTick()
   gantt.init(ganttContainer.value)
   await fetchTasksFromServer()
+  if (isReadOnly.value) {
+    ganttContainer.value?.addEventListener('contextmenu', onRightClick)
+  }
 
   if (!isReadOnly.value) {
     gantt.attachEvent("onAfterTaskAdd", (tempId, task) => {
@@ -223,15 +237,31 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.task-board-page { padding:5px; background-color: #ffffff;  /* ← 이거 추가 */ }
+.task-board-page { padding:5px; background-color: #ffffff;  position: relative; }
 .search-bar { display:flex; align-items:center; margin:8px 0px 4px ;}
 .search-bar input { width:200px; padding:4px 8px; border:1px solid #ccc; border-radius:4px }
 .filter-toggle button { margin-left:5px; padding:4px 10px; border:1px solid #ccc; border-radius:4px; background:#fff; cursor:pointer }
 .filter-toggle button.active { background:#3f8efc; color:#fff; border-color:#3f8efc }
-.gantt-container { width:100%; height:calc(100vh - 120px); margin:0; padding:0;}
+.gantt-container {
+  width: 100%;
+  height: calc(100vh - 120px);
+  margin: 0;
+  padding: 0;
+  position: relative; /* ✅ 꼭 있어야 함 */
+  overflow: visible;   /* ✅ 숨겨진 마커 방지 */
+  z-index: 0;
+}
+
+.feedback-note {
+  position: absolute;
+  font-size: 24px;
+  z-index: 10000; /* 간트보다 위로 올라가게 */
+  color: red; /* 테스트용 */
+  pointer-events: auto;
+}
+
+
 html, body { scrollbar-width:none; -ms-overflow-style:none }
 html::-webkit-scrollbar, body::-webkit-scrollbar { display:none }
-
-
 
 </style>

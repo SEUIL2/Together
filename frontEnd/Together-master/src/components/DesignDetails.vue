@@ -11,9 +11,15 @@
         {{ item.name }}
       </button>
     </div>
-
+<!-- 여기 추가! -->
+    <div v-if="!activeItem" class="empty-message">
+      <div class="empty-inner">
+        <span class="empty-icon">🗂️</span>
+        <p>상단 탭에서 원하는 항목을 클릭하세요!<br>유스케이스 다이어그램, 클래스 다이어그램, ERD, 프로젝트 일정은 페이지가 이동 됩니다.</p>
+      </div>
+    </div>
     <!-- 🔹 에디터 영역 -->
-    <div class="editor-container">
+    <div class="editor-container" v-if="activeItem">
       <!-- 🔸 UI 디자인 -->
       <template v-if="activeItem.type === 'ui'">
         <textarea
@@ -24,7 +30,6 @@
           @input="onContentChange($event.target.value)"
         ></textarea>
 
-        <!-- Figma 임베드 -->
         <iframe
           v-if="isValidFigmaLink(activeItem.content)"
           :src="convertToFigmaEmbed(extractFigmaUrl(activeItem.content))"
@@ -45,7 +50,6 @@
           @input="onContentChange($event.target.value)"
         ></textarea>
 
-        <!-- draw.io 임베드 -->
         <iframe
           v-if="isValidDrawioLink(activeItem.content)"
           :src="convertToDrawioEmbed(activeItem.content)"
@@ -56,23 +60,10 @@
           style="margin-top: 12px; border: 1px solid #ccc; border-radius: 8px;"
         ></iframe>
       </template>
-
-      <!-- 🔸 그 외 항목 (TinyMCE 에디터) -->
-      <template v-else>
-        <Editor
-          v-if="!readonly"
-          v-model="activeItem.content"
-          :init="editorConfig"
-          :api-key="editorConfig.apiKey"
-          :tinymce-script-src="`https://cdn.tiny.cloud/1/${editorConfig.apiKey}/tinymce/6/tinymce.min.js`"
-          @update:modelValue="onContentChange"
-        />
-        <div v-else class="readonly-content" v-html="activeItem.content"></div>
-      </template>
     </div>
 
     <!-- 🔹 파일 업로드 영역 -->
-    <div class="upload-section">
+    <div class="upload-section" v-if="activeItem">
       <div
         v-if="!readonly"
         class="upload-zone"
@@ -105,81 +96,16 @@
   </section>
 </template>
 
-
-
-<script setup> 
+<script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import axios from 'axios'
-import Editor from '@tinymce/tinymce-vue'
 
 const router = useRouter()
 const route = useRoute()
 const fileInputRef = ref(null)
-const props = defineProps({ projectId: Number, readonly: Boolean })
+const props = defineProps({ projectId: Number, readonly: Boolean, projectTitle: String })
 const emit = defineEmits(['updateStepProgress'])
-
-function extractFigmaUrl(content) {
-  const parser = new DOMParser()
-  const doc = parser.parseFromString(content, 'text/html')
-  const text = doc.body.textContent || ''
-  const match = text.match(/https:\/\/www\.figma\.com\/(file|design)\/[^\s<"]+/)
-  return match ? match[0] : ''
-}
-
-function convertToFigmaEmbed(link) {
-  if (!link) return ''
-
-  try {
-    const url = new URL(link)
-    const segments = url.pathname.split('/')
-    const fileKey = segments[2]
-    const fileName = segments[3] || 'Untitled'
-    const nodeId = url.searchParams.get('node-id') || '0%3A1'
-
-    return `https://www.figma.com/embed?embed_host=share&url=https://www.figma.com/file/${fileKey}/${fileName}?type=design&node-id=${encodeURIComponent(nodeId)}`
-  } catch (e) {
-    console.warn('Invalid Figma URL:', link)
-    return ''
-  }
-}
-
-function isValidFigmaLink(content) {
-  return extractFigmaUrl(content) !== ''
-}
-function isValidDrawioLink(content) {
-  return typeof content === 'string' && content.includes('viewer.diagrams.net')
-}
-
-function convertToDrawioEmbed(link) {
-  try {
-    if (!link) return ''
-
-    // 이미 viewer 주소면 그대로 사용
-    if (link.includes('viewer.diagrams.net')) return link
-
-    // app.diagrams.net 주소에서 G파일ID 추출
-    const match = link.match(/#G([a-zA-Z0-9_-]+)/)
-    if (match && match[1]) {
-      const fileId = match[1]
-      const driveUrl = `https://drive.google.com/uc?id=${fileId}`
-      return `https://viewer.diagrams.net/?highlight=0000ff&edit=_blank&layers=1&nav=1#U${encodeURIComponent(driveUrl)}`
-    }
-
-    return ''
-  } catch (e) {
-    console.warn('draw.io 변환 실패:', e)
-    return ''
-  }
-}
-
-
-const PAGE_LINKS = {
-  usecase: '/usecase-diagram',
-  classDiagram: '/class-diagram',
-  erd: '/erd-diagram',
-  schedule: '/Scheduletest'
-}
 
 const designItems = reactive([
   { name: "유스케이스 다이어그램", type: "usecase", content: "", files: [], completed: false },
@@ -192,72 +118,70 @@ const designItems = reactive([
   { name: "프로젝트 일정", type: "schedule", content: "", files: [], completed: false }
 ])
 
-const selectedIndex = ref(0)
-const activeItem = computed(() => designItems[selectedIndex.value])
+const PAGE_LINKS = {
+  usecase: '/usecase-diagram',
+  classDiagram: '/class-diagram',
+  erd: '/erd-diagram',
+  schedule: '/Scheduletest'
+}
 
-const editorConfig = {
-  apiKey: '96jqrzcetlm5lwov39n7p1j9urvurkwl8ya18w22y816w94l',
-  height: 500,
-  language: 'ko_KR',
-  resize: false,
-  menubar: false,
-  branding: false,
-  statusbar: false,
-  paste_data_images: true,
-  file_picker_types: 'image',
-  plugins: 'lists link image table code autosave fullscreen',
-  toolbar: 'undo redo | bold italic underline | bullist numlist | table | image | code | fullscreen',
-  automatic_uploads: true,
-  file_picker_callback: (callback, value, meta) => {
-    if (meta.filetype === 'image') {
-      const input = document.createElement('input')
-      input.type = 'file'
-      input.accept = 'image/*'
-      input.onchange = () => {
-        const file = input.files[0]
-        const reader = new FileReader()
-        reader.onload = e => callback(e.target.result, { alt: file.name })
-        reader.readAsDataURL(file)
-      }
-      input.click()
+const selectedIndex = ref(null)
+const activeItem = computed(() => selectedIndex.value !== null ? designItems[selectedIndex.value] : null)
+
+function extractFigmaUrl(content) {
+  const parser = new DOMParser()
+  const doc = parser.parseFromString(content, 'text/html')
+  const text = doc.body.textContent || ''
+  const match = text.match(/https:\/\/www\.figma\.com\/(file|design)\/[^\s<"]+/)
+  return match ? match[0] : ''
+}
+
+function convertToFigmaEmbed(link) {
+  if (!link) return ''
+  try {
+    const url = new URL(link)
+    const segments = url.pathname.split('/')
+    const fileKey = segments[2]
+    const fileName = segments[3] || 'Untitled'
+    const nodeId = url.searchParams.get('node-id') || '0%3A1'
+    return `https://www.figma.com/embed?embed_host=share&url=https://www.figma.com/file/${fileKey}/${fileName}?type=design&node-id=${encodeURIComponent(nodeId)}`
+  } catch {
+    return ''
+  }
+}
+
+function isValidFigmaLink(content) {
+  return extractFigmaUrl(content) !== ''
+}
+
+function isValidDrawioLink(content) {
+  return typeof content === 'string' && content.includes('viewer.diagrams.net')
+}
+
+function convertToDrawioEmbed(link) {
+  try {
+    if (!link) return ''
+    if (link.includes('viewer.diagrams.net')) return link
+    const match = link.match(/#G([a-zA-Z0-9_-]+)/)
+    if (match && match[1]) {
+      const fileId = match[1]
+      const driveUrl = `https://drive.google.com/uc?id=${fileId}`
+      return `https://viewer.diagrams.net/?highlight=0000ff&edit=_blank&layers=1&nav=1#U${encodeURIComponent(driveUrl)}`
     }
-  },
-  images_upload_handler: async (blobInfo, success, failure) => {
-    try {
-      const form = new FormData()
-      form.append('type', activeItem.value.type)
-      form.append('projectId', props.projectId)
-      form.append('files', blobInfo.blob(), blobInfo.filename())
-
-      const res = await axios.post('/design/upload', form, {
-        headers: { Authorization: localStorage.getItem('authHeader') },
-        withCredentials: true
-      })
-
-      const url = res.data.files[0].url
-      success(url)
-      activeItem.value.files.push({ url, uploadedAt: new Date().toISOString() })
-      markCompleted()
-    } catch {
-      failure('Upload error')
-    }
+    return ''
+  } catch {
+    return ''
   }
 }
 
 function selectTab(idx) {
   const type = designItems[idx].type
-
   if (['usecase', 'classDiagram', 'erd', 'schedule'].includes(type)) {
-    const basePath = PAGE_LINKS[type]
-    const projectId = props.projectId
-    const readonly = props.readonly ?? route.query.readonly === 'true'
-    const projectTitle = props.projectTitle || route.query.projectTitle || '프로젝트'
-
     router.push({
-      path: `${basePath}/${projectId}`,
+      path: `${PAGE_LINKS[type]}/${props.projectId}`,
       query: {
-        readonly,
-        projectTitle
+        readonly: props.readonly ?? route.query.readonly === 'true',
+        projectTitle: props.projectTitle || route.query.projectTitle || '프로젝트'
       }
     })
   } else {
@@ -265,30 +189,17 @@ function selectTab(idx) {
   }
 }
 
-
 function markCompleted() {
+  if (!activeItem.value) return
   const content = activeItem.value.content
-  activeItem.value.completed =
-    (typeof content === 'string' && content.trim() !== '') ||
-    activeItem.value.files.length > 0
-
-  emit('updateStepProgress',
-    designItems.filter(i => i.completed).length
-  )
-}
-
-function convertDownloadToView(html) {
-  return html.replace(
-    /https:\/\/drive\.google\.com\/uc\?export=download&id=([a-zA-Z0-9_-]+)/g,
-    'https://drive.google.com/uc?export=view&id=$1'
-  )
+  activeItem.value.completed = (typeof content === 'string' && content.trim() !== '') || activeItem.value.files.length > 0
+  emit('updateStepProgress', designItems.filter(i => i.completed).length)
 }
 
 let saveTimeout
 function onContentChange(val) {
-  if (val !== undefined) {
-    activeItem.value.content = val
-  }
+  if (!activeItem.value) return
+  if (val !== undefined) activeItem.value.content = val
   markCompleted()
   clearTimeout(saveTimeout)
   saveTimeout = setTimeout(async () => {
@@ -314,26 +225,25 @@ function handleDrop(e) {
   uploadFiles(Array.from(e.dataTransfer.files))
 }
 function uploadFiles(files) {
+  if (!activeItem.value) return
   const form = new FormData()
   form.append('type', activeItem.value.type)
   form.append('projectId', props.projectId)
   files.forEach(f => form.append('files', f))
-
   axios.post('/design/upload', form, {
     headers: { Authorization: localStorage.getItem('authHeader') },
     withCredentials: true
+  }).then(res => {
+    activeItem.value.files.push(...res.data.files)
+    markCompleted()
+  }).catch(err => {
+    console.error('파일 업로드 오류', err)
+    alert('파일 업로드에 실패했습니다.')
   })
-    .then(res => {
-      activeItem.value.files.push(...res.data.files)
-      markCompleted()
-    })
-    .catch(err => {
-      console.error('파일 업로드 오류', err)
-      alert('파일 업로드에 실패했습니다.')
-    })
 }
 
 async function removeFile(idx) {
+  if (!activeItem.value) return
   const file = activeItem.value.files[idx]
   try {
     await axios.delete('/design/delete-file', {
@@ -361,23 +271,15 @@ onMounted(async () => {
       withCredentials: true
     })
 
-designItems.forEach(item => {
-  const rawData = res.data[item.type]
-
-  // ❗ UI는 json 무시하고 text만 사용
-  const raw = item.type === 'ui'
-    ? rawData?.text || ''
-    : rawData?.json || rawData?.text || ''
-
-  item.content = item.type === 'ui'
-    ? raw
-    : convertDownloadToView(raw)
-
-  item.files = rawData?.files || []
-  item.completed =
-    (typeof item.content === 'string' && item.content.trim() !== '') || item.files.length > 0
-})
-
+    designItems.forEach(item => {
+      const rawData = res.data[item.type]
+      const useTextOnly = ['ui', 'sequence', 'table', 'architecture']
+      item.content = useTextOnly.includes(item.type)
+        ? rawData?.text || ''
+        : rawData?.json || ''
+      item.files = rawData?.files || []
+      item.completed = (item.content && item.content.trim() !== '') || item.files.length > 0
+    })
 
     emit('updateStepProgress', designItems.filter(i => i.completed).length)
   } catch (err) {
@@ -387,9 +289,7 @@ designItems.forEach(item => {
 
 const extractFileName = url => url.split('/').pop()
 const isImage = url => /\.(jpe?g|png|gif|bmp|webp)$/i.test(url) || url.includes('drive.google.com/')
-const toDrivePreview = url => url.includes('uc?export=download')
-  ? url.replace('export=download', 'export=view')
-  : url
+const toDrivePreview = url => url.includes('uc?export=download') ? url.replace('export=download', 'export=view') : url
 const formatDate = date => new Date(date).toLocaleString()
 </script>
 
@@ -435,6 +335,26 @@ const formatDate = date => new Date(date).toLocaleString()
   resize: none;
   white-space: pre-wrap;
 }
-
+.empty-message {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 430px;
+}
+.empty-inner {
+  text-align: center;
+  color: #aaa;
+  font-size: 1.18rem;
+  line-height: 1.8;
+  padding: 20px 32px;
+  border-radius: 18px;
+  background: #f7f7f9;
+  border: 1.5px solid #eee;
+}
+.empty-icon {
+  font-size: 2.3rem;
+  display: block;
+  margin-bottom: 10px;
+}
 
 </style>

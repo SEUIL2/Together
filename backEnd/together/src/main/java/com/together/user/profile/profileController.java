@@ -1,5 +1,6 @@
 package com.together.user.profile;
 
+import com.together.ImagePreview.ImgurUploadService;
 import com.together.systemConfig.UserDetailsImpl;
 import com.together.user.UserService;
 import com.together.user.profile.dto.UserProfileResponseDto;
@@ -22,6 +23,7 @@ import org.springframework.web.multipart.MultipartFile;
 @RequiredArgsConstructor
 public class profileController {
 
+    private final ImgurUploadService imgurUploadService;
     private final profileService profileService;
     private final GoogleDriveService googleDriveService;
 
@@ -57,17 +59,14 @@ public class profileController {
             @RequestPart("image") MultipartFile imageFile) {
 
         try {
-            // 1. 업로드(여전히 downloadUrl 반환)
-            String imageUrl = googleDriveService.uploadImageToGoogleDrive(imageFile);
+            // 1. Imgur(또는 S3/Firebase 등)에 이미지 업로드 → 퍼블릭 URL 반환
+            String imageUrl = imgurUploadService.uploadImage(imageFile);
 
-            // 2. profileService에서 미리보기 URL로 DB에 저장
+            // 2. profileService에서 URL로 DB에 저장
             profileService.updateUserProfileImage(userDetails.getUser().getUserId(), imageUrl);
 
-            // 3. 응답도 미리보기 URL로 변환해서 내려줌
-            String fileId = googleDriveService.extractDriveFileId(imageUrl);
-            String previewUrl = "https://drive.google.com/uc?id=" + fileId;
-
-            return ResponseEntity.ok(previewUrl); // ⭐️ 미리보기 URL 반환!
+            // 3. 응답도 URL 그대로 반환
+            return ResponseEntity.ok(imageUrl); // ⭐️ 퍼블릭 URL 반환!
         } catch (Exception e) {
             log.error("프로필 이미지 업로드 실패", e);
             return ResponseEntity.status(500).body("이미지 업로드 실패: " + e.getMessage());

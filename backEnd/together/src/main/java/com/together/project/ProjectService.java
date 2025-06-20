@@ -149,14 +149,10 @@ public class ProjectService {
         ProjectEntity project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new RuntimeException("프로젝트를 찾을 수 없습니다."));
 
-        // 1. 구글 드라이브 fileId 추출
-        String fileId = googleDriveService.extractDriveFileId(imageUrl);
+        // 구글 드라이브 fileId 추출/권한 부여/미리보기 링크 생성 → 모두 불필요
 
-        // 2. 미리보기용 previewUrl로 변환
-        String previewUrl = "https://drive.google.com/uc?id=" + fileId;
-
-        // 3. DB에 저장
-        project.setImageUrl(previewUrl);
+        // 1. 바로 imageUrl을 DB에 저장
+        project.setImageUrl(imageUrl);
         projectRepository.save(project);
     }
     /**

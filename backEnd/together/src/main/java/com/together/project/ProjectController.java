@@ -1,5 +1,6 @@
 package com.together.project;
 
+import com.together.ImagePreview.ImgurUploadService;
 import com.together.documentManger.GoogleDriveService;
 import com.together.project.Invitation.InvitationRepository;
 import com.together.project.Invitation.dto.InvitationResponseDto;
@@ -43,6 +44,7 @@ public class ProjectController {
     private final UserRepository userRepository;
     private final InvitationRepository invitationRepository;
     private final ProjectRepository projectRepository;
+    private final ImgurUploadService imgurUploadService;
 
 
     /**
@@ -95,20 +97,18 @@ public class ProjectController {
         if (projectId == null) {
             return ResponseEntity.badRequest().body("프로젝트 ID가 없습니다.");
         }
-
         try {
-            // 1. Google Drive에 업로드 (downloadUrl 반환)
-            String imageUrl = googleDriveService.uploadImageToGoogleDrive(imageFile);
+            // 1. Imgur 업로드 (퍼블릭 URL 반환)
+            String imageUrl = imgurUploadService.uploadImage(imageFile);
 
-            // 2. 미리보기 URL로 변환해서 DB 저장
+            // 2. DB 저장
             projectService.updateProjectImage(projectId, imageUrl);
 
-            // 3. 미리보기 URL로 응답도 내려줌
-            String fileId = googleDriveService.extractDriveFileId(imageUrl);
-            String previewUrl = "https://drive.google.com/uc?id=" + fileId;
-            return ResponseEntity.ok(previewUrl);
+            // 3. 프론트에 URL 응답
+            return ResponseEntity.ok(imageUrl);
 
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.status(500).body("이미지 업로드 실패");
         }
     }

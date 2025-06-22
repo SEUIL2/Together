@@ -123,7 +123,7 @@ const handleAnchorClick = (info) => {
   } else {
     links.value.push({
       id: 'rel_' + Date.now(),
-      type: 'include',
+      type: 'association',
       from: connectState.value.start,
       to: info
     })
@@ -202,8 +202,13 @@ const onLinkContextMenu = (link, e) => {
   contextMenu.visible = true
   contextMenu.x = e.evt.clientX
   contextMenu.y = e.evt.clientY
-  contextMenu.target = { type: 'link', id: link.id }
+  contextMenu.target = {
+    type: 'link',
+    id: link.id,
+    currentType: link.type // ✅ 이 줄 꼭 필요
+  }
 }
+
 const deleteTarget = (target) => {
   if (target.type === 'actor') {
     actors.value = actors.value.filter(a => a.id !== target.id)
@@ -218,11 +223,11 @@ const deleteTarget = (target) => {
 }
 const toggleLinkType = (target) => {
   const link = links.value.find(l => l.id === target.id)
-  if (link) {
-    link.type = link.type === 'include' ? 'extend' : 'include'
+  if (link && target.nextType) {
+    link.type = target.nextType
   }
-  contextMenu.visible = false
 }
+
 
 const findAnchor = (anchorObj) => {
   if (!anchorObj || !anchorObj.nodeId || !anchorObj.direction) return { x: 0, y: 0 }
@@ -288,47 +293,47 @@ function closeNameEdit() {
 const route = useRoute()
 const saveStatus = ref('idle')
 
-const saveUsecase = debounce(async () => {
-  const readonly = route.query.readonly === 'true'
-  if (readonly) {
-    console.log('🔒 읽기 전용 모드입니다. 저장하지 않습니다.')
-    return
-  }
+  const saveUsecase = debounce(async () => {
+    const readonly = route.query.readonly === 'true'
+    if (readonly) {
+      console.log('🔒 읽기 전용 모드입니다. 저장하지 않습니다.')
+      return
+    }
 
-  saveStatus.value = 'saving'
+    saveStatus.value = 'saving'
 
-  const jsonData = {
-    actors: actors.value,
-    usecases: usecases.value,
-    links: links.value
-  }
+    const jsonData = {
+      actors: actors.value,
+      usecases: usecases.value,
+      links: links.value
+    }
 
-  const formData = new FormData()
-  formData.append('type', 'usecase')
-  formData.append('json', JSON.stringify(jsonData))
+    const formData = new FormData()
+    formData.append('type', 'usecase')
+    formData.append('json', JSON.stringify(jsonData))
 
-  const projectId = route.query.projectId
-  if (projectId) {
-    formData.append('projectId', projectId)
-  }
+    const projectId = route.query.projectId
+    if (projectId) {
+      formData.append('projectId', projectId)
+    }
 
-  const token = localStorage.getItem('authHeader')
-  const headers = token ? { Authorization: token } : {}
+    const token = localStorage.getItem('authHeader')
+    const headers = token ? { Authorization: token } : {}
 
-  try {
-    await axios.post('/design/upload', formData, { headers })
-    saveStatus.value = 'saved'
-    setTimeout(() => saveStatus.value = 'idle', 1200)
-    console.log('✅ 유스케이스 다이어그램 저장 성공')
-  } catch (err) {
-    console.error('❌ 유스케이스 저장 실패:', err)
-    saveStatus.value = 'error'
-    setTimeout(() => saveStatus.value = 'idle', 3000)
-    alert('⚠️ 유스케이스 저장 중 오류 발생')
-  }
-}, 1000)
+    try {
+      await axios.post('/design/upload', formData, { headers })
+      saveStatus.value = 'saved'
+      setTimeout(() => saveStatus.value = 'idle', 1200)
+      console.log('✅ 유스케이스 다이어그램 저장 성공')
+    } catch (err) {
+      console.error('❌ 유스케이스 저장 실패:', err)
+      saveStatus.value = 'error'
+      setTimeout(() => saveStatus.value = 'idle', 3000)
+      alert('⚠️ 유스케이스 저장 중 오류 발생')
+    }
+  }, 1000)
 
-watch([actors, usecases, links], saveUsecase, { deep: true })
+  watch([actors, usecases, links], saveUsecase, { deep: true })
 
 // === 줌 기능 ===
 const handleWheel = (e) => {

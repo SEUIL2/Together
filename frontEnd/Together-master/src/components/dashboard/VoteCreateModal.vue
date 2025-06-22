@@ -118,33 +118,34 @@ async function submit() {
     errorMsg.value = '모든 항목을 올바르게 입력해주세요.'
     return
   }
-  // durationDays 계산
-  const now = new Date()
-  const end = new Date(deadline.value)
-  const durationDays = Math.ceil((end - now) / (1000 * 60 * 60 * 24))
-  if (durationDays < 0) {
-    errorMsg.value = '마감 기한이 올바르지 않습니다.'
-    return
-  }
+
+  // ✅ durationDays 제거
+  // ✅ 대신 deadlineSelection과 deadLine 그대로 사용
   try {
     const projectId = Number(localStorage.getItem('currentProjectId'))
+
     await axios.post(
       '/votes/create',
       {
         projectId,
         title: title.value,
-        isAnonymous: isAnonymous.value,
-        durationDays,
         options: options.value,
+        anonymous: isAnonymous.value,
+        deadlineSelection: true,             // 항상 날짜 선택 UI로 받는 구조이므로 true로 고정
+        deadLine: deadline.value + 'T00:00:00', // 날짜 문자열을 ISO 8601 형식으로 변환
       },
-      { headers: { Authorization: localStorage.getItem('authHeader') } }
+      {
+        headers: { Authorization: localStorage.getItem('authHeader') },
+      }
     )
+
     emit('created')
     close()
   } catch (err) {
     errorMsg.value = '생성 실패! 다시 시도해주세요.'
   }
 }
+
 function close() {
   emit('close')
 }

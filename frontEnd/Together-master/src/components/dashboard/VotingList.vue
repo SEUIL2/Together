@@ -1,6 +1,6 @@
 <template>
   <div class="voting-list-container">
-    <!-- 헤더: showHeader가 true일 때만 보임 -->
+    <!-- 헤더 -->
     <div v-if="showHeader" class="modal-header">
       <span class="title">🗳️ 팀 투표</span>
       <button class="create-button" @click="showCreateModal = true">+ 새 투표</button>
@@ -15,13 +15,22 @@
         class="vote-card"
         @click="openDetail(vote.voteId)"
       >
-        <div class="vote-title">{{ vote.title }}</div>
-        <div class="vote-info">
-          <span>{{ vote.voteItems?.length ?? 0 }}개 항목</span>
-          <span>· {{ vote.voteResponseEntitys?.length ?? 0 }}명 참여</span>
+        <div class="vote-header">
+          <div class="vote-title">{{ vote.title }}</div>
+          <div class="vote-dday" :class="{ closed: isDeadlinePassed(vote) }">
+            {{ isDeadlinePassed(vote) ? '마감됨' : getDDay(vote) }}
+          </div>
         </div>
-        <div class="vote-status" :class="{ closed: isDeadlinePassed(vote) }">
-          {{ isDeadlinePassed(vote) ? '마감됨' : getDDay(vote) }}
+
+        <div class="vote-meta">
+          <div class="meta-item">
+            <span class="meta-icon">👤</span>
+            <span>{{ vote.anonymous ? '익명 투표' : vote.userName }}</span>
+          </div>
+          <div class="meta-item" v-if="vote.deadLine">
+            <span class="meta-icon">⏰</span>
+            <span>마감: {{ formatDate(vote.deadLine) }}</span>
+          </div>
         </div>
       </div>
     </div>
@@ -38,8 +47,6 @@
   </div>
 </template>
 
-
-
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
@@ -49,9 +56,8 @@ import VotingDetailModal from '@/components/dashboard/VotingDetailModal.vue'
 const votes = ref([])
 const showCreateModal = ref(false)
 const selectedVoteId = ref(null)
-const projectId = Number(localStorage.getItem('currentProjectId')) // 또는 props로 받기
+const projectId = Number(localStorage.getItem('currentProjectId'))
 
-// 부모에게 닫기 emit (모달 상위에서 @close="showVotingModal = false" 해줘야 함)
 const emit = defineEmits(['close'])
 function close() {
   emit('close')
@@ -70,27 +76,25 @@ async function fetchVotes() {
 }
 
 function openDetail(id) {
-  console.log('voteId:', id)
   selectedVoteId.value = id
 }
 
+function isDeadlinePassed(vote) {
+  if (!vote.deadLine) return false
+  return new Date() > new Date(vote.deadLine)
+}
 
 function getDDay(vote) {
-  if (!vote.createdDate || !vote.durationDays) return ''
-  const created = new Date(vote.createdDate)
-  const deadline = new Date(created)
-  deadline.setDate(deadline.getDate() + vote.durationDays)
+  if (!vote.deadLine) return ''
+  const deadline = new Date(vote.deadLine)
   const today = new Date()
   const diff = Math.ceil((deadline - today) / (1000 * 60 * 60 * 24))
   return diff >= 0 ? `D-${diff}` : '마감됨'
 }
 
-function isDeadlinePassed(vote) {
-  if (!vote.createdDate || !vote.durationDays) return false
-  const created = new Date(vote.createdDate)
-  const deadline = new Date(created)
-  deadline.setDate(deadline.getDate() + vote.durationDays)
-  return new Date() > deadline
+function formatDate(dateStr) {
+  const date = new Date(dateStr)
+  return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`
 }
 
 onMounted(fetchVotes)
@@ -98,9 +102,9 @@ onMounted(fetchVotes)
 
 <style scoped>
 .voting-list-container {
-  max-width: 540px;
+  max-width: 580px;
   margin: auto;
-  padding: 0.9rem 1.3rem 1.2rem 1.3rem;
+  padding: 1rem 1.3rem 1.2rem 1.3rem;
   font-family: 'Pretendard', sans-serif;
   position: relative;
 }
@@ -119,7 +123,7 @@ onMounted(fetchVotes)
 }
 
 .title {
-  font-size: 1.17rem;
+  font-size: 1.2rem;
   font-weight: bold;
   color: #222;
   flex: 1 0 0;
@@ -137,7 +141,9 @@ onMounted(fetchVotes)
   font-size: 0.98rem;
   transition: background 0.17s;
 }
-.create-button:hover { background: #3745ae; }
+.create-button:hover {
+  background: #3745ae;
+}
 
 .close-btn {
   background: none;
@@ -150,49 +156,75 @@ onMounted(fetchVotes)
   border-radius: 7px;
   transition: background 0.14s;
 }
-.close-btn:hover { background: #f0f0f6; color: #e23333; }
+.close-btn:hover {
+  background: #f0f0f6;
+  color: #e23333;
+}
 
 .vote-cards {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  width: 100%
+  gap: 14px;
+  width: 100%;
 }
 
 .vote-card {
-  padding: 1rem;
-  border: 1px solid #e0e0e0;
-  border-radius: 10px;
-  background-color: #fff;
+  padding: 1.15rem 1.3rem;
+  border: 1px solid #e5e7ef;
+  border-radius: 14px;
+  background-color: #ffffff;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.25s ease;
+  box-shadow: 0 1px 3px rgba(80, 80, 80, 0.04);
 }
 
 .vote-card:hover {
-  background-color: #f9f9ff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  background-color: #f8faff;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+}
+
+.vote-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.65rem;
 }
 
 .vote-title {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #222;
+}
+
+.vote-dday {
+  font-size: 0.82rem;
   font-weight: 600;
-  font-size: 1.05rem;
-  margin-bottom: 0.3rem;
+  padding: 2px 10px;
+  border-radius: 12px;
+  color: #3b49df;
+  background-color: #edf0ff;
+}
+.vote-dday.closed {
+  color: #aaa;
+  background-color: #f2f2f2;
 }
 
-.vote-info {
-  font-size: 0.9rem;
-  color: #666;
+.vote-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.93rem;
+  color: #555;
 }
 
-.vote-status {
-  margin-top: 0.5rem;
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: #2563eb;
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.vote-status.closed {
-  color: #999;
+.meta-icon {
+  font-size: 0.95rem;
 }
 
 .empty {

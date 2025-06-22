@@ -11,7 +11,8 @@
         strokeWidth: 2.5,
         dash: isDashed ? [8, 7] : [],
         lineCap: 'round',
-        lineJoin: 'round'
+        lineJoin: 'round',
+        hitStrokeWidth:16
       }"
       @contextmenu="onRightClick"
     />
@@ -35,9 +36,9 @@
 import { computed } from 'vue'
 
 const props = defineProps({
-  from: { type: Object, required: true }, // { x, y }
-  to: { type: Object, required: true },   // { x, y }
-  type: { type: String, default: 'include' }
+  from: { type: Object, required: true },
+  to: { type: Object, required: true },
+  type: { type: String, default: 'association' } // 기본값 수정
 })
 const emit = defineEmits(['contextmenu'])
 

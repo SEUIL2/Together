@@ -95,9 +95,9 @@ async function fetchCurrentUser() {
 
 async function fetchTeamMembers() {
   try {
-    const { data } = await axios.get('/projects/members', { params: { projectId: projectId.value } })
-    rawTeamMembers.value = data
-    teamMembers.value = data.map(u => ({ key: u.userName, label: u.userName, userId: u.userId, color: u.userColor }))
+    const { data } = await axios.get('/projects/members/students', { params: { projectId: projectId.value } })
+    rawTeamMembers.value = data.filter(u => u.role === 'STUDENT')
+    teamMembers.value = rawTeamMembers.value.map(u => ({ key: u.userName, label: u.userName, userId: u.userId, color: u.userColor }))
   } catch (e) {
     console.error('팀원 정보 가져오기 실패', e)
   }

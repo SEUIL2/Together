@@ -191,10 +191,10 @@ async function fetchRows() {
 }
 
 async function fetchTeamMembers() {
-  const { data } = await axios.get('/projects/members', {
+  const { data } = await axios.get('/projects/members/students', {
     params: resolvedProjectId.value ? { projectId: resolvedProjectId.value } : {}
-  })
-  teamMembers.value = data
+})
+  teamMembers.value = data.filter(member => member.role === 'STUDENT')
 }
 
 async function addRow(tableType) {

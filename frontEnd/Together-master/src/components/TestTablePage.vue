@@ -55,7 +55,7 @@ async function fetchRows() {
 
 async function fetchTeamMembers() {
   const { data } = await axios.get('/api/project-members')
-  teamMembers.value = data
+  teamMembers.value = data.filter(member => member.role === 'STUDENT')
 }
 
 function formatDate(dateStr) {

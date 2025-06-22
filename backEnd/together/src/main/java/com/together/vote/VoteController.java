@@ -69,6 +69,9 @@ public class VoteController {
                     d.setTitle(v.getTitle());
                     d.setCreatedDate(v.getCreatedDate());
                     d.setUserName(v.getUser().getUserName());
+                    // ✅ 무영 추가된 필드 매핑
+                    d.setAnonymous(v.isAnonymous());
+                    d.setDeadLine(v.getDeadLine());
                     return d;
                 })
                 .toList();

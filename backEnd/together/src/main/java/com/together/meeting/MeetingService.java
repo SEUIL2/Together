@@ -67,10 +67,10 @@ public class MeetingService {
         MeetingEntity meeting = meetingRepository.findById(meetingId)
                 .orElseThrow(() -> new EntityNotFoundException("회의를 찾을 수 없습니다."));
 
-        // 본인이 작성한 회의만 수정 가능하도록 체크
-        if (!meeting.getUsers().getUserId().equals(userId)) {
-            throw new IllegalArgumentException("본인이 작성한 회의만 수정할 수 있습니다.");
-        }
+        // [삭제] 본인 확인 체크 부분
+        // if (!meeting.getUsers().getUserId().equals(userId)) {
+        //     throw new IllegalArgumentException("본인이 작성한 회의만 수정할 수 있습니다.");
+        // }
 
         meeting.setTitle(meetingDto.getTitle());
         meeting.setContent(meetingDto.getContent());

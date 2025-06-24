@@ -2,8 +2,7 @@
   <div class="memo-overlay">
     <div class="memo-container">
       <button class="close-btn" @click="$emit('close')">&times;</button>
-      <h3>{{ member.userName }} 님에게 메모</h3>
-      <!-- v-model에 기존 메모가 들어오도록 noteText를 초기화 -->
+      <h3 class="memo-title">{{ member.userName }} 님에게 메모</h3>
       <textarea v-model="noteText" rows="6" placeholder="메모를 입력하세요"></textarea>
       <button class="save-btn" @click="saveNote">저장</button>
     </div>
@@ -15,35 +14,23 @@ import { ref, watch } from 'vue'
 import axios from '@/utils/axiosInstance'
 
 const props = defineProps({
-  member: {
-    type: Object,
-    required: true
-  },
-  currentUser: {
-    type: Object,
-    required: true
-  },
-  projectId: {
-    type: Number,
-    required: true
-  }
+  member: { type: Object, required: true },
+  currentUser: {type: Object, required: true},
+  projectId: {type: Number, required: true}
 })
 const emit = defineEmits(['close', 'saved'])
 
-// textarea와 바인딩할 변수
 const noteText = ref('')
 
-// props.member.memo가 바뀌면 noteText에 반영
 watch(
     () => props.member.memo,
     (newMemo) => {
       noteText.value = newMemo || ''
     },
-    { immediate: true }
+    {immediate: true}
 )
 
 async function saveNote() {
-  // payload로 보낼 내용
   const payload = {
     targetStudentId: props.member.userId,
     content: noteText.value
@@ -52,31 +39,27 @@ async function saveNote() {
   try {
     let res
     if (props.member.noteId) {
-      // 이미 noteId가 있으면 수정(PUT)
       res = await axios.put(
           `/notes/update/${props.member.userId}`,
-          { content: noteText.value },
+          {content: noteText.value},
           {
             withCredentials: true,
-            params: { projectId: props.projectId }
+            params: {projectId: props.projectId}
           }
       )
-      // 백엔드가 수정된 note를 반환한다고 가정
       emit('saved', {
         content: res.data.content,
         noteId: res.data.noteId
       })
     } else {
-      // 신규 메모 생성(POST)
       res = await axios.post(
           '/notes/create',
           payload,
           {
             withCredentials: true,
-            params: { projectId: props.projectId }
+            params: {projectId: props.projectId}
           }
       )
-      // 백엔드가 생성된 note를 반환한다고 가정
       emit('saved', {
         content: res.data.content,
         noteId: res.data.noteId
@@ -92,40 +75,72 @@ async function saveNote() {
 <style scoped>
 .memo-overlay {
   position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.4);
-  display: flex; justify-content: center; align-items: center;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
   z-index: 200;
 }
+
 .memo-container {
-  background: #fff;
-  padding: 20px;
-  border-radius: 8px;
-  width: 400px;
+  background: #ffffff;
+  padding: 24px;
+  border-radius: 12px;
+  width: 420px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
   position: relative;
 }
+
 .close-btn {
   position: absolute;
-  top: 8px; right: 12px;
-  background: none; border: none;
-  font-size: 1.2rem; cursor: pointer;
-}
-textarea {
-  width: 100%;
-  margin: 12px 0;
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
-.save-btn {
-  background-color: #4caf50;
-  color: #fff;
+  top: 12px;
+  right: 16px;
+  background: none;
   border: none;
-  padding: 8px 16px;
-  border-radius: 4px;
+  font-size: 1.5rem;
+  color: #333;
   cursor: pointer;
 }
+
+.memo-title {
+  margin-bottom: 16px;
+  font-size: 1.25rem;
+  color: #1d6fe6;
+}
+
+textarea {
+  width: 100%;
+  margin-bottom: 16px;
+  padding: 10px;
+  font-size: 1rem;
+  border: 1px solid #90caf9;
+  border-radius: 6px;
+  resize: none;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: border-color 0.3s;
+}
+
+textarea:focus {
+  border-color: #1976d2;
+  outline: none;
+}
+
+.save-btn {
+  background-color: #1d6fe6;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  font-size: 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
 .save-btn:hover {
-  opacity: 0.9;
+  background-color: #1976d2;
 }
 </style>

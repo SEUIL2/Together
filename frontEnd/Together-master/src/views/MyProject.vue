@@ -206,7 +206,7 @@ const steps = ref([
   { name: '기획', current: 0, total: 5 },
   { name: '설계', current: 0, total: 8 },
   { name: '개발', current: 0, total: 4 },
-  { name: '테스트', current: 0, total: 3 },
+  { name: '테스트', current: 0, total: 2 },
 ])
 const selectedStep = ref('기획')
 const tasks = ref([])

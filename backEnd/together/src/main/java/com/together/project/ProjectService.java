@@ -423,6 +423,13 @@ public class ProjectService {
         student.setMainProject(null);
         student.setUserColor(null);
         userRepository.save(student);
+
+        // 기존 초대 상태 초기화 (재초대 가능하도록)
+        invitationRepository.findByProjectAndUser(project, student).ifPresent(inv -> {
+            inv.setStatus("REJECTED");
+            inv.setAccepted(false);
+            invitationRepository.save(inv);
+        });
     }
     public ProjectResponseDto getProjectById(Long projectId) { //무영수정
         ProjectEntity project = projectRepository.findById(projectId)

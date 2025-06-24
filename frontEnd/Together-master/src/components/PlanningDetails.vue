@@ -5,28 +5,43 @@
       <button
         v-for="(item, idx) in planningItems"
         :key="idx"
-        :class="['nav-btn', { active: selectedIndex === idx, completed: item.completed }]
-        "
+        :class="['nav-btn', { active: selectedIndex === idx, completed: item.completed }]"
         @click="selectTab(idx)"
       >
-        <!-- <span class="nav-dot" :class="{ filled: item.completed, selected: selectedIndex === idx }"></span> -->
         {{ item.name }}
       </button>
     </div>
 
     <!-- 편집 영역 -->
     <div class="editor-container" @contextmenu.prevent="handleRightClick" style="position: relative">
-
-    
-      <Editor
-        v-if="!readonly"
-        v-model="activeItem.content"
-        :init="editorConfig"
-        :api-key="editorConfig.apiKey"
-        :tinymce-script-src="`https://cdn.tiny.cloud/1/${editorConfig.apiKey}/tinymce/6/tinymce.min.js`"
-        @update:modelValue="onContentChange"
-      />
-      <div v-else class="readonly-content" v-html="activeItem.content"></div>
+      <template v-if="activeItem.type === 'storyboard'">
+        <textarea
+          v-model="activeItem.content"
+          class="basic-textarea"
+          :readonly="readonly"
+          placeholder="스토리보드 또는 Figma 공유 링크 입력"
+          @input="onContentChange($event.target.value)"
+        />
+        <iframe
+          v-if="isValidFigmaLink(activeItem.content)"
+          :src="convertToFigmaEmbed(extractFigmaUrl(activeItem.content))"
+          width="100%"
+          height="500"
+          allowfullscreen
+          style="margin-top: 12px; border: 1px solid #ccc; border-radius: 8px;"
+        ></iframe>
+      </template>
+      <template v-else>
+        <Editor
+          v-if="!readonly"
+          v-model="activeItem.content"
+          :init="editorConfig"
+          :api-key="editorConfig.apiKey"
+          :tinymce-script-src="`https://cdn.tiny.cloud/1/${editorConfig.apiKey}/tinymce/6/tinymce.min.js`"
+          @update:modelValue="onContentChange"
+        />
+        <div v-else class="readonly-content" v-html="activeItem.content"></div>
+      </template>
     </div>
 
     <!-- 파일 및 이미지 업로드 -->
@@ -50,45 +65,46 @@
           <template v-else>
             <div class="file-icon">📄</div>
           </template>
-<div class="file-info">
-  <a :href="file.url" download :title="extractFileName(file.url)">
-    {{ extractFileName(file.url) }}
-  </a>
-  <span class="file-date">{{ formatDate(file.uploadedAt) }}</span>
-</div>
-
+          <div class="file-info">
+            <a :href="file.url" download :title="extractFileName(file.url)">
+              {{ extractFileName(file.url) }}
+            </a>
+            <span class="file-date">{{ formatDate(file.uploadedAt) }}</span>
+          </div>
         </div>
       </div>
-            <div
-  v-for="fb in feedbacks"
-  :key="fb.feedbackId"
-  class="feedback-marker"
-  :style="{ top: fb.y + 'px', left: fb.x + 'px', position: 'absolute' }"
-  @click="selectedFeedback = fb"
->
-  📌
-</div>
 
-<!-- 피드백 팝업 -->
-<FeedbackPopup
-  v-if="selectedFeedback"
-  :fb="selectedFeedback"
-  :readonly="true"
-  @read="handleReadFeedback"
-  @close="selectedFeedback = null"
-/>
+      <!-- 피드백 마커 -->
+      <div
+        v-for="fb in feedbacks"
+        :key="fb.feedbackId"
+        class="feedback-marker"
+        :style="{ top: fb.y + 'px', left: fb.x + 'px', position: 'absolute' }"
+        @click="selectedFeedback = fb"
+      >
+        📌
+      </div>
 
-<!-- 피드백 입력창 (교수 전용) -->
-<FeedbackInput
-  v-if="showFeedbackInput"
-  :x="feedbackPosition.x"
-  :y="feedbackPosition.y"
-  :page="'planning-details'"
-  :readonly="true"
-  :projectId="resolvedProjectId"
-  @close="showFeedbackInput = false"
-  @submitted="() => { showFeedbackInput = false; loadFeedbacks() }"
-/>
+      <!-- 피드백 팝업 -->
+      <FeedbackPopup
+        v-if="selectedFeedback"
+        :fb="selectedFeedback"
+        :readonly="true"
+        @read="handleReadFeedback"
+        @close="selectedFeedback = null"
+      />
+
+      <!-- 피드백 입력창 (교수 전용) -->
+      <FeedbackInput
+        v-if="showFeedbackInput"
+        :x="feedbackPosition.x"
+        :y="feedbackPosition.y"
+        :page="'planning-details'"
+        :readonly="true"
+        :projectId="resolvedProjectId"
+        @close="showFeedbackInput = false"
+        @submitted="() => { showFeedbackInput = false; loadFeedbacks() }"
+      />
     </div>
   </section>
 </template>
@@ -100,7 +116,10 @@ import Editor from '@tinymce/tinymce-vue'
 import FeedbackInput from '@/components/feedback/FeedbackInput.vue'
 import FeedbackPopup from '@/components/feedback/FeedbackPopup.vue'
 import { useFeedback } from '@/composables/useFeedback'
+import { useRouter, useRoute } from 'vue-router'
 
+const router = useRouter()
+const route = useRoute()
 const fileInputRef = ref(null)
 const props = defineProps({ projectId: Number, readonly: Boolean })
 const resolvedProjectId = computed(() => props.projectId || Number(route.params.projectId))
@@ -111,6 +130,30 @@ const showFeedbackInput = ref(false)
 const feedbackPosition = ref({ x: 0, y: 0 })
 const selectedFeedback = ref(null)
 const { markFeedbackAsRead } = useFeedback()
+
+function extractFigmaUrl(content) {
+  if (!content) return ''
+  const match = content.match(/https:\/\/www\.figma\.com\/(file|design)\/[^\s<"]+/)
+  return match ? match[0] : ''
+}
+
+function convertToFigmaEmbed(link) {
+  if (!link) return ''
+  try {
+    const url = new URL(link)
+    const segments = url.pathname.split('/')
+    const fileKey = segments[2]
+    const fileName = segments[3] || 'Untitled'
+    const nodeId = url.searchParams.get('node-id') || '0%3A1'
+    return `https://www.figma.com/embed?embed_host=share&url=https://www.figma.com/file/${fileKey}/${fileName}?type=design&node-id=${encodeURIComponent(nodeId)}`
+  } catch {
+    return ''
+  }
+}
+
+function isValidFigmaLink(content) {
+  return extractFigmaUrl(content) !== ''
+}
 
 function handleRightClick(e) {
   const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft
@@ -150,6 +193,9 @@ const planningItems = reactive([
   { name: '정보구조도', type: 'infostructure', content: '', files: [], completed: false },
   { name: '스토리보드', type: 'storyboard', content: '', files: [], completed: false }
 ])
+const PAGE_LINKS = {
+  infostructure: '/info-structure',
+}
 const selectedIndex = ref(0)
 const activeItem = computed(() => planningItems[selectedIndex.value])
 
@@ -204,23 +250,47 @@ const editorConfig = {
 }
 
 function selectTab(idx) {
-  selectedIndex.value = idx
+  const type = planningItems[idx].type
+  // 만약 정보구조도(또는 다른 다이어그램)라면 페이지 이동
+  if (type === 'infostructure') {
+    router.push({
+      path: `/info-structure/${resolvedProjectId.value}`,
+      query: {
+        readonly: props.readonly ?? route.query.readonly === 'true',
+        projectTitle: route.query.projectTitle || '프로젝트'
+      }
+    })
+  } else {
+    selectedIndex.value = idx
+  }
 }
+
 
 function markCompleted() {
   activeItem.value.completed = Boolean(activeItem.value.content.trim()) || activeItem.value.files.length > 0
   emit('updateStepProgress', planningItems.filter(i => i.completed).length)
 }
-
+function stripHtmlTags(html) {
+  return html
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n')
+    .replace(/<[^>]+>/g, '')   // 모든 태그 제거
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .trim();
+}
 let saveTimeout
 function onContentChange(val) {
-  activeItem.value.content = val
+  activeItem.value.content = val // 에디터에는 여전히 html 유지
   markCompleted()
   clearTimeout(saveTimeout)
   saveTimeout = setTimeout(async () => {
     const form = new FormData()
     form.append('type', activeItem.value.type)
-    form.append('text', activeItem.value.content)
+    // 여기만 stripHtmlTags로 변경
+    form.append('text', stripHtmlTags(activeItem.value.content))
     form.append('projectId', props.projectId)
     try {
       await axios.put('/planning/update', form, {
@@ -347,5 +417,14 @@ const formatDate = date => new Date(date).toLocaleString()
   font-size: 20px;
   cursor: pointer;
 }
-
+.basic-textarea {
+  width: 100%;
+  height: 50px;
+  padding: 12px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  resize: none;
+  white-space: pre-wrap;
+}
 </style>

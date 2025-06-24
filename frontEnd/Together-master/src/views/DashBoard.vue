@@ -28,7 +28,8 @@
         </div>
       </div>
     </div>
- <!-- 중간 작업 카드 -->
+
+    <!-- 중간 작업 카드 -->
     <div class="dashboard-mid">
       <div class="card">
         <AllTasksCard :tasks="tasks" />
@@ -52,19 +53,23 @@
       <!-- 팀 투표 카드 -->
       <div class="card">
         <div class="card-header" style="display:flex; align-items:center; justify-content:space-between;">
-          <!-- 타이틀 클릭 시 투표 전체 모달 오픈 -->
           <h3 class="board-title" @click="showVotingListModal = true">팀 투표</h3>
           <button class="create-btn" @click="showVoteCreateModal = true">+</button>
         </div>
-        <VotingList @created="onVoteCreated" />
+        <VotingList 
+          @created="onVoteCreated" 
+          ref="votingListRef"
+          :project-id="projectId"
+          :user-type="userType"
+        />
       </div>
 
-      <!-- 피드백 내역 카드 -->
+      <!-- ✅ 피드백 내역 카드 -->
       <div class="card">
         <div class="card-header">
           <h3 class="board-title" @click="showFeedbackModal = true">피드백 내역</h3>
         </div>
-        <FeedbackHistoryList :projectId="projectId" />
+        <FeedbackHistoryList/>
       </div>
     </div>
 
@@ -101,7 +106,12 @@
           <h4>전체 팀 투표</h4>
           <button class="close-btn" @click="showVotingListModal = false">×</button>
         </div>
-        <VotingList @created="onVoteCreated" />
+        <VotingList 
+          @created="onVoteCreated"
+          ref="votingListRef"
+          :project-id="projectId"
+          @close="showVotingListModal = false"
+        />
       </div>
     </div>
 
@@ -114,7 +124,7 @@
       @delete="handleDeleteNotice"
     />
 
-    <!-- 피드백 모달 -->
+    <!-- ✅ 피드백 전체 모달 -->
     <FeedbackHistoryModal
       v-if="showFeedbackModal"
       :projectId="projectId"
@@ -122,6 +132,8 @@
     />
   </div>
 </template>
+
+
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
@@ -135,13 +147,13 @@ import AllTasksCard from '@/components/dashboard/AllTasksCard.vue'
 import MyTasksCard from '@/components/dashboard/MyTasksCard.vue'
 import VotingList from '@/components/dashboard/VotingList.vue'
 import VoteCreateModal from '@/components/dashboard/VoteCreateModal.vue'
-import FeedbackHistoryList from '@/components/feedback/FeedbackHistoryList.vue'
 import FeedbackHistoryModal from '@/components/feedback/FeedbackHistoryModal.vue'
+import FeedbackHistoryList from '@/components/feedback/FeedbackHistoryList.vue'
 
 const showFeedbackModal = ref(false)
 const showVoteCreateModal = ref(false)
 const showVotingListModal = ref(false)  // 팀 투표 전체 모달
-
+const votingListRef = ref(null)
 const route = useRoute()
 const projectId = ref(route.params.projectId || null)
 
@@ -262,7 +274,7 @@ function openNoticeDetail(notice) {
 // 투표 생성 완료 후 VotingList 새로고침 트리거
 function onVoteCreated() {
   showVoteCreateModal.value = false
-  // VotingList에서 @created emit 받아서 내부적으로 fetchVotes() 호출해주는 구조라면 OK!
+  votingListRef.value?.fetchVotes()
 }
 </script>
 

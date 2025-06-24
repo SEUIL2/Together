@@ -176,7 +176,12 @@ function convertToDrawioEmbed(link) {
 
 function selectTab(idx) {
   const type = designItems[idx].type
-  if (['usecase', 'classDiagram', 'erd', 'schedule'].includes(type)) {
+  if (type === 'schedule') {
+    // 프로젝트 일정은 무조건 고정 경로 이동 (파라미터 없이)
+    router.push('/Scheduletest')
+    return
+  }
+  if (['usecase', 'classDiagram', 'erd'].includes(type)) {
     router.push({
       path: `${PAGE_LINKS[type]}/${props.projectId}`,
       query: {
@@ -188,6 +193,7 @@ function selectTab(idx) {
     selectedIndex.value = idx
   }
 }
+
 
 function markCompleted() {
   if (!activeItem.value) return

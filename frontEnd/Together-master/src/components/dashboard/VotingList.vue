@@ -1,11 +1,12 @@
 <template>
   <div class="voting-list-container">
-    <!-- 헤더 -->
-    <div v-if="showHeader" class="modal-header">
-      <span class="title">🗳️ 팀 투표</span>
-      <button class="create-button" @click="showCreateModal = true">+ 새 투표</button>
-      <button class="close-btn" @click="close">×</button>
-    </div>
+<!-- 교수일 때만 헤더 보이게 -->
+<div v-if="showHeader && userType === 'professor'" class="modal-header">
+  <span class="title">🗳️ 팀 투표</span>
+  <button class="create-button" @click="showCreateModal = true">+ 새 투표</button>
+  <button class="close-btn" @click="close">×</button>
+</div>
+
 
     <!-- 투표 목록 -->
     <div v-if="votes && votes.length" class="vote-cards">
@@ -37,8 +38,14 @@
 
     <div v-else class="empty">투표가 없습니다. 새로 만들어보세요!</div>
 
-    <!-- 모달들 -->
-    <VoteCreateModal v-if="showCreateModal" @close="showCreateModal = false" @created="fetchVotes" />
+    <!-- 모달 -->
+<VoteCreateModal
+  v-if="showCreateModal"
+  :project-id="projectId" 
+  @close="showCreateModal = false"
+  @created="handleCreated"
+/>
+
     <VotingDetailModal
       v-if="selectedVoteId"
       :vote-id="selectedVoteId"
@@ -53,20 +60,33 @@ import axios from 'axios'
 import VoteCreateModal from '@/components/dashboard/VoteCreateModal.vue'
 import VotingDetailModal from '@/components/dashboard/VotingDetailModal.vue'
 
+// ✅ props
+const props = defineProps({
+  projectId: Number,
+  showHeader: { type: Boolean, default: true },
+  userType: { type: String, default: 'student' } // 'professor' 또는 'student'
+})
+
+
+// ✅ emit
+const emit = defineEmits(['close'])
+
+// ✅ 상태
 const votes = ref([])
 const showCreateModal = ref(false)
 const selectedVoteId = ref(null)
-const projectId = Number(localStorage.getItem('currentProjectId'))
 
-const emit = defineEmits(['close'])
+// ✅ 닫기 버튼
 function close() {
   emit('close')
 }
 
+// ✅ 투표 목록 불러오기
 async function fetchVotes() {
   try {
+    const idToUse = props.projectId || Number(localStorage.getItem('currentProjectId'))
     const res = await axios.get('/votes/project', {
-      params: { projectId },
+      params: { projectId: idToUse },
       headers: { Authorization: localStorage.getItem('authHeader') },
     })
     votes.value = res.data
@@ -75,15 +95,18 @@ async function fetchVotes() {
   }
 }
 
+// ✅ 투표 상세 열기
 function openDetail(id) {
   selectedVoteId.value = id
 }
 
+// ✅ 마감 여부
 function isDeadlinePassed(vote) {
   if (!vote.deadLine) return false
   return new Date() > new Date(vote.deadLine)
 }
 
+// ✅ D-day 계산
 function getDDay(vote) {
   if (!vote.deadLine) return ''
   const deadline = new Date(vote.deadLine)
@@ -92,12 +115,20 @@ function getDDay(vote) {
   return diff >= 0 ? `D-${diff}` : '마감됨'
 }
 
+// ✅ 날짜 포맷
 function formatDate(dateStr) {
   const date = new Date(dateStr)
   return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`
 }
+function handleCreated() {
+  showCreateModal.value = false
+  setTimeout(fetchVotes, 300) // 살짝 delay 줘도 부드러움
+}
 
+
+// ✅ 초기 로드
 onMounted(fetchVotes)
+defineExpose({ fetchVotes })
 </script>
 
 <style scoped>

@@ -155,7 +155,17 @@ function markCompleted() {
     devItems.filter(i => i.completed).length
   )
 }
-
+function stripHtmlTags(html) {
+  return html
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n')
+    .replace(/<[^>]+>/g, '')   // 모든 태그 제거
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .trim();
+}
 let saveTimeout
 function onContentChange(val) {
   // **빈 문자열도 content에 기록**
@@ -167,7 +177,7 @@ function onContentChange(val) {
     const form = new FormData()
     form.append('type', activeItem.value.type)
     // **항상 text 필드에 content를 담아서 보냄**
-    form.append('text', activeItem.value.content)
+    form.append('text', stripHtmlTags(activeItem.value.content))
     form.append('projectId', props.projectId)
 
     try {

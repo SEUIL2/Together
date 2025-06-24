@@ -2,9 +2,17 @@
 <template>
   <div class="modal-overlay" @click.self="$emit('close')">
     <div class="modal-box">
-      <VotingList :projectId="projectId" @close="$emit('close')" />
+      <VotingList
+  :projectId="projectId"
+  :show-header="true"
+  user-type="professor"
+  @close="$emit('close')"
+/>
+
     </div>
+    
   </div>
+  
 </template>
 
 <script setup>

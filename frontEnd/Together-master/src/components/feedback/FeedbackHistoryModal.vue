@@ -47,42 +47,26 @@ onMounted(async () => {
     const { data: me } = await axios.get('/auth/me', { withCredentials: true })
     currentUserId.value = me.userId
     console.log('🙋 사용자 ID:', currentUserId.value)
-    await loadFeedbacks(me.role) // 사용자 역할도 함께 전달
+    await loadFeedbacks()
   } catch (err) {
     console.error('🙅 사용자 정보 불러오기 실패:', err)
   }
 })
 
-const loadFeedbacks = async (role) => {
+const loadFeedbacks = async () => {
   try {
-    let res
-
-    if (role === 'PROFESSOR') {
-      // 교수는 전체 피드백 조회
-      res = await axios.get('/feedbacks/project', {
-        params: { projectId: props.projectId, page: 'all' },
-        headers: { Authorization: localStorage.getItem('authHeader') },
-        withCredentials: true
-      })
-    } else {
-      // 학생은 자신의 피드백만 조회
-      res = await axios.get('/feedbacks/my', {
-        params: { projectId: props.projectId },
-        headers: { Authorization: localStorage.getItem('authHeader') },
-        withCredentials: true
-      })
-    }
+    const res = await axios.get('/feedbacks/my', {
+      params: { projectId: props.projectId },
+      headers: { Authorization: localStorage.getItem('authHeader') },
+      withCredentials: true
+    })
+    console.log('✅ 피드백 데이터:', res.data)
 
     feedbacks.value = res.data.sort(
       (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
     )
-
-    console.log('📥 피드백 응답:', res.data)
-    feedbacks.value.forEach(fb => {
-      console.log(`🧾 [${fb.feedbackId}] (${fb.page}) ${fb.text} | 작성자: ${fb.authorId} | isRead: ${fb.isRead}`)
-    })
   } catch (err) {
-    console.error('❌ 피드백 내역 불러오기 실패:', err)
+    console.error('❌ 피드백 불러오기 실패:', err)
   }
 }
 
@@ -119,7 +103,7 @@ const markAsRead = async (feedbackId) => {
 
 const formatDate = (isoDate) => {
   const d = new Date(isoDate)
-  return `${d.getMonth() + 1}월 ${d.getDate()}일 / ${d.getHours()}시 ${String(d.getMinutes()).padStart(2, '0')}분`
+  return `${d.getMonth() + 1}월 ${d.getDate()}일 / ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`
 }
 
 const truncateText = (text, length = 50) =>
@@ -181,7 +165,7 @@ const truncateText = (text, length = 50) =>
   gap: 10px;
 }
 .date {
-  width: 120px;
+  min-width: 110px;
   flex-shrink: 0;
   color: #666;
 }
@@ -249,6 +233,16 @@ const truncateText = (text, length = 50) =>
 }
 .delete-btn:hover {
   color: #e53935;
+}
+.read-btn {
+  background: none;
+  border: none;
+  font-size: 12px;
+  cursor: pointer;
+  color: #555;
+}
+.read-btn:hover {
+  color: #0099ff;
 }
 </style>
   

@@ -462,12 +462,12 @@ onMounted(async () => {
   display: flex;
   height: 100vh;
 }
-.toolbox {
+/* .toolbox {
   width: 200px;
   background: #f4f4f4;
   padding: 12px;
   border-right: 1px solid #ccc;
-}
+} */
 .diagram {
   flex: 1;
   overflow: hidden;

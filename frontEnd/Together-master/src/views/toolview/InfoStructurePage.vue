@@ -108,17 +108,21 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
+import axios from 'axios'
 import ToolBox from '@/components/ToolBox.vue'
 import IABlock from '@/components/ia/IABlock.vue'
 import IARelationship from '@/components/ia/IARelationship.vue'
+
+// 프로젝트 ID를 props로 받음 (라우트에서 받을 수도 있음)
+const props = defineProps({ projectId: { type: [String, Number], required: true } })
 
 // 캔버스 크기
 const canvasW = window.innerWidth - 200
 const canvasH = window.innerHeight
 
 // 상태
-const blocks = ref(JSON.parse(localStorage.getItem('blocks') || '[]'))
-const relationships = ref(JSON.parse(localStorage.getItem('rels') || '[]'))
+const blocks = ref([])
+const relationships = ref([])
 const tempLine = ref(null)
 const editing = ref(null)
 const relContextMenu = ref({ visible:false, x:0, y:0, rel:null, type:null })
@@ -131,20 +135,54 @@ const stageRef = ref(null)
 // 계산: 임시선 포인트
 const tempLinePoints = computed(() => tempLine.value ? [...tempLine.value.from, ...tempLine.value.to] : [])
 
-// 마운트: ESC로 메뉴 닫기
-onMounted(() => {
-  window.addEventListener('keydown', e => {
-    if (e.key === 'Escape') relContextMenu.value.visible = false
-  })
+// 최초 진입 시 데이터 불러오기
+onMounted(async () => {
+  try {
+    const res = await axios.get('/planning/all', {
+      params: { projectId: props.projectId },
+      headers: { Authorization: localStorage.getItem('authHeader') },
+      withCredentials: true,
+    })
+    const json = res.data?.infostructure?.json
+    if (json) {
+      const parsed = JSON.parse(json)
+      blocks.value = parsed.blocks || []
+      relationships.value = parsed.relationships || []
+    } else {
+      blocks.value = []
+      relationships.value = []
+    }
+  } catch (e) {
+    blocks.value = []
+    relationships.value = []
+    console.error('정보구조도 불러오기 실패', e)
+  }
 })
 
-// 자동저장 (디바운스)
-function doSave() {
-  localStorage.setItem('blocks', JSON.stringify(blocks.value))
-  localStorage.setItem('rels', JSON.stringify(relationships.value))
-  showSaveNotice.value = true
-  setTimeout(() => showSaveNotice.value = false, 2000)
+// 자동저장 (디바운스, 백엔드에 저장)
+async function doSave() {
+  try {
+    const form = new FormData()
+    form.append('type', 'infostructure')
+    form.append('projectId', props.projectId)
+    form.append('json', JSON.stringify({
+      blocks: blocks.value,
+      relationships: relationships.value
+    }))
+    // 필요시 text 등 추가 가능
+    await axios.put('/planning/update', form, {
+      headers: { Authorization: localStorage.getItem('authHeader') },
+      withCredentials: true
+    })
+    showSaveNotice.value = true
+    setTimeout(() => showSaveNotice.value = false, 2000)
+  } catch (err) {
+    console.error('정보구조도 저장 실패', err)
+    // 저장 실패 안내를 하고 싶으면 여기에 알림 추가
+  }
 }
+
+// blocks, relationships 변경시 자동 저장
 watch([blocks, relationships], () => {
   clearTimeout(saveTimer)
   saveTimer = setTimeout(doSave, 1000)
@@ -175,7 +213,7 @@ function handleWheel(e) {
 // 메뉴 닫기
 function closeAllMenus() { relContextMenu.value.visible = false }
 
-// 이하: 블록/관계선 기능 (기존 코드)
+// 이하: 블록/관계선 기능 (기존 코드 그대로)
 function getAnchorPos(box, direction, itemIndex = null) {
   const boxWidth = 180; const headerHeight = 30; const itemHeight = 26;
   const totalH = headerHeight + box.items.length*itemHeight + 30
@@ -204,6 +242,7 @@ function deleteMidpoint(p){ relationships.value=relationships.value.map(r=>r.id!
 function openRelContext({rel,x,y}){ relContextMenu.value={visible:true,x,y,rel,type:'relationship'} }
 function openBlockContext({block,event}){ relContextMenu.value={visible:true,x:event.clientX,y:event.clientY,rel:block,type:'block'} }
 </script>
+
 
 <style scoped>
 .ia-page-root {

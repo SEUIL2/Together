@@ -260,6 +260,17 @@ const routes = [
     name: 'InfoStructurePage',
     component: InfoStructurePage 
   },
+  {
+  path: '/info-structure/:projectId',
+  name: 'InfoStructurePage',
+  component: () => import('@/views/toolview/InfoStructurePage.vue'),
+  props: route => ({
+    projectId: Number(route.params.projectId),
+    readonly: route.query.readonly === 'true',
+    projectTitle: route.query.projectTitle || ''
+  }),
+  meta: { requiresAuth: true }
+},
 ]
 
 const router = createRouter({

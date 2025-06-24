@@ -103,7 +103,7 @@ const markAsRead = async (feedbackId) => {
 
 const formatDate = (isoDate) => {
   const d = new Date(isoDate)
-  return `${d.getMonth() + 1}월 ${d.getDate()}일 / ${d.getHours()}시 ${String(d.getMinutes()).padStart(2, '0')}분`
+  return `${d.getMonth() + 1}월 ${d.getDate()}일 / ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`
 }
 
 const truncateText = (text, length = 50) =>
@@ -165,7 +165,7 @@ const truncateText = (text, length = 50) =>
   gap: 10px;
 }
 .date {
-  width: 120px;
+  min-width: 110px;
   flex-shrink: 0;
   color: #666;
 }
@@ -233,6 +233,16 @@ const truncateText = (text, length = 50) =>
 }
 .delete-btn:hover {
   color: #e53935;
+}
+.read-btn {
+  background: none;
+  border: none;
+  font-size: 12px;
+  cursor: pointer;
+  color: #555;
+}
+.read-btn:hover {
+  color: #0099ff;
 }
 </style>
   

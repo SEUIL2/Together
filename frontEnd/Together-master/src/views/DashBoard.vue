@@ -69,6 +69,7 @@
         <div class="card-header">
           <h3 class="board-title" @click="showFeedbackModal = true">피드백 내역</h3>
         </div>
+        <FeedbackHistoryList/>
       </div>
     </div>
 
@@ -126,6 +127,7 @@
     <!-- ✅ 피드백 전체 모달 -->
     <FeedbackHistoryModal
       v-if="showFeedbackModal"
+      :projectId="projectId"
       @close="showFeedbackModal = false"
     />
   </div>
@@ -146,6 +148,7 @@ import MyTasksCard from '@/components/dashboard/MyTasksCard.vue'
 import VotingList from '@/components/dashboard/VotingList.vue'
 import VoteCreateModal from '@/components/dashboard/VoteCreateModal.vue'
 import FeedbackHistoryModal from '@/components/feedback/FeedbackHistoryModal.vue'
+import FeedbackHistoryList from '@/components/feedback/FeedbackHistoryList.vue'
 
 const showFeedbackModal = ref(false)
 const showVoteCreateModal = ref(false)

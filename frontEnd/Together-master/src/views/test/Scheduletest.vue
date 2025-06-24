@@ -95,9 +95,9 @@ async function fetchCurrentUser() {
 
 async function fetchTeamMembers() {
   try {
-    const { data } = await axios.get('/projects/members', { params: { projectId: projectId.value } })
-    rawTeamMembers.value = data
-    teamMembers.value = data.map(u => ({ key: u.userName, label: u.userName, userId: u.userId, color: u.userColor }))
+    const { data } = await axios.get('/projects/members/students', { params: { projectId: projectId.value } })
+    rawTeamMembers.value = data.filter(u => u.role === 'STUDENT')
+    teamMembers.value = rawTeamMembers.value.map(u => ({ key: u.userName, label: u.userName, userId: u.userId, color: u.userColor }))
   } catch (e) {
     console.error('팀원 정보 가져오기 실패', e)
   }
@@ -224,8 +224,28 @@ onMounted(async () => {
     gantt.attachEvent("onAfterTaskDrag", (id, mode) => {
       if (mode !== 'move' && mode !== 'resize') return
       const task = gantt.getTask(id)
-      const payload = { startDate: gantt.date.date_to_str("%Y-%m-%d")(task.start_date), endDate: gantt.date.date_to_str("%Y-%m-%d")(gantt.calculateEndDate({ start_date: task.start_date, duration: task.duration })) }
+      const payload = {
+        startDate: gantt.date.date_to_str("%Y-%m-%d")(task.start_date),
+        endDate: gantt.date.date_to_str("%Y-%m-%d")(gantt.calculateEndDate({ start_date: task.start_date, duration: task.duration }))
+      }
       axios.patch(`/work-tasks/${id}/schedule`, payload).catch(err => console.error('일정 업데이트 실패', err))
+    })
+
+    gantt.attachEvent('onAfterTaskUpdate', (id, task) => {
+      const startStr = gantt.date.date_to_str('%Y-%m-%d')(task.start_date)
+      const endStr   = gantt.date.date_to_str('%Y-%m-%d')(gantt.calculateEndDate({ start_date: task.start_date, duration: task.duration }))
+      const sel      = rawTeamMembers.value.find(u => u.userName === task.assignee)
+      const dto = {
+        title: task.text,
+        startDate: startStr,
+        endDate: endStr,
+        assignedUserId: sel?.userId ?? null,
+        status: task.status,
+        parentTaskId: task.parent || null
+      }
+      axios.patch(`/work-tasks/${id}`, dto)
+          .catch(err => console.error('작업 업데이트 실패', err))
+          .finally(() => fetchTasksFromServer())
     })
 
     gantt.attachEvent("onBeforeTaskDelete", id => {

@@ -353,13 +353,14 @@ steps.value.find(s => s.name === '개발').current = developCount
     tasks.value = taskRes.data
 
     // 팀원
-    const memberRes = await axios.get('/projects/members', {
+    const memberRes = await axios.get('/projects/members/students', {
       params: { projectId: projectId.value },
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true
     })
-    teamMembers.value = memberRes.data.map(member => ({ name: member.userName, id: member.userId }))
-
+    teamMembers.value = memberRes.data
+        .filter(member => member.role === 'STUDENT')
+        .map(member => ({ name: member.userName, id: member.userId }))
   } catch (err) {
     console.error('❌ 데이터 로딩 실패:', err)
   }

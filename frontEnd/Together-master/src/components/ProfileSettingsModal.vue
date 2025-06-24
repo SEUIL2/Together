@@ -398,9 +398,11 @@ onMounted(() => {
 .image-section {
   width: 200px;
   display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: flex-start;   /* 중앙 → 상단 정렬 */
+  padding-top: 8px;          /* 제목과 적당한 여백 */
 }
+
 .image-wrapper {
   position: relative;
   width: 200px;

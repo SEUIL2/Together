@@ -64,6 +64,7 @@ const invitations = ref([])
 const notifications = ref([])
 const wrapperRef = ref(null)
 const router = useRouter()
+let pollingTimer = null
 
 // 페이지 로딩 직후에도 unread-dot 표시를 위해, mounted 시 한 번만 알림 목록을 가져옵니다.
 async function fetchInvitations() {
@@ -183,7 +184,17 @@ function handleClickOutside(e) {
 onMounted(() => {
   // 컴포넌트가 마운트되면 곧바로 초대 목록을 가져와 unread-dot 표시
   fetchInvitations()
+  fetchUnreadNotifications()
+  pollingTimer = setInterval(() => {
+    fetchInvitations()
+    fetchUnreadNotifications()
+  }, 10000)
   document.addEventListener('click', handleClickOutside)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleClickOutside)
+  if (pollingTimer) clearInterval(pollingTimer)
 })
 
 onBeforeUnmount(() => {

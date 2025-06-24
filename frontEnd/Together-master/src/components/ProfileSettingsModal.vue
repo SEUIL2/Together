@@ -106,6 +106,7 @@
 import { ref, watch, onMounted } from 'vue'
 import axios from 'axios'
 import { useRouter } from 'vue-router'
+import defaultImage from '@/assets/defaultimage.png'
 
 // Props
 const props = defineProps({
@@ -130,7 +131,6 @@ const bio = ref('')
 const profileImageUrl = ref('')
 const userColor = ref('#cccccc')
 const theme = ref('LIGHT')
-const defaultImage = '/default-profile.png'
 const fileInput = ref(null)
 
 const axiosInstance = axios.create({

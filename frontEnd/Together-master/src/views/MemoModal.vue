@@ -12,7 +12,7 @@
 
 <script setup>
 import { ref, watch } from 'vue'
-import axios from 'axios'
+import axios from '@/utils/axiosInstance'
 
 const props = defineProps({
   member: {
@@ -56,7 +56,10 @@ async function saveNote() {
       res = await axios.put(
           `/notes/update/${props.member.userId}`,
           { content: noteText.value },
-          { withCredentials: true }
+          {
+            withCredentials: true,
+            params: { projectId: props.projectId }
+          }
       )
       // 백엔드가 수정된 note를 반환한다고 가정
       emit('saved', {
@@ -68,7 +71,10 @@ async function saveNote() {
       res = await axios.post(
           '/notes/create',
           payload,
-          { withCredentials: true }
+          {
+            withCredentials: true,
+            params: { projectId: props.projectId }
+          }
       )
       // 백엔드가 생성된 note를 반환한다고 가정
       emit('saved', {

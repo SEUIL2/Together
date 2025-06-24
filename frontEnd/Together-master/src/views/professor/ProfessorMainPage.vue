@@ -125,6 +125,7 @@ onMounted(async () => {
         const teamMembers = memberRes.data.map(member => ({
           name: member.userName,
           id: member.userId,
+          role: member.role,
           avatarUrl: member.avatarUrl || ''
         }))
 

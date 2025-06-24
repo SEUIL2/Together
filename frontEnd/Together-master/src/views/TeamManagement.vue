@@ -102,6 +102,7 @@ import axios from 'axios'
 import { useRoute } from 'vue-router'
 import InviteModal from './InviteModal.vue'
 import MemoModal from './MemoModal.vue'
+import defaultAvatar from '@/assets/defaultimage.png'
 
 // 프로젝트 ID
 const route = useRoute()
@@ -109,9 +110,6 @@ const projectId = Number(route.params.projectId)
 
 // 현재 사용자
 const currentUser = ref({})
-
-// 기본 아바타 (fallback)
-const defaultAvatar = '/images/default-avatar.png'
 
 const availableColors = ['#FF8C00', '#F44336', '#2196F3', '#4CAF50', '#9C27B0']
 const teamMembers = ref([])

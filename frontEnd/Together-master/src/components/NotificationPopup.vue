@@ -18,7 +18,7 @@
         v-for="invite in invitations"
         :key="`invite-${invite.invitationId}`"
         class="invitation-item"
-        >␊
+        >
         <div class="message">
           {{ invite.projectTitle }} 프로젝트에 초대되었습니다.
         </div>

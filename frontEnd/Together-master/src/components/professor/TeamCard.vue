@@ -23,8 +23,14 @@
 
     <!-- 팀원 -->
     <div class="team-members">
-      <div v-for="(member, index) in project.members" :key="index" class="avatar">
-        <div class="avatar-img"><img :src="member.avatarUrl" /></div>
+      <div
+          v-for="(member, index) in studentMembers"
+          :key="index"
+          class="avatar"
+      >
+        <div class="avatar-img">
+          <img :src="member.avatarUrl || defaultImage" />
+        </div>
         <span class="member-name">{{ member.name }}</span>
       </div>
     </div>
@@ -40,9 +46,9 @@
 
     <!-- 공지사항 모달 -->
     <NoticeModal
-      v-if="showNoticeModal"
-      :projectId="project.projectId"
-      @close="showNoticeModal = false"
+        v-if="showNoticeModal"
+        :projectId="project.projectId"
+        @close="showNoticeModal = false"
     />
 
     <!-- 피드백 모달 -->
@@ -57,12 +63,12 @@
         :projectId="project.projectId"
         @close="showMemoModal = false"
     />
-<!-- 투표 모달 -->
-<VotingListModalWrapper
-  v-if="showVoteModal"
-  :projectId="project.projectId"
-  @close="showVoteModal = false"
-/>
+    <!-- 투표 모달 -->
+    <VotingListModalWrapper
+        v-if="showVoteModal"
+        :projectId="project.projectId"
+        @close="showVoteModal = false"
+    />
 
 
 
@@ -70,7 +76,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import NoticeModal from '@/components/notice/NoticeModal.vue'
 import FeedbackHistoryModal from '@/components/feedback/FeedbackHistoryModal.vue'
 import VotingListModalWrapper from '@/components/dashboard/VotingListModalWrapper.vue'
@@ -81,6 +87,11 @@ const showNoticeModal = ref(false)
 const showFeedbackModal = ref(false)
 const showVoteModal = ref(false)
 const showMemoModal = ref(false)
+
+const defaultImage = new URL('@/assets/defaultimage.png', import.meta.url).href
+const studentMembers = computed(() =>
+    (props.project?.members || []).filter(m => m.role === 'STUDENT')
+)
 
 </script>
 

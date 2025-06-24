@@ -136,7 +136,7 @@
 
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import axios from 'axios'
 
@@ -165,6 +165,7 @@ const showNoticeModal = ref(false)
 const selectedNotice = ref(null)
 const showCreateModal = ref(false)
 const showAllModal = ref(false)
+let refreshTimer
 
 const progress = computed(() => {
   const total = tasks.value.length
@@ -173,8 +174,16 @@ const progress = computed(() => {
 })
 
 const remainingTasks = computed(() =>
-  tasks.value.filter(t => t.status !== 'COMPLETED').length
+    tasks.value.filter(t => t.status !== 'COMPLETED').length
 )
+
+async function fetchTasks() {
+  const taskRes = await axios.get('/work-tasks/project', {
+    headers: { Authorization: localStorage.getItem('authHeader') },
+    withCredentials: true
+  })
+  tasks.value = taskRes.data
+}
 
 // 공지사항 목록 불러오기
 async function fetchNotices() {
@@ -253,17 +262,19 @@ onMounted(async () => {
     currentUserName.value = me.userName
     projectId.value = me.projectId
 
-    const taskRes = await axios.get('/work-tasks/project', {
-      headers: { Authorization: localStorage.getItem('authHeader') },
-      withCredentials: true
-    })
-    tasks.value = taskRes.data
+    await fetchTasks()
 
     await fetchNotices()
+    refreshTimer = setInterval(async () => {
+      await fetchTasks()
+      await fetchNotices()
+    }, 10000)
   } catch (e) {
     console.error('❌ 데이터 로드 실패:', e)
   }
 })
+
+onBeforeUnmount(() => clearInterval(refreshTimer))
 
 // 공지 상세 열기
 function openNoticeDetail(notice) {

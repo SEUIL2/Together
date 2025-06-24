@@ -97,7 +97,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import axios from 'axios'
 import { useRoute } from 'vue-router'
 import InviteModal from './InviteModal.vue'
@@ -116,6 +116,8 @@ const teamMembers = ref([])
 const showInviteModal = ref(false)
 const showMemoModal = ref(false)
 const memoTarget = ref(null)
+
+let refreshTimer
 
 const studentMembers = computed(() =>
     teamMembers.value.filter(m => m.role === 'STUDENT')
@@ -240,7 +242,10 @@ function onMemoSaved({ content, noteId }) {
 onMounted(async () => {
   await fetchCurrentUser()
   await fetchTeamMembers()
+  refreshTimer = setInterval(fetchTeamMembers, 10000)
 })
+
+onBeforeUnmount(() => clearInterval(refreshTimer))
 </script>
 
 <style scoped>

@@ -106,7 +106,7 @@
 </template>
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import { debounce } from 'lodash'
 
@@ -119,6 +119,7 @@ import FloatingHelpWidget from '@/components/FloatingHelpWidget.vue'
 import HelpModal from '@/components/HelpModal.vue'
 
 const route = useRoute()
+const router = useRouter()
 const isReadOnly = computed(() => route.query.readonly === 'true')
 const routeProjectId = computed(() => Number(route.params.projectId))
 
@@ -170,7 +171,7 @@ async function leaveProject() {
       withCredentials: true,
     });
     alert('프로젝트에서 성공적으로 나갔습니다.');
-    window.location.reload();
+    router.push('/MainPage2');
   } catch (err) {
     alert('프로젝트 탈퇴에 실패했습니다.');
     console.error(err);

@@ -152,11 +152,11 @@ const helpData = {
 `,
       image: system
     },
-        {
-      title: "프로젝트 일정 계획",
-      description: "화면 흐름 및 UI 구성을 나타냅니다.",
-      image: "https://via.placeholder.com/400x200?text=화면설계"
-    },
+    //     {
+    //   title: "프로젝트 일정 계획",
+    //   description: "화면 흐름 및 UI 구성을 나타냅니다.",
+    //   image: "https://via.placeholder.com/400x200?text=화면설계"
+    // },
   ],
   개발: [
     {
@@ -326,7 +326,7 @@ const helpData = {
   ],
   테스트: [
     {
-      title: "버전 관리 전략",
+      title: "단위 테스트",
       description: "기능별 테스트 계획과 체크리스트를 작성합니다.",
       image: "https://via.placeholder.com/400x200?text=테스트"
     }

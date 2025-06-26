@@ -1,138 +1,160 @@
+<!-- src/components/konva/RelationshipArrow.vue -->
 <template>
-  <!-- 메인 선 -->
-  <v-line
-    :config="{
-      points: getPoints(from, to, rel.bendStyle),
-      stroke: '#2c3e50',
-      strokeWidth: 2,
-      dash: lineStyle === 'dashed' ? [6, 4] : [],
-      lineCap: 'round',
-      hitStrokeWidth: 10
-    }"
-    @click="handleClick"
-    @contextmenu="handleContextMenu"
-  />
+  <v-group
+    @contextmenu="onRightClick"
+    @dblclick="onLineDblClick"
+  >
+    <!-- 메인 꺾인 선 -->
+    <v-line
+      :points="allPoints"
+      :stroke="strokeColor"
+      :strokeWidth="2"
+      :hitStrokeWidth="16"
+      :dash="lineStyle === 'dashed' ? [6, 4] : []"
+      lineCap="round"
+      lineJoin="round"
+    />
 
-  <!-- from 도형 -->
-  <component
-    v-if="fromType !== 'none'"
-    :is="getArrowComponent(fromType)"
-    :x="from.x"
-    :y="from.y"
-    :direction="getDirectionFrom(from, to, rel.bendStyle)"
-    :fill="'#2c3e50'"
-    :filled="fromType === 'diamond' ? rel.fromFilled : undefined"
-  />
+    <!-- 시작 도형 -->
+    <component
+      v-if="fromType !== 'none'"
+      :is="getArrowComponent(fromType)"
+      :x="from.x"
+      :y="from.y"
+      :direction="getDirectionFrom(from, to, bendStyle)"
+      :fill="strokeColor"
+      :filled="fromType === 'filled_diamond'"
+    />
 
-  <!-- to 도형 -->
-  <component
-    v-if="toType !== 'none'"
-    :is="getArrowComponent(toType)"
-    :x="to.x"
-    :y="to.y"
-    :direction="getDirectionTo(from, to, rel.bendStyle)"
-    :fill="'#2c3e50'"
-    :filled="toType === 'diamond' ? rel.toFilled : undefined"
-  />
+    <!-- 끝 도형 -->
+    <component
+      v-if="toType !== 'none'"
+      :is="getArrowComponent(toType)"
+      :x="to.x"
+      :y="to.y"
+      :direction="getDirectionTo(from, to, bendStyle)"
+      :fill="strokeColor"
+      :filled="toType === 'filled_diamond'"
+    />
+
+    <!-- 꺾임점 -->
+    <v-circle
+      v-for="(m, i) in midPoints"
+      :key="i"
+      :x="m.x" :y="m.y"
+      :radius="4"
+      fill="#fff"
+      stroke="#555"
+      :strokeWidth="2"
+      :draggable="true"
+      dragCursor="move"
+      @dragmove="e => emit('update-mid-point', { rel, idx: i, x: e.target.x(), y: e.target.y() })"
+      @dragend="() => emit('mid-drag-end', rel)"
+      @dblclick="() => emit('delete-mid-point', { rel, idx: i })"
+    />
+  </v-group>
 </template>
 
 <script setup>
+import { computed } from 'vue'
 import TriangleHead from '../classdiagram/shapes/TriangleHead.vue'
-import DiamondHead from '../classdiagram/shapes/DiamondHead.vue'
-import ArrowHead from '../classdiagram/shapes/ArrowHead.vue'
-import EmptyHead from '../classdiagram/shapes/EmptyHead.vue'
+import ArrowHead    from '../classdiagram/shapes/ArrowHead.vue'
+import DiamondHead  from '../classdiagram/shapes/DiamondHead.vue'
+import EmptyHead    from '../classdiagram/shapes/EmptyHead.vue'
 
 const props = defineProps({
-  from: Object,
-  to: Object,
-  type: String,
-  fromType: String,
-  toType: String,
-  lineStyle: String,
-  rel: Object
+  from:      Object,   // { x,y } from anchor
+  to:        Object,   // { x,y } to anchor
+  fromType:  String,   // 'none'|'arrow'|'triangle'|'empty_diamond'|'filled_diamond'
+  toType:    String,
+  lineStyle: String,   // 'solid'|'dashed'
+  bendStyle: String,   // 'none'|'one'|'two'
+  midPoints: Array,    // [{x,y},...]
+  rel:       Object
 })
 
-const emit = defineEmits(['select'])
+const emit = defineEmits([
+  'open-context',
+  'add-mid-point',
+  'update-mid-point',
+  'delete-mid-point',
+  'mid-drag-end'
+])
 
-const handleClick = (e) => {
-  emit('select', { rel: props.rel, event: e.evt })
-}
+// 선 색상
+const strokeColor = '#333'
 
-const handleContextMenu = (e) => {
-  e.evt.preventDefault()
-  e.evt.stopPropagation()
-  emit('select', { rel: props.rel, event: e.evt })
-}
+// 전체 포인트 계산 (bendStyle에 따라 원한다면 한/두 번 꺾이게 확장)
+const allPoints = computed(() => {
+  if (props.bendStyle === 'none') {
+    return [props.from.x, props.from.y, props.to.x, props.to.y]
+  }
+  const pts = [props.from.x, props.from.y]
+  props.midPoints?.forEach(p => { pts.push(p.x, p.y) })
+  pts.push(props.to.x, props.to.y)
+  return pts
+})
 
-const getArrowComponent = (shape) => {
+// 꺾임점
+const midPoints = computed(() => props.midPoints || [])
+
+// 도형 컴포넌트 맵
+function getArrowComponent(shape) {
   switch (shape) {
-    case 'triangle': return TriangleHead
-    case 'diamond': return DiamondHead
-    case 'arrow': return ArrowHead
-    default: return EmptyHead
+    case 'triangle':       return TriangleHead
+    case 'arrow':          return ArrowHead
+    case 'empty_diamond':  return DiamondHead
+    case 'filled_diamond': return DiamondHead
+    default:               return EmptyHead
   }
 }
 
-const getDirectionFrom = (from, to, style = 'one') => {
-  if (style === 'none') return getDirection(from, to)
-  if (style === 'one') {
-    const dx = to.x - from.x
-    const dy = to.y - from.y
-    return Math.abs(dx) > Math.abs(dy)
-      ? dx > 0 ? 'right' : 'left'
-      : dy > 0 ? 'down' : 'up'
-  }
-  if (style === 'two') {
-    return to.x - from.x > 0 ? 'right' : 'left'
-  }
-  return getDirection(from, to)
-}
-
-const getDirectionTo = (from, to, style = 'one') => {
-  if (style === 'none') return 'up' // 무조건 아래
-  if (style === 'one') {
-    const dx = to.x - from.x
-    const dy = to.y - from.y
-    return Math.abs(dx) > Math.abs(dy)
-      ? dy > 0 ? 'up' : 'down'
-      : dx > 0 ? 'left' : 'right'
-  }
-  if (style === 'two') {
-    const dx = to.x - ((from.x + to.x) / 2)
-    const dy = to.y - from.y
-    return Math.abs(dx) > Math.abs(dy)
-      ? dx > 0 ? 'left' : 'right'
-      : dy > 0 ? 'up' : 'down'
-  }
-  return getDirection(from, to)
-}
-
-const getDirection = (from, to) => {
-  const dx = to.x - from.x
-  const dy = to.y - from.y
-  const angle = Math.atan2(dy, dx) * (180 / Math.PI)
-  if (angle >= -45 && angle < 45) return 'right'
-  if (angle >= 45 && angle < 135) return 'down'
-  if (angle >= 135 || angle < -135) return 'left'
+// 기본 방향 로직
+function getDirection(a, b) {
+  const dx = b.x - a.x, dy = b.y - a.y
+  const ang = Math.atan2(dy, dx) * 180/Math.PI
+  if (ang >= -45 && ang < 45)   return 'right'
+  if (ang >= 45  && ang < 135)  return 'down'
+  if (ang >= 135 || ang < -135) return 'left'
   return 'up'
 }
 
-const getPoints = (from, to, style = 'one') => {
-  if (style === 'none') return [from.x, from.y, to.x, to.y]
+// from/to 방향 계산
+function getDirectionFrom(from, to, style='one') {
+  if (style === 'none') return getDirection(from, to)
   if (style === 'one') {
-    const dx = Math.abs(to.x - from.x)
-    const dy = Math.abs(to.y - from.y)
-    return dx > dy
-      ? [from.x, from.y, to.x, from.y, to.x, to.y]
-      : [from.x, from.y, from.x, to.y, to.x, to.y]
+    const dx = to.x-from.x, dy = to.y-from.y
+    return Math.abs(dx)>Math.abs(dy) ? (dx>0?'right':'left') : (dy>0?'down':'up')
   }
-  if (style === 'two') {
-    const midX = (from.x + to.x) / 2
-    return [from.x, from.y, midX, from.y, midX, to.y, to.x, to.y]
+  // style==='two' 등 추가 가능
+  return getDirection(from, to)
+}
+function getDirectionTo(from, to, style='one') {
+  if (style === 'none') return 'up'
+  if (style === 'one') {
+    const dx = to.x-from.x, dy = to.y-from.y
+    return Math.abs(dx)>Math.abs(dy) ? (dy>0?'up':'down') : (dx>0?'left':'right')
   }
-  return [from.x, from.y, to.x, to.y]
+  return getDirection(to, from)
+}
+
+// 우클릭
+function onRightClick(e) {
+  e.evt.preventDefault()
+  e.evt.stopPropagation()
+  emit('open-context', { rel: props.rel, x: e.evt.clientX, y: e.evt.clientY })
+}
+
+// 선 더블클릭 → 꺾임점 추가
+function onLineDblClick(e) {
+  if (e.target.getClassName() === 'Circle') return
+  e.evt.preventDefault()
+  e.evt.stopPropagation()
+  const pos = e.target.getStage().getPointerPosition()
+  if (pos) emit('add-mid-point', { rel: props.rel, x: pos.x, y: pos.y })
 }
 </script>
 
 <style scoped>
+/* 필요시 추가 스타일 */
 </style>

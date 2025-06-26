@@ -245,7 +245,7 @@ onMounted(async () => {
       }
       axios.patch(`/work-tasks/${id}`, dto)
           .catch(err => console.error('작업 업데이트 실패', err))
-          .finally(() => fetchTasksFromServer())
+          // .finally(() => fetchTasksFromServer())
     })
 
     gantt.attachEvent("onBeforeTaskDelete", id => {

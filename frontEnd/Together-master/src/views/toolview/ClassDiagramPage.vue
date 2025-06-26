@@ -31,30 +31,39 @@
 />
 
 
-          <RelationshipArrow
-            v-for="rel in relationships"
-            :key="rel.id"
-            :from="getAnchorPosition(rel.from.boxId, rel.from.direction)"
-            :to="getAnchorPosition(rel.to.boxId, rel.to.direction)"
-            :fromType="rel.fromType"
-            :toType="rel.toType"
-            :lineStyle="rel.lineStyle"
-            :rel="rel"
-            :bendPoints="rel.bendPoints"
-            @select="handleSelect"
-            @add-bend="addBendPoint"
-          />
+<RelationshipArrow
+  v-for="rel in relationships"
+  :key="`${rel.id}-${rel.fromType}-${rel.toType}-${rel.lineStyle}-${rel.bendStyle}`"
+  :from="getAnchorPosition(rel.from.boxId, rel.from.direction)"
+  :to="getAnchorPosition(rel.to.boxId, rel.to.direction)"
+  :fromType="rel.fromType"
+  :toType="rel.toType"
+  :lineStyle="rel.lineStyle"
+  :bendStyle="rel.bendStyle"  
+  :midPoints="rel.midPoints"        
+  :rel="rel"
+  :classes="classBoxes"
+  @select="handleSelect"
+  @open-context="handleArrowContextMenu" 
+  @add-mid-point="onAddMidPoint"       
+  @update-mid-point="onUpdateMidPoint" 
+  @delete-mid-point="onDeleteMidPoint"  
+  @mid-drag-end="onMidDragEnd"      
+/>
+
         </v-layer>
       </v-stage>
 
-      <RelationshipContextMenu
-        v-if="arrowContextMenuVisible && selectedRelationship"
-        :rel="selectedRelationship"
-        :x="contextMenuX"
-        :y="contextMenuY"
-        @update="handleUpdate"
-        @delete="handleDelete"
-      />
+<RelationshipContextMenu
+  v-if="arrowContextMenuVisible"
+  :rel="selectedRelationship"
+  :x="contextMenuX -200"
+  :y="contextMenuY -60"
+
+  @update="handleUpdate"
+  @delete="handleDelete"
+/>
+
 
       <div
         v-if="boxContextMenuVisible"
@@ -175,22 +184,67 @@ const handleDrop = (event) => {
   })
 }
 
+// onAddMidPoint
+function onAddMidPoint({ rel, x, y }) {
+  const target = relationships.value.find(r => r.id === rel.id)
+  if (!target.midPoints) target.midPoints = []
+  target.midPoints.push({ x, y })
+}
+
+// onUpdateMidPoint
+function onUpdateMidPoint({ rel, idx, x, y }) {
+  const target = relationships.value.find(r => r.id === rel.id)
+  if (target?.midPoints?.[idx]) {
+    target.midPoints[idx].x = x
+    target.midPoints[idx].y = y
+  }
+}
+
+// 함수명 오타 수정
+function onDeleteMidPoint({ rel, idx }) {
+  const target = relationships.value.find(r => r.id === rel.id)
+  if (target?.midPoints) {
+    target.midPoints.splice(idx, 1)
+  }
+}
+
+
+// (선택) 드래그가 끝났을 때 동기화
+function onMidDragEnd(rel) {
+  // 서버 동기화 등 추가 로직
+}
+function handleArrowContextMenu({ rel, x, y }) {
+  selectedRelationship.value = rel
+  // 컨텍스트 메뉴 위치 설정
+  contextMenuX.value = x
+  contextMenuY.value = y
+  arrowContextMenuVisible.value = true
+}
+
+
 const updateBoxPosition = ({ id, x, y }) => {
   const box = classBoxes.value.find(b => b.id === id)
   if (box) { box.x = x; box.y = y }
 }
 
-const handleAnchorClick = (anchor) => {
+function handleAnchorClick(anchor) {
   if (!relationshipStart.value) {
     relationshipStart.value = anchor
   } else {
     relationships.value.push({
-      id: Date.now(), from: relationshipStart.value, to: anchor,
-      type: 'association', fromType: 'none', toType: 'arrow', lineStyle: 'solid', bendPoints: []
+      id: Date.now(),
+      from: relationshipStart.value,
+      to: anchor,
+      type: 'association',
+      fromType: 'arrow',    // ← 여기!
+      toType:   'none',
+      lineStyle: 'solid',
+      midPoints: []
     })
     relationshipStart.value = null
   }
 }
+
 
 const handleSelect = ({ rel, event }) => {
   event.preventDefault(); event.stopPropagation()
@@ -200,13 +254,18 @@ const handleSelect = ({ rel, event }) => {
   arrowContextMenuVisible.value = true
 }
 
-const handleUpdate = (updated) => {
-  const rel = selectedRelationship.value
-  const index = relationships.value.findIndex(r => r.id === rel.id)
-  if (index !== -1) {
-    relationships.value[index] = { ...relationships.value[index], ...updated }
+function handleUpdate(updated) {
+  console.log('🔄 handleUpdate 호출, updated:', updated)
+  const idx = relationships.value.findIndex(r => r.id === updated.id)
+  if (idx !== -1) {
+    relationships.value[idx] = {
+      ...relationships.value[idx],
+      ...updated
+    }
   }
+  arrowContextMenuVisible.value = false
 }
+
 
 const handleDelete = () => {
   const id = selectedRelationship.value?.id

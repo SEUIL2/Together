@@ -1,10 +1,6 @@
-<!-- src/components/konva/RelationshipArrow.vue -->
 <template>
-  <v-group
-    @contextmenu="onRightClick"
-    @dblclick="onLineDblClick"
-  >
-    <!-- 메인 꺾인 선 -->
+  <v-group @contextmenu="onRightClick" @dblclick="onLineDblClick">
+    <!-- 메인 선 -->
     <v-line
       :points="allPoints"
       :stroke="strokeColor"
@@ -15,24 +11,26 @@
       lineJoin="round"
     />
 
-    <!-- 시작 도형 -->
+    <!-- 시작 머리 -->
     <component
       v-if="fromType !== 'none'"
-      :is="getArrowComponent(fromType)"
+      :is="getHeadComp(fromType)"
       :x="from.x"
       :y="from.y"
-      :direction="getDirectionFrom(from, to, bendStyle)"
+      :rotation="startAngleDeg"
+      :offset="0"
       :fill="strokeColor"
       :filled="fromType === 'filled_diamond'"
     />
 
-    <!-- 끝 도형 -->
+    <!-- 끝 머리 -->
     <component
       v-if="toType !== 'none'"
-      :is="getArrowComponent(toType)"
+      :is="getHeadComp(toType)"
       :x="to.x"
       :y="to.y"
-      :direction="getDirectionTo(from, to, bendStyle)"
+      :rotation="endAngleDeg"
+      :offset="0"
       :fill="strokeColor"
       :filled="toType === 'filled_diamond'"
     />
@@ -63,98 +61,78 @@ import DiamondHead  from '../classdiagram/shapes/DiamondHead.vue'
 import EmptyHead    from '../classdiagram/shapes/EmptyHead.vue'
 
 const props = defineProps({
-  from:      Object,   // { x,y } from anchor
-  to:        Object,   // { x,y } to anchor
-  fromType:  String,   // 'none'|'arrow'|'triangle'|'empty_diamond'|'filled_diamond'
-  toType:    String,
-  lineStyle: String,   // 'solid'|'dashed'
-  bendStyle: String,   // 'none'|'one'|'two'
-  midPoints: Array,    // [{x,y},...]
-  rel:       Object
+  from:      { type: Object, required: true }, // {x,y} stage 좌표
+  to:        { type: Object, required: true },
+  fromType:  { type: String, default: 'none' }, // 'arrow'|'triangle'|'empty_diamond'|'filled_diamond'|'none'
+  toType:    { type: String, default: 'none' },
+  lineStyle: { type: String, default: 'solid' },
+  midPoints: { type: Array,  default: () => [] },
+  rel:       { type: Object, default: () => ({}) }
 })
+const emit = defineEmits(['open-context','add-mid-point','update-mid-point','delete-mid-point','mid-drag-end'])
 
-const emit = defineEmits([
-  'open-context',
-  'add-mid-point',
-  'update-mid-point',
-  'delete-mid-point',
-  'mid-drag-end'
-])
-
-// 선 색상
 const strokeColor = '#333'
-
-// 전체 포인트 계산 (bendStyle에 따라 원한다면 한/두 번 꺾이게 확장)
-const allPoints = computed(() => {
-  if (props.bendStyle === 'none') {
-    return [props.from.x, props.from.y, props.to.x, props.to.y]
-  }
-  const pts = [props.from.x, props.from.y]
-  props.midPoints?.forEach(p => { pts.push(p.x, p.y) })
-  pts.push(props.to.x, props.to.y)
-  return pts
-})
-
-// 꺾임점
 const midPoints = computed(() => props.midPoints || [])
+const nodes = computed(() => [props.from, ...midPoints.value, props.to])
 
-// 도형 컴포넌트 맵
-function getArrowComponent(shape) {
-  switch (shape) {
+function getHeadComp(t){
+  switch (t) {
     case 'triangle':       return TriangleHead
     case 'arrow':          return ArrowHead
-    case 'empty_diamond':  return DiamondHead
+    case 'empty_diamond':
     case 'filled_diamond': return DiamondHead
     default:               return EmptyHead
   }
 }
-
-// 기본 방향 로직
-function getDirection(a, b) {
-  const dx = b.x - a.x, dy = b.y - a.y
-  const ang = Math.atan2(dy, dx) * 180/Math.PI
-  if (ang >= -45 && ang < 45)   return 'right'
-  if (ang >= 45  && ang < 135)  return 'down'
-  if (ang >= 135 || ang < -135) return 'left'
-  return 'up'
-}
-
-// from/to 방향 계산
-function getDirectionFrom(from, to, style='one') {
-  if (style === 'none') return getDirection(from, to)
-  if (style === 'one') {
-    const dx = to.x-from.x, dy = to.y-from.y
-    return Math.abs(dx)>Math.abs(dy) ? (dx>0?'right':'left') : (dy>0?'down':'up')
+function headLen(t){
+  switch (t) {
+   case 'triangle':       return 14   // ✅ radius(=10) * 1.5 = 15
+   case 'arrow':          return 10  // ArrowHead:    끝점 x = -10
+   case 'empty_diamond':
+   case 'filled_diamond': return 20  // DiamondHead:  끝점 x = -20
+    default:               return 0
   }
-  // style==='two' 등 추가 가능
-  return getDirection(from, to)
-}
-function getDirectionTo(from, to, style='one') {
-  if (style === 'none') return 'up'
-  if (style === 'one') {
-    const dx = to.x-from.x, dy = to.y-from.y
-    return Math.abs(dx)>Math.abs(dy) ? (dy>0?'up':'down') : (dx>0?'left':'right')
-  }
-  return getDirection(to, from)
 }
 
-// 우클릭
-function onRightClick(e) {
-  e.evt.preventDefault()
-  e.evt.stopPropagation()
+function v(a,b){ return {x:b.x-a.x, y:b.y-a.y} }
+function n(vv){ const L=Math.hypot(vv.x,vv.y)||1; return {x:vv.x/L, y:vv.y/L} }
+function moveAlong(p0,p1,off){ const d=n(v(p0,p1)); return {x:p0.x+d.x*off, y:p0.y+d.y*off} }
+function pullBack (p0,p1,off){ const d=n(v(p0,p1)); return {x:p1.x-d.x*off, y:p1.y-d.y*off} }
+
+const firstKnee = computed(() => nodes.value[1] ?? props.to)
+const lastKnee  = computed(() => nodes.value[nodes.value.length-2] ?? props.from)
+
+function angleDeg(a,b){ return Math.atan2(b.y-a.y, b.x-a.x) * 180 / Math.PI }
+
+const startHeadLen = computed(() => headLen(props.fromType))
+const endHeadLen   = computed(() => headLen(props.toType))
+
+// 선 길이 보정(머리만큼 당겨서 겹침 방지)
+const allPoints = computed(() => {
+  const pts = [...nodes.value]
+  if (pts.length < 2) return []
+  if (startHeadLen.value > 0) pts[0] = moveAlong(pts[0], pts[1], startHeadLen.value)
+  if (endHeadLen.value   > 0) {
+    const last = pts.length-1
+    pts[last] = pullBack(pts[last-1], pts[last], endHeadLen.value)
+  }
+  const flat = []
+  for (const p of pts) flat.push(p.x, p.y)
+  return flat
+})
+
+// 연속 각도 (머리 컴포넌트에서 180° 모델 보정 적용)
+ const startAngleDeg = computed(() => angleDeg(props.from, firstKnee.value))      // out
+ const endAngleDeg   = computed(() => angleDeg(props.to,   lastKnee.value))       // in
+
+function onRightClick(e){
+  e.evt.preventDefault(); e.evt.stopPropagation()
   emit('open-context', { rel: props.rel, x: e.evt.clientX, y: e.evt.clientY })
 }
-
-// 선 더블클릭 → 꺾임점 추가
-function onLineDblClick(e) {
+function onLineDblClick(e){
   if (e.target.getClassName() === 'Circle') return
-  e.evt.preventDefault()
-  e.evt.stopPropagation()
+  e.evt.preventDefault(); e.evt.stopPropagation()
   const pos = e.target.getStage().getPointerPosition()
   if (pos) emit('add-mid-point', { rel: props.rel, x: pos.x, y: pos.y })
 }
 </script>
-
-<style scoped>
-/* 필요시 추가 스타일 */
-</style>

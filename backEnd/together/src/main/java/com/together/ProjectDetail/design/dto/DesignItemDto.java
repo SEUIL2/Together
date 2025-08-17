@@ -1,0 +1,27 @@
+package com.together.ProjectDetail.design.dto;
+
+import com.together.ProjectDetail.common.FileMetaDto;
+import lombok.Data;
+
+import java.util.List;
+
+@Data
+public class DesignItemDto {
+
+    private String text;
+    private String json;
+    private List<FileMetaDto> files;
+
+    // ✅ 일반 텍스트 용도
+    public DesignItemDto(String text, List<FileMetaDto> files) {
+        this.text = text;
+        this.files = files;
+    }
+
+    // ✅ json저장용 (json 포함)
+    public DesignItemDto(String text, String json, List<FileMetaDto> files) {
+        this.text = text;
+        this.json = json;
+        this.files = files;
+    }
+}

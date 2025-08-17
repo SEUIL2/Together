@@ -2,11 +2,10 @@ package com.together.project;
 
 import com.together.documentManger.GoogleDriveService;
 import com.together.notification.NotificationService;
-import com.together.project.Invitation.InvitationEntity;
-import com.together.project.Invitation.InvitationRepository;
-import com.together.project.Invitation.dto.InvitationResponseDto;
-import com.together.project.Invitation.dto.TeamMemberDto;
-import com.together.project.ProjectDto.InviteResponseDto;
+import com.together.Invitation.InvitationEntity;
+import com.together.Invitation.InvitationRepository;
+import com.together.Invitation.dto.InvitationResponseDto;
+import com.together.Invitation.dto.TeamMemberDto;
 import com.together.project.ProjectDto.ProjectMembersDto;
 import com.together.project.ProjectDto.ProjectResponseDto;
 import com.together.project.ProjectDto.ProjectSummaryWithMembersDto;

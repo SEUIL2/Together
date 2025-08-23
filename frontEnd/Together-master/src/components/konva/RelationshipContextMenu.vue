@@ -12,14 +12,15 @@
       <option value="none">없음</option>
       <option value="arrow">화살표</option>
       <option value="triangle">삼각형</option>
-      <option value="diamond">다이아몬드</option>
+      <option value="empty_diamond">빈 다이아몬드</option>
+      <option value="filled_diamond">꽉찬 다이아몬드</option>
     </select>
 
-    <div v-if="localRel.fromType === 'diamond'">
-      <label>시작 도형 채움</label>
+    <div v-if="localRel.fromType === 'filled_diamond'">
+      <label>시작 도형 채움 여부</label>
       <select v-model="localRel.fromFilled">
-        <option :value="false">빈 다이아몬드</option>
-        <option :value="true">꽉찬 다이아몬드</option>
+        <option :value="false">빈</option>
+        <option :value="true">채움</option>
       </select>
     </div>
 
@@ -34,54 +35,57 @@
       <option value="none">없음</option>
       <option value="arrow">화살표</option>
       <option value="triangle">삼각형</option>
-      <option value="diamond">다이아몬드</option>
+      <option value="empty_diamond">빈 다이아몬드</option>
+      <option value="filled_diamond">꽉찬 다이아몬드</option>
     </select>
 
-    <div v-if="localRel.toType === 'diamond'">
-      <label>끝 도형 채움</label>
+    <div v-if="localRel.toType === 'filled_diamond'">
+      <label>끝 도형 채움 여부</label>
       <select v-model="localRel.toFilled">
-        <option :value="false">빈 다이아몬드</option>
-        <option :value="true">꽉찬 다이아몬드</option>
+        <option :value="false">빈</option>
+        <option :value="true">채움</option>
       </select>
     </div>
 
-    <!-- ✅ 자동 꺾임 설정 -->
-    <label>꺾임 방식</label>
-    <select v-model="localRel.bendStyle">
-      <option value="none">직선</option>
-      <option value="one">한 번 꺾임</option>
-      <option value="two">두 번 꺾임</option>
-    </select>
-
-    <button class="delete-btn" @click="emit('delete')">🗑 삭제</button>
+    <button class="delete-btn" @click="$emit('delete')">🗑 삭제</button>
   </div>
 </template>
 
 <script setup>
-import { reactive, watch } from 'vue'
+import { reactive, watch, toRefs } from 'vue'
 
 const props = defineProps({
-  rel: Object,
+  rel: Object,   // 부모로부터 받은 rel 객체
   x: Number,
   y: Number
 })
-
 const emit = defineEmits(['update', 'delete'])
 
+// rel에서 필요한 프로퍼티만 뽑아 로컬 복사
 const localRel = reactive({
-  type: props.rel.type,
   fromType: props.rel.fromType,
-  toType: props.rel.toType,
-  lineStyle: props.rel.lineStyle,
+  toType:   props.rel.toType,
   fromFilled: props.rel.fromFilled ?? false,
-  toFilled: props.rel.toFilled ?? false,
-  bendStyle: props.rel.bendStyle ?? 'one' // 기본값: 한 번 꺾임
+  toFilled:   props.rel.toFilled   ?? false,
+  lineStyle:  props.rel.lineStyle,
+  bendStyle:  props.rel.bendStyle  ?? 'one'
 })
 
-watch(localRel, () => {
-  emit('update', { ...localRel })
+// localRel이 변경될 때마다 부모로 전체 rel 업데이트 전송
+watch(localRel, (newVal) => {
+  emit('update', {
+    ...props.rel,       // 기존 rel 데이터
+    fromType:   newVal.fromType,
+    toType:     newVal.toType,
+    fromFilled: newVal.fromFilled,
+    toFilled:   newVal.toFilled,
+    lineStyle:  newVal.lineStyle,
+    bendStyle:  newVal.bendStyle
+  })
 }, { deep: true })
+
 </script>
+
 
 <style scoped>
 .context-menu {

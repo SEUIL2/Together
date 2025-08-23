@@ -2,9 +2,9 @@ package com.together.project;
 
 import com.together.ImagePreview.ImgurUploadService;
 import com.together.documentManger.GoogleDriveService;
-import com.together.project.Invitation.InvitationRepository;
-import com.together.project.Invitation.dto.InvitationResponseDto;
-import com.together.project.Invitation.dto.TeamMemberDto;
+import com.together.Invitation.InvitationRepository;
+import com.together.Invitation.dto.InvitationResponseDto;
+import com.together.Invitation.dto.TeamMemberDto;
 import com.together.project.ProjectDto.ProjectMembersDto;
 import com.together.project.ProjectDto.ProjectResponseDto;
 import com.together.project.ProjectDto.ProjectSummaryWithMembersDto;
@@ -22,9 +22,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-import com.together.documentManger.GoogleDriveService;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;

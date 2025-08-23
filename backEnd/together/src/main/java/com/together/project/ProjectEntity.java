@@ -3,14 +3,13 @@ package com.together.project;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.together.comment.CommentController;
 import com.together.comment.CommentEntity;
 import com.together.documentManger.FileEntity;
 import com.together.generatedCodeAI.GeneratedCodeEntity;
 import com.together.meeting.MeetingEntity;
 import com.together.notice.NoticeEntity;
 import com.together.privateNote.PrivateNoteEntity;
-import com.together.project.worktask.WorkTaskEntity;
+import com.together.worktask.WorkTaskEntity;
 import com.together.user.UserEntity;
 import com.together.user.professor.ProfessorEntity;
 import com.together.user.professor.feedback.FeedbackEntity;
@@ -18,8 +17,7 @@ import com.together.user.student.StudentEntity;
 import com.together.vote.entity.VoteEntity;
 import jakarta.persistence.*;
 import lombok.*;
-import org.springframework.format.annotation.DateTimeFormat;
-import com.together.project.ProjectDetail.test.TestRowEntity;
+import com.together.ProjectDetail.test.TestRowEntity;
 
 import java.util.ArrayList;
 import java.util.Date;

@@ -2,7 +2,7 @@ package com.together.user;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.together.generatedCodeAI.GeneratedCodeEntity;
-import com.together.project.worktask.WorkTaskEntity;
+import com.together.worktask.WorkTaskEntity;
 import com.together.topicRecommendAI.UserKeywordHistoryEntity;
 import com.together.comment.CommentEntity;
 import com.together.documentManger.FileEntity;

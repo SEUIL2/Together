@@ -1,63 +1,35 @@
 <template>
-  <!-- 화살표 방향 및 위치 보정 적용 -->
-  <v-shape
-    :sceneFunc="draw"
-    :config="{
-      x: offsetPosition.x,
-      y: offsetPosition.y,
-      rotation,
-      fill
-    }"
-  />
+  <v-shape :sceneFunc="draw" :config="{ x: tipX, y: tipY, rotation: angleDeg, fill }" />
 </template>
 
 <script setup>
 import { computed } from 'vue'
 
 const props = defineProps({
-  x: Number,
-  y: Number,
-  direction: String,
-  fill: String
+  x: Number, y: Number,
+  rotation:  { type: Number, default: 0 },     // 선 각도(°)
+  fill:      { type: String, default: '#2c3e50' },
+  offset:    { type: Number, default: 0 }      // 선에서 뒤로 당길 길이(px)
 })
 
-// 🔁 회전 각도 조정 (방향 보정)
-const rotation = computed(() => {
-  switch (props.direction) {
-    case 'right': return 180   // 원래는 0 → 반대 방향
-    case 'down': return -90    // 원래는 90
-    case 'left': return 0      // 원래는 180
-    case 'up': return 90       // 원래는 -90
-    default: return 0
-  }
-})
+// 모델 보정: 이 도형은 0°에 '왼쪽'을 향해 그려졌다고 가정 → +180°
+const MODEL_OFFSET = 180
+const angleDeg = computed(() => props.rotation + MODEL_OFFSET)
 
+const rad  = computed(() => (angleDeg.value * Math.PI) / 180)
+const tipX = computed(() => props.x - Math.cos(rad.value) * props.offset)
+const tipY = computed(() => props.y - Math.sin(rad.value) * props.offset)
 
-// ✅ 침투 방지를 위한 위치 보정
-const offset = 0
-const offsetPosition = computed(() => {
-  switch (props.direction) {
-    case 'up': return { x: props.x, y: props.y - offset }
-    case 'down': return { x: props.x, y: props.y + offset }
-    case 'left': return { x: props.x - offset, y: props.y }
-    case 'right': return { x: props.x + offset, y: props.y }
-    default: return { x: props.x, y: props.y }
-  }
-})
-
-// 🔺 커스텀 화살표 도형
-function draw(context, shape) {
+function draw(ctx, shape){
   const { fill } = shape.getAttrs()
-  context.beginPath()
-  context.moveTo(0, 0)
-  context.lineTo(-10, -6)
-  context.lineTo(-6, 0)
-  context.lineTo(-10, 6)
-  context.closePath()
-  context.fillStyle = fill || '#2c3e50'
-  context.fill()
-  context.strokeStyle = '#2c3e50'
-  context.lineWidth = 1.5
-  context.stroke()
+  ctx.beginPath()
+  // (0,0) = 화살촉, 기본은 오른쪽을 향한 형태로 그려두되 MODEL_OFFSET으로 뒤집힘
+  ctx.moveTo(0, 0)
+  ctx.lineTo(-10, -6)
+  ctx.lineTo(-6, 0)
+  ctx.lineTo(-10, 6)
+  ctx.closePath()
+  ctx.fillStyle = fill; ctx.fill()
+  ctx.strokeStyle = fill; ctx.lineWidth = 1.5; ctx.stroke()
 }
 </script>

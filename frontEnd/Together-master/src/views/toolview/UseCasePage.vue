@@ -1,5 +1,5 @@
 <template>
-  <div class="diagram-layout" @click="hideAllMenus">
+  <div class="diagram-layout" @click="hideAllMenus" @wheel.ctrl.prevent="handleWheel">
     <!-- 툴박스 -->
     <ToolBox />
 
@@ -13,7 +13,7 @@
           scaleX: scale,
           scaleY: scale
         }"
-        @wheel="handleWheel"
+
       >
         <v-layer>
           <!-- 액터(사람 아이콘) -->
@@ -53,8 +53,8 @@
       <!-- 컨텍스트 메뉴 -->
       <UsecaseContextMenu
         v-if="contextMenu.visible"
-        :x="contextMenu.x"
-        :y="contextMenu.y"
+        :x="contextMenu.x -200"
+        :y="contextMenu.y- 60"
         :target="contextMenu.target"
         @close="contextMenu.visible = false"
         @delete="deleteTarget"
@@ -336,14 +336,25 @@ const saveStatus = ref('idle')
   watch([actors, usecases, links], saveUsecase, { deep: true })
 
 // === 줌 기능 ===
-const handleWheel = (e) => {
-  if (!e.evt.ctrlKey) return
-  e.evt.preventDefault()
-  let delta = e.evt.deltaY
-  if (delta === 0) return
-  let nextScale = scale.value + (delta > 0 ? -0.08 : 0.08)
-  nextScale = Math.max(minScale, Math.min(maxScale, nextScale))
-  scale.value = nextScale
+function handleWheel(e) {
+  e.preventDefault()
+  const stage = stageRef.value.getStage()
+  const box = stage.container().getBoundingClientRect()
+  const x = e.clientX - box.left
+  const y = e.clientY - box.top
+  const oldScale = stage.scaleX()
+  const mousePointTo = {
+    x: (x - stage.x()) / oldScale,
+    y: (y - stage.y()) / oldScale,
+  }
+  const scaleBy = 1.05
+  const newScale = e.deltaY > 0 ? oldScale / scaleBy : oldScale * scaleBy
+  stage.scale({ x: newScale, y: newScale })
+  stage.position({
+    x: x - mousePointTo.x * newScale,
+    y: y - mousePointTo.y * newScale,
+  })
+  stage.batchDraw()
 }
 
 // === 불러오기 ===

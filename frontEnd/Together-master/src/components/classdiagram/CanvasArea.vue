@@ -22,7 +22,6 @@
           @rightclick-method="onRightClickMethod"
           @select-attribute="onSelectAttribute"
           @rightclick-attribute="onRightClickAttribute"
-          
         />
       </v-layer>
 
@@ -35,6 +34,10 @@
           :selected="rel.id === selectedRelationshipId"
           @select="selectRelationship"
           @open-menu="openRelationshipMenu"
+          @add-mid-point="onAddMidPoint"
+          @update-mid-point="onUpdateMidPoint"
+          @delete-mid-point="onDeleteMidPoint"
+          @mid-drag-end="onMidDragEnd"
         />
       </v-layer>
     </v-stage>
@@ -150,8 +153,8 @@ const scale = ref({ x: 1, y: 1 });
 const stageConfig = computed(() => ({ width: stageWidth, height: stageHeight, scale: scale.value }));
 
 const editingClassId = ref(null);
-const editingRegion = ref(null);
 const editingIndex = ref(null);
+const editingRegion = ref(null);
 const editingText = ref('');
 const editingPos = ref({ x: 0, y: 0 });
 
@@ -178,23 +181,13 @@ const attrMenuPos = ref({ x: 0, y: 0 });
 
 function handleClickOutside() {
   contextMenuVisible.value = false;
-  contextClassId.value = null;
   arrowContextMenuVisible.value = false;
-  selectedRelationship.value = null;
-  selectedRelationshipId.value = null;
   methodMenuVisible.value = false;
-  selectedMethod.value = { clsId: null, index: null };
   attrMenuVisible.value = false;
-  selectedAttribute.value = { clsId: null, index: null };
 }
 
-onMounted(() => {
-  document.addEventListener('click', handleClickOutside);
-});
-
-onBeforeUnmount(() => {
-  document.removeEventListener('click', handleClickOutside);
-});
+onMounted(() => document.addEventListener('click', handleClickOutside));
+onBeforeUnmount(() => document.removeEventListener('click', handleClickOutside));
 
 function onDropdownChange(type, value) {
   if (!selectedRelationship.value) return;
@@ -212,17 +205,12 @@ function startEdit({ cls, region, index, event }) {
   editingClassId.value = cls.id;
   editingRegion.value = region;
   editingIndex.value = index;
-  editingText.value = region === 'name' ? cls.name : (region === 'attributes' ? cls.attributes[index] : cls.methods[index]);
+  editingText.value = region === 'name' ? cls.name : region === 'attributes' ? cls.attributes[index] : cls.methods[index];
   editingPos.value = { x: cls.x + 10, y: cls.y + 10 };
-  nextTick(() => { document.querySelector('.text-input')?.focus(); });
+  nextTick(() => document.querySelector('.text-input')?.focus());
 }
 function finishEdit() {
-  emit('update-text', {
-    id: editingClassId.value,
-    region: editingRegion.value,
-    index: editingIndex.value,
-    newText: editingText.value
-  });
+  emit('update-text', { id: editingClassId.value, region: editingRegion.value, index: editingIndex.value, newText: editingText.value });
   editingClassId.value = null;
 }
 function addItem(region, id) { emit('add-item', { id, region }); }
@@ -239,15 +227,7 @@ function handleAnchorClick({ id, direction }) {
     anchorStartDirection.value = direction;
   } else {
     if (anchorStartClassId.value !== id) {
-      emit('add-relationship', {
-        fromId: anchorStartClassId.value,
-        fromDirection: anchorStartDirection.value,
-        toId: id,
-        toDirection: direction,
-        fromType: 'none',
-        toType: 'none',
-        lineType: 'solid'
-      });
+      emit('add-relationship', { fromId: anchorStartClassId.value, fromDirection: anchorStartDirection.value, toId: id, toDirection: direction, fromType: 'none', toType: 'none', lineType: 'solid' });
     }
     anchorStartClassId.value = null;
     anchorStartDirection.value = null;
@@ -256,64 +236,41 @@ function handleAnchorClick({ id, direction }) {
 function selectRelationship({ rel, event }) {
   selectedRelationship.value = rel;
   selectedRelationshipId.value = rel.id;
-  arrowContextMenuPos.value = { x: event.evt?.clientX + 2 || 0, y: event.evt?.clientY + 8 || 0 };
+  arrowContextMenuPos.value = { x: event.evt.clientX + 2, y: event.evt.clientY + 8 };
   arrowContextMenuVisible.value = true;
 }
 function openRelationshipMenu({ rel, event }) { selectRelationship({ rel, event }); }
 function deleteCurrentClass() { emit('delete-class', contextClassId.value); handleClickOutside(); }
 function deleteCurrentRelationship() { emit('delete-relationship', selectedRelationship.value); handleClickOutside(); }
-function deleteSelectedMethod() {
-  const cls = props.classes.find(c => c.id === selectedMethod.value.clsId);
-  if (cls && selectedMethod.value.index !== null) {
-    cls.methods.splice(selectedMethod.value.index, 1);
-  }
-  handleClickOutside();
+
+// 🆕 중간점 이벤트 핸들러
+function onAddMidPoint({ rel, x, y }) {
+  const mps = [...(rel.midPoints || []), { x, y }];
+  emit('update-relationship', { ...rel, midPoints: mps });
 }
-function deleteSelectedAttribute() {
-  const cls = props.classes.find(c => c.id === selectedAttribute.value.clsId);
-  if (cls && selectedAttribute.value.index !== null) {
-    cls.attributes.splice(selectedAttribute.value.index, 1);
-  }
-  handleClickOutside();
+function onUpdateMidPoint({ rel, idx, x, y }) {
+  const mps = [...(rel.midPoints || [])];
+  if (mps[idx]) mps[idx] = { x, y };
+  emit('update-relationship', { ...rel, midPoints: mps });
 }
-function onSelectMethod({ clsId, index }) {
-  selectedMethod.value = { clsId, index };
-  methodMenuVisible.value = false;
+function onDeleteMidPoint({ rel, idx }) {
+  const mps = [...(rel.midPoints || [])];
+  mps.splice(idx, 1);
+  emit('update-relationship', { ...rel, midPoints: mps });
 }
-function onRightClickMethod({ clsId, index, event }) {
-  const stage = event.target.getStage();
-  const pointerPos = stage.getPointerPosition();
-  selectedMethod.value = { clsId, index };
-  methodMenuPos.value = { x: pointerPos.x + 10, y: pointerPos.y + 5 };
-  methodMenuVisible.value = true;
+function onMidDragEnd(rel) {
+  // 필요 시 추가 동기화 로직
 }
-function onSelectAttribute({ clsId, index }) {
-  selectedAttribute.value = { clsId, index };
-  attrMenuVisible.value = false;
-}
-function onRightClickAttribute({ clsId, index, event }) {
-  const stage = event.target.getStage();
-  const pointerPos = stage.getPointerPosition();
-  selectedAttribute.value = { clsId, index };
-  attrMenuPos.value = { x: pointerPos.x + 10, y: pointerPos.y + 5 };
-  attrMenuVisible.value = true;
-}
-function handleWheel(e) {
-  e.evt.preventDefault();
-  const oldScale = scale.value.x;
-  const newScale = e.evt.deltaY > 0 ? oldScale * 0.9 : oldScale * 1.1;
-  scale.value = { x: newScale, y: newScale };
-}
-function onUpdateClassSize({ id, width, height }) {
-  const cls = props.classes.find(c => c.id === id);
-  if (cls) {
-    cls.width = width;
-    cls.height = height;
-  }
-}
-function isEditing(id) {
-  return editingClassId.value === id;
-}
+
+function deleteSelectedMethod() { const cls = props.classes.find(c => c.id === selectedMethod.value.clsId); if (cls && selectedMethod.value.index != null) cls.methods.splice(selectedMethod.value.index, 1); handleClickOutside(); }
+function deleteSelectedAttribute() { const cls = props.classes.find(c => c.id === selectedAttribute.value.clsId); if (cls && selectedAttribute.value.index != null) cls.attributes.splice(selectedAttribute.value.index, 1); handleClickOutside(); }
+function onSelectMethod({ clsId, index }) { selectedMethod.value = { clsId, index }; метод_menuVisible.value = false; }
+function onRightClickMethod({ clsId, index, event }) { selectedMethod.value = { clsId, index }; const pos = event.target.getStage().getPointerPosition() || { x:0,y:0 }; methodMenuPos.value = { x: pos.x + 10, y: pos.y + 5 }; methodMenuVisible.value = true; }
+function onSelectAttribute({ clsId, index }) { selectedAttribute.value = { clsId, index }; attrMenuVisible.value = false; }
+function onRightClickAttribute({ clsId, index, event }) { selectedAttribute.value = { clsId, index }; const pos = event.target.getStage().getPointerPosition() || { x:0,y:0 }; attrMenuPos.value = { x: pos.x + 10, y: pos.y + 5 }; attrMenuVisible.value = true; }
+function handleWheel(e) { e.evt.preventDefault(); const old = scale.value.x; const factor = e.evt.deltaY > 0 ? 0.9 : 1.1; scale.value = { x: old * factor, y: old * factor }; }
+function onUpdateClassSize({ id, width, height }) { const cls = props.classes.find(c => c.id === id); if (cls) { cls.width = width; cls.height = height; } }
+function isEditing(id) { return editingClassId.value === id; }
 </script>
 
 <style scoped>

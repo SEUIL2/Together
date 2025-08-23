@@ -62,7 +62,7 @@ const props = defineProps({
     type: Array,
     default: () => [
       'java-SpringBoot',
-      'nodeJS',
+      'nodeJS(Express)',
       'python-FastAPI',
       'csharp',
       'kotlin'

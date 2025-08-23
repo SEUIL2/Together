@@ -4,7 +4,7 @@ import com.together.generatedCodeAI.AI.CustomOpenAiService;
 import com.together.generatedCodeAI.DTO.ClassDiagramCodeRequest;
 import com.together.generatedCodeAI.DTO.ErdCodeRequest;
 import com.together.generatedCodeAI.DTO.GeneratedCodeResponse;
-import com.together.project.ProjectDetail.design.DesignDetailRepository;
+import com.together.ProjectDetail.design.DesignDetailRepository;
 import com.together.project.ProjectEntity;
 import com.together.project.ProjectRepository;
 import com.together.user.UserEntity;

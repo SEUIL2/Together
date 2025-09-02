@@ -118,10 +118,10 @@ import { ref, watch, onMounted, reactive  } from 'vue'
 import axios from 'axios'
 import { debounce } from 'lodash'
 import { useToolStore } from '@/stores/toolStore'
-import ToolBox from '@/components/ToolBox.vue'
-import ClassBox from '@/components/konva/ClassBox.vue'
-import RelationshipArrow from '@/components/konva/RelationshipArrow.vue'
-import RelationshipContextMenu from '@/components/konva/RelationshipContextMenu.vue'
+import ToolBox from '@/components/diagramtool/ToolBox.vue'
+import ClassBox from '@/components/diagramtool/classdiagram/ClassBox.vue'
+import RelationshipArrow from '@/components/diagramtool/classdiagram/RelationshipArrow.vue'
+import RelationshipContextMenu from '@/components/diagramtool/classdiagram/RelationshipContextMenu.vue'
 
 const token = localStorage.getItem('authHeader')
 if (token) {

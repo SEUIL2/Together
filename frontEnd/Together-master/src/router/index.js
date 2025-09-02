@@ -9,15 +9,15 @@ import ResetPassword from '../views/account/ResetPassword.vue'
 import CreateProject from '../views/CreateProject.vue'
 import MyProject from '../views/MyProject.vue'
 import DashBoard from '../views/DashBoard.vue'
-import Schedule from '../views/Schedule.vue'
+// import Schedule from '../views/Schedule.vue'
 import SignUpForm from '../views/test/SignupForm.vue'
-import Scheduletest from '../views/test/Scheduletest.vue'
-import DiagramPage from '../views/DiagramPage.vue'
+import Scheduletest from '../views/Scheduleview.vue'
+// import DiagramPage from '../views/DiagramPage.vue'
 import MeetingPage from '../views/MeetingPage.vue'
 import TeamManagement from "@/views/TeamManagement.vue"
 import EmailVerification from "@/views/account/EmailVerificationPage.vue"
 import SignupDetails from "@/views/account/SignupDetailsPage.vue"
-import ErdDiagramPage from '../views/ErdDiagramPage.vue'
+// import ErdDiagramPage from '../views/ErdDiagramPage.vue'
 import TaskPage from '../views/TaskPage.vue'
 import ProfessorMainPage from '../views/professor/ProfessorMainPage.vue'
 import HelpPage from '../views/help/HelpPage.vue'
@@ -73,11 +73,11 @@ const routes = [
     name: 'DashBoard',
     component: DashBoard,
   },
-  {
-    path: '/Schedule',
-    name: 'Schedule',
-    component: Schedule,
-  },
+  // {
+  //   path: '/Schedule',
+  //   name: 'Schedule',
+  //   component: Schedule,
+  // },
   {
     path: '/SignUpForm',
     name: 'SignUpForm',
@@ -88,11 +88,11 @@ const routes = [
     name: 'Scheduletest',
     component: Scheduletest,
   },
-  {
-    path: '/DiagramPage',
-    name: 'DiagramPage',
-    component: DiagramPage,
-  },
+  // {
+  //   path: '/DiagramPage',
+  //   name: 'DiagramPage',
+  //   component: DiagramPage,
+  // },
   {
     path: '/MeetingPage',
     name: 'MeetingPage',
@@ -113,11 +113,11 @@ const routes = [
     name: 'SignupDetails',
     component: SignupDetails,
   },
-  {
-    path: '/ErdDiagramPage',
-    name: 'ErdDiagramPage',
-    component: ErdDiagramPage,
-  },
+  // {
+  //   path: '/ErdDiagramPage',
+  //   name: 'ErdDiagramPage',
+  //   component: ErdDiagramPage,
+  // },
   {
     path: '/TaskPage',
     name: 'TaskPage',

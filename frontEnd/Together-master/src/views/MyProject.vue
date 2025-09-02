@@ -110,12 +110,12 @@ import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import { debounce } from 'lodash'
 
-import PlanningDetails from '@/components/PlanningDetails.vue'
-import DesignDetails from '@/components/DesignDetails.vue'
-import DevelopmentDetails from '@/components/DevelopmentDetails.vue'
+import PlanningDetails from '@/components/myproject/PlanningDetails.vue'
+import DesignDetails from '@/components/myproject/DesignDetails.vue'
+import DevelopmentDetails from '@/components/myproject/DevelopmentDetails.vue'
 import TestingDetails from '@/components/TestingDetails.vue'
 import defaultLogo from '@/assets/togetherlogo.png'
-import FloatingHelpWidget from '@/components/FloatingHelpWidget.vue'
+import FloatingHelpWidget from '@/components/myproject/FloatingHelpWidget.vue'
 import HelpModal from '@/components/HelpModal.vue'
 
 const route = useRoute()

@@ -115,7 +115,7 @@ import axios from 'axios'
 import Editor from '@tinymce/tinymce-vue'
 import FeedbackInput from '@/components/feedback/FeedbackInput.vue'
 import FeedbackPopup from '@/components/feedback/FeedbackPopup.vue'
-import { useFeedback } from '@/composables/useFeedback'
+import { useFeedback } from '@/composables/useFeedback.js'
 import { useRouter, useRoute } from 'vue-router'
 
 const router = useRouter()

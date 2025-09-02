@@ -55,10 +55,10 @@
 
 <script setup>
 import { computed } from 'vue'
-import TriangleHead from '../classdiagram/shapes/TriangleHead.vue'
-import ArrowHead    from '../classdiagram/shapes/ArrowHead.vue'
-import DiamondHead  from '../classdiagram/shapes/DiamondHead.vue'
-import EmptyHead    from '../classdiagram/shapes/EmptyHead.vue'
+import TriangleHead from '@/components/diagramtool/shapes/TriangleHead.vue'
+import ArrowHead    from '@/components/diagramtool/shapes/ArrowHead.vue'
+import DiamondHead  from '@/components/diagramtool/shapes/DiamondHead.vue'
+import EmptyHead    from '@/components/diagramtool/shapes/EmptyHead.vue'
 
 const props = defineProps({
   from:      { type: Object, required: true }, // {x,y} stage 좌표

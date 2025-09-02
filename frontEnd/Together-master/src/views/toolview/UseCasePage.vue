@@ -87,11 +87,11 @@ import { useRoute } from 'vue-router'
 import axios from 'axios'
 import debounce from 'lodash/debounce'
 
-import ToolBox from '@/components/ToolBox.vue'
-import ActorNode from '@/components/usecase/ActorNode.vue'
-import UsecaseNode from '@/components/usecase/UsecaseNode.vue'
-import UsecaseLink from '@/components/usecase/UsecaseLink.vue'
-import UsecaseContextMenu from '@/components/usecase/UsecaseContextMenu.vue'
+import ToolBox from '@/components/diagramtool/ToolBox.vue'
+import ActorNode from '@/components/diagramtool/usecase/ActorNode.vue'
+import UsecaseNode from '@/components/diagramtool/usecase/UsecaseNode.vue'
+import UsecaseLink from '@/components/diagramtool/usecase/UsecaseLink.vue'
+import UsecaseContextMenu from '@/components/diagramtool/usecase/UsecaseContextMenu.vue'
 
 const stageWidth = window.innerWidth - 220
 const stageHeight = window.innerHeight - 40

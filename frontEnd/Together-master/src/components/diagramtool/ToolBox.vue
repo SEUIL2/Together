@@ -48,9 +48,9 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { useToolStore } from '@/stores/toolStore'
-import ClassCodeModal from '@/components/konva/ClassCodeModal.vue'
-import ErdCodeModal from '@/components/konva/ErdCodeModal.vue'
+import { useToolStore } from '@/stores/toolStore.js'
+import ClassCodeModal from '@/components/diagramtool/classdiagram/ClassCodeModal.vue'
+import ErdCodeModal from '@/components/diagramtool/erd/ErdCodeModal.vue'
 
 const router = useRouter()
 const route = useRoute()

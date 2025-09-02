@@ -121,10 +121,10 @@
 <script setup>
 import axios from 'axios'
 import { ref, watch, onMounted } from 'vue'
-import ErdEntityBox from '@/components/konva/ErdEntityBox.vue'
-import ErdRelationshipBent from '@/components/konva/ErdRelationshipBent.vue'
-import ToolBox from '@/components/ToolBox.vue'
-import ErdRelationContextMenu from '@/components/konva/ErdRelationContextMenu.vue'
+import ErdEntityBox from '@/components/diagramtool/erd/ErdEntityBox.vue'
+import ErdRelationshipBent from '@/components/diagramtool/erd/ErdRelationshipBent.vue'
+import ToolBox from '@/components/diagramtool/ToolBox.vue'
+import ErdRelationContextMenu from '@/components/diagramtool/erd/ErdRelationContextMenu.vue'
 import { debounce } from 'lodash'
 
 const scale = ref(1)

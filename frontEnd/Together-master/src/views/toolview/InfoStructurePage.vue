@@ -109,9 +109,9 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import axios from 'axios'
-import ToolBox from '@/components/ToolBox.vue'
-import IABlock from '@/components/ia/IABlock.vue'
-import IARelationship from '@/components/ia/IARelationship.vue'
+import ToolBox from '@/components/diagramtool/ToolBox.vue'
+import IABlock from '@/components/diagramtool/ia/IABlock.vue'
+import IARelationship from '@/components/diagramtool/ia/IARelationship.vue'
 
 // 프로젝트 ID를 props로 받음 (라우트에서 받을 수도 있음)
 const props = defineProps({ projectId: { type: [String, Number], required: true } })

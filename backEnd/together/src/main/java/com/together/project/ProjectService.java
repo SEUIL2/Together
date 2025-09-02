@@ -2,11 +2,10 @@ package com.together.project;
 
 import com.together.documentManger.GoogleDriveService;
 import com.together.notification.NotificationService;
-import com.together.project.Invitation.InvitationEntity;
-import com.together.project.Invitation.InvitationRepository;
-import com.together.project.Invitation.dto.InvitationResponseDto;
-import com.together.project.Invitation.dto.TeamMemberDto;
-import com.together.project.ProjectDto.InviteResponseDto;
+import com.together.Invitation.InvitationEntity;
+import com.together.Invitation.InvitationRepository;
+import com.together.Invitation.dto.InvitationResponseDto;
+import com.together.Invitation.dto.TeamMemberDto;
 import com.together.project.ProjectDto.ProjectMembersDto;
 import com.together.project.ProjectDto.ProjectResponseDto;
 import com.together.project.ProjectDto.ProjectSummaryWithMembersDto;
@@ -236,16 +235,21 @@ public class ProjectService {
         invitation.setStatus("PENDING");
         invitationRepository.save(invitation);
 
-        // ⭐ 알림 전송 코드 추가
-        String message = String.format("%s님이 사용자를 %s 프로젝트에 초대하였습니다.",
-                project.getStudents().get(0).getUserName(), project.getTitle());
-        notificationService.sendNotification(
-                user.getUserId(),
-                message,
-                "/projects");
-
         return true;
     }
+
+        // ⭐ 알림 전송 코드 추가
+//        String message = String.format("%s님이 사용자를 %s 프로젝트에 초대하였습니다.",
+//                project.getStudents().get(0).getUserName(), project.getTitle());
+//        notificationService.sendNotification(
+//                user.getUserId(),
+//                message,
+//                "/projects");
+//
+//        return true;
+//    }
+
+        // 정의현이 삭제 : 초대 알림은 InvitationEntity 로 관리하므로 별도의 일반 알림을 생성하지 않음
 
     // ✅ 나의 초대 목록
     public List<InvitationResponseDto> getUserInvitations(Long userId) {

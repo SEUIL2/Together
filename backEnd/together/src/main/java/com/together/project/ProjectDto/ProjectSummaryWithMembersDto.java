@@ -1,6 +1,6 @@
 package com.together.project.ProjectDto;
 
-import com.together.project.Invitation.dto.TeamMemberDto;
+import com.together.Invitation.dto.TeamMemberDto;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

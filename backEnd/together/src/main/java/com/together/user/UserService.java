@@ -1,9 +1,7 @@
 package com.together.user;
 
 import com.together.project.ProjectEntity;
-import com.together.project.worktask.WorkTaskEntity;
-import com.together.user.profile.dto.UserProfileResponseDto;
-import com.together.user.profile.dto.UserProfileUpdateRequestDto;
+import com.together.worktask.WorkTaskEntity;
 import com.together.user.dto.UserSignUpRequestDto;
 import com.together.user.professor.ProfessorEntity;
 import com.together.user.professor.ProfessorRepository;

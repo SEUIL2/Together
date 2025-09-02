@@ -64,6 +64,7 @@ const handleLogin = async () => {
   const encoded = btoa(`${userLoginId.value}:${password.value}`)
   const authHeader = `Basic ${encoded}`
   localStorage.setItem('authHeader', authHeader)
+  axios.defaults.headers.common['Authorization'] = authHeader
 
   try {
     const res = await axios.get('/auth/me', {

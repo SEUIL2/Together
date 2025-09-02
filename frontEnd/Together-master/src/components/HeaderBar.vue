@@ -146,8 +146,12 @@ const handleAuth = async () => {
 
 const checkLoginStatus = async () => {
   try {
+    const authHeader = localStorage.getItem('authHeader')
+    if (authHeader) {
+      axios.defaults.headers.common['Authorization'] = authHeader
+    }
     await axios.get('/auth/me', {
-      headers: { Authorization: localStorage.getItem('authHeader') },
+      headers: { Authorization: authHeader },
       withCredentials: true,
     })
     isLoggedIn.value = true

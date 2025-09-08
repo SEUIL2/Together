@@ -22,12 +22,12 @@
 </li>
 <li>
   <button :class="{ active: $route.path.includes('/TaskPage') || $route.path.includes('/professor/task') }" @click="goMyTask">
-    작업
+    진행
   </button>
 </li>
 <li>
   <button :class="{ active: $route.path.includes('/Scheduletest') || $route.path.includes('/professor/schedule') }" @click="goSchedule">
-    일정 관리
+    보고
   </button>
 </li>
 <li>

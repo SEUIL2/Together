@@ -151,7 +151,7 @@ async function fetchTeamMembers() {
     teamMembers.value = data.map(member => ({
       userId: member.userId,
       role: member.role,
-      studentNumber: member.studentNumber || '',
+      studentNumber: member.studentNumber || member.loginId || '',
       userEmail: member.userEmail,
       userName: member.userName,
       profileImageUrl: member.profileImageUrl || null,
@@ -196,7 +196,7 @@ function handleInvite(invited) {
   teamMembers.value.push({
     userId: invited.userId,
     role: invited.role,
-    studentNumber: invited.studentNumber || invited.loginId,
+    studentNumber: invited.studentNumber || '',
     userEmail: invited.userEmail,
     userName: invited.userName,
     profileImageUrl: null,

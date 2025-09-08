@@ -132,14 +132,27 @@ defineExpose({ fetchVotes })
 </script>
 
 <style scoped>
+/* 컨테이너가 부모 카드 안에서 레이아웃을 꽉 채우고 내부 스크롤이 가능하도록 수정 */
 .voting-list-container {
-  max-width: 580px;
-  margin: auto;
+  /* 기존 고정 폭/가운데 정렬 제거 */
+  /* max-width: 580px; */
+  /* margin: auto; */
+
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+
   padding: 1rem 1.3rem 1.2rem 1.3rem;
   font-family: 'Pretendard', sans-serif;
   position: relative;
+
+  /* 핵심: 카드(body) 안에서 남은 공간을 차지하고 내부 스크롤이 작동하도록 */
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
 }
 
+/* 헤더는 sticky로 상단 고정 (기존 유지) */
 .modal-header {
   display: flex;
   align-items: center;
@@ -172,9 +185,7 @@ defineExpose({ fetchVotes })
   font-size: 0.98rem;
   transition: background 0.17s;
 }
-.create-button:hover {
-  background: #3745ae;
-}
+.create-button:hover { background: #3745ae; }
 
 .close-btn {
   background: none;
@@ -187,16 +198,32 @@ defineExpose({ fetchVotes })
   border-radius: 7px;
   transition: background 0.14s;
 }
-.close-btn:hover {
-  background: #f0f0f6;
-  color: #e23333;
-}
+.close-btn:hover { background: #f0f0f6; color: #e23333; }
 
+/* ▼ 스크롤이 필요한 목록 영역: 남는 공간을 차지하고 내부 스크롤 */
 .vote-cards {
   display: flex;
   flex-direction: column;
   gap: 14px;
   width: 100%;
+
+  flex: 1 1 auto; /* 남은 공간 채우기 */
+  min-height: 0;  /* 매우 중요: 이게 있어야 overflow가 작동함 */
+  overflow: auto; /* 내부 스크롤 */
+  padding-right: 4px; /* 스크롤바 겹침 여유 */
+  /* 스크롤바 숨기기 */
+  scrollbar-width: none;        /* Firefox */
+  -ms-overflow-style: none;
+}
+.vote-cards::-webkit-scrollbar { /* Chrome, Safari */
+  display: none;
+}
+
+/* 긴 제목/내용이 가로로 넘치지 않도록 안전장치 */
+.voting-list-container * {
+  min-width: 0;
+  box-sizing: border-box;
+  word-break: break-word;
 }
 
 .vote-card {
@@ -208,7 +235,6 @@ defineExpose({ fetchVotes })
   transition: all 0.25s ease;
   box-shadow: 0 1px 3px rgba(80, 80, 80, 0.04);
 }
-
 .vote-card:hover {
   background-color: #f8faff;
   box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
@@ -225,6 +251,11 @@ defineExpose({ fetchVotes })
   font-weight: 700;
   font-size: 1.1rem;
   color: #222;
+
+  /* 긴 제목 한 줄 말줄임 (선택) */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .vote-dday {
@@ -235,10 +266,7 @@ defineExpose({ fetchVotes })
   color: #3b49df;
   background-color: #edf0ff;
 }
-.vote-dday.closed {
-  color: #aaa;
-  background-color: #f2f2f2;
-}
+.vote-dday.closed { color: #aaa; background-color: #f2f2f2; }
 
 .vote-meta {
   display: flex;
@@ -248,19 +276,13 @@ defineExpose({ fetchVotes })
   color: #555;
 }
 
-.meta-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.meta-icon {
-  font-size: 0.95rem;
-}
+.meta-item { display: flex; align-items: center; gap: 6px; }
+.meta-icon { font-size: 0.95rem; }
 
 .empty {
   text-align: center;
   padding: 2rem;
   color: #999;
+  margin-top: .5rem; /* 헤더 바로 아래 자연스럽게 띄움 */
 }
 </style>

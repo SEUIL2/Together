@@ -1,6 +1,7 @@
 package com.together.topicRecommendAI;
 
 import com.together.topicRecommendAI.dto.KeywordsRequestDto;
+import com.together.topicRecommendAI.dto.UserInputKeywordsRequestDto;
 import com.together.topicRecommendAI.service.AiKeywordGenerator;
 import com.together.topicRecommendAI.service.AiTopicGenerator;
 import com.together.systemConfig.UserDetailsImpl;
@@ -31,6 +32,15 @@ public class AiController {
     public ResponseEntity<List<String>> getTopics(@RequestBody KeywordsRequestDto request) {
         List<String> topics = topicGenerator.generateTopics(request.getKeywords());
         return ResponseEntity.ok(topics);
+    }
+
+    // 사용자 입력 기반 키워드 추천 요청 (새로 추가)
+    @PostMapping("/keywords/user-input")
+    public ResponseEntity<List<String>> getKeywordsFromUserInput(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @RequestBody UserInputKeywordsRequestDto request) {
+        List<String> keywords = keywordGenerator.generateKeywordsFromUserInput(userDetails.getUser(), request.getKeywords());
+        return ResponseEntity.ok(keywords);
     }
 
 }

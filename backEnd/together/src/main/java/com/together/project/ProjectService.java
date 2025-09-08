@@ -329,7 +329,8 @@ public class ProjectService {
                     "STUDENT",
                     student.getUserColor(),
                     student.getProfileImageUrl(),
-                    leaderId != null && leaderId.equals(student.getUserId())
+                    leaderId != null && leaderId.equals(student.getUserId()),
+                    student.getStudentNumber()
             ));
         }
         // 교수 추가 (★★★)
@@ -341,7 +342,8 @@ public class ProjectService {
                     "PROFESSOR",
                     null, // 교수는 userColor 없음
                     professor.getProfileImageUrl(),
-                    false // 교수는 팀장 아님
+                    false, // 교수는 팀장 아님
+                    null
             ));
         }
         return members;
@@ -362,7 +364,8 @@ public class ProjectService {
                     "STUDENT",
                     student.getUserColor(),
                     student.getProfileImageUrl(),
-                    leaderId != null && leaderId.equals(student.getUserId())
+                    leaderId != null && leaderId.equals(student.getUserId()),
+                    student.getStudentNumber()
             ));
         }
         return members;
@@ -381,7 +384,8 @@ public class ProjectService {
                     "PROFESSOR",
                     null,
                     professor.getProfileImageUrl(),
-                    false
+                    false,
+                    null
             ));
         }
         return members;
@@ -567,7 +571,8 @@ public class ProjectService {
                     "STUDENT",
                     student.getUserColor(),
                     student.getProfileImageUrl(),
-                    leaderId != null && leaderId.equals(student.getUserId())
+                    leaderId != null && leaderId.equals(student.getUserId()),
+                    student.getStudentNumber()
             ));
         }
 
@@ -580,7 +585,8 @@ public class ProjectService {
                     "PROFESSOR",
                     null, // 교수는 userColor 없음
                     professor.getProfileImageUrl(),
-                    false // ⭐️ 교수는 팀장 아님 (isLeader)
+                    false, // ⭐️ 교수는 팀장 아님 (isLeader)
+                    null
 
             ));
         }

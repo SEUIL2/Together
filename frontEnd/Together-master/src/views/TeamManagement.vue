@@ -3,7 +3,14 @@
     <main class="main-content">
       <div class="team-management-header">
         <h2>팀원 관리</h2>
-        <button class="add-member-btn" @click="openInviteModal">+ 초대하기</button>
+        <div class="header-actions">
+          <button
+              v-if="isLeader"
+              class="change-leader-btn"
+              @click="openChangeLeaderModal"
+          >리더 위임</button>
+          <button class="add-member-btn" @click="openInviteModal">+ 초대하기</button>
+        </div>
       </div>
 
       <table class="team-management-table">
@@ -84,6 +91,12 @@
           @close="showInviteModal = false"
           @invite="handleInvite"
       />
+      <ChangeLeaderModal
+          :isOpen="showChangeLeaderModal"
+          :students="leaderCandidates"
+          @close="showChangeLeaderModal = false"
+          @change="changeLeader"
+      />
       <MemoModal
           v-if="showMemoModal"
           :member="memoTarget"
@@ -101,6 +114,7 @@ import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import axios from 'axios'
 import { useRoute } from 'vue-router'
 import InviteModal from './InviteModal.vue'
+import ChangeLeaderModal from './ChangeLeaderModal.vue'
 import MemoModal from './MemoModal.vue'
 import defaultAvatar from '@/assets/defaultimage.png'
 
@@ -114,6 +128,7 @@ const currentUser = ref({})
 const availableColors = ['#FF8C00', '#F44336', '#2196F3', '#4CAF50', '#9C27B0']
 const teamMembers = ref([])
 const showInviteModal = ref(false)
+const showChangeLeaderModal = ref(false)
 const showMemoModal = ref(false)
 const memoTarget = ref(null)
 
@@ -126,6 +141,13 @@ const professorMembers = computed(() =>
     teamMembers.value.filter(m => m.role === 'PROFESSOR')
 )
 
+const isLeader = computed(() =>
+    teamMembers.value.some(m => m.userId === currentUser.value.userId && m.isLeader)
+)
+
+const leaderCandidates = computed(() =>
+    studentMembers.value.filter(m => !m.isLeader)
+)
 // 내 정보 불러오기
 async function fetchCurrentUser() {
   try {
@@ -192,6 +214,10 @@ function openInviteModal() {
   showInviteModal.value = true
 }
 
+function openChangeLeaderModal() {
+  showChangeLeaderModal.value = true
+}
+
 function handleInvite(invited) {
   teamMembers.value.push({
     userId: invited.userId,
@@ -239,6 +265,21 @@ function onMemoSaved({ content, noteId }) {
   memoTarget.value.noteId = noteId
 }
 
+async function changeLeader(newLeaderId) {
+  try {
+    await axios.put(
+        '/projects/change-leader',
+        { newLeaderId },
+        { params: { projectId }, withCredentials: true }
+    )
+    alert('팀장이 변경되었습니다.')
+    showChangeLeaderModal.value = false
+    await fetchTeamMembers()
+  } catch (e) {
+    console.error('리더 변경 실패', e)
+    alert(e.response?.data || '리더 변경에 실패했습니다.')
+  }
+}
 onMounted(async () => {
   await fetchCurrentUser()
   await fetchTeamMembers()
@@ -278,6 +319,26 @@ onBeforeUnmount(() => clearInterval(refreshTimer))
   font-size: 1.5rem;
   font-weight: 700;
   color: #1e1e1e;
+}
+.header-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.change-leader-btn {
+  background-color: #ff9800;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.change-leader-btn:hover {
+  background-color: #e68900;
 }
 
 .add-member-btn {

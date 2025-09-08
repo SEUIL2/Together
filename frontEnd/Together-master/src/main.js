@@ -6,7 +6,13 @@ import { createPinia } from 'pinia' // ✅ Pinia import
 
 // ✅ 인증 쿠키 포함 설정
 import axios from 'axios'
-axios.defaults.withCredentials    = true
+axios.defaults.withCredentials = true
+
+// 로그인 정보가 남아있다면 Authorization 헤더를 복원
+const savedAuth = localStorage.getItem('authHeader')
+if (savedAuth) {
+    axios.defaults.headers.common['Authorization'] = savedAuth
+}
 
 
 async function fetchCsrfToken() {

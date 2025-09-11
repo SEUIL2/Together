@@ -25,6 +25,8 @@ public class MeetingDto {
 
     private LocalDateTime updatedAt; // 수정 날짜
 
+    private MeetingCategory category;
+
     private Long userId; // 유저 ID만 저장
 
     private Long projectId;

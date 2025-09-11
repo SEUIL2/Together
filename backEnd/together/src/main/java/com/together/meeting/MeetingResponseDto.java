@@ -27,4 +27,5 @@ public class MeetingResponseDto {
 
     private String authorName;
 
+    private MeetingCategory category;
 }

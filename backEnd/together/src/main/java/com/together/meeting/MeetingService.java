@@ -35,6 +35,7 @@ public class MeetingService {
                 .meetingDate(meetingDto.getMeetingDate())
                 .createdAt(meetingDto.getCreatedAt())
                 .updatedAt(meetingDto.getUpdatedAt())
+                .category(meetingDto.getCategory())
                 .users(user)
                 .project(project)
                 .build();
@@ -76,6 +77,7 @@ public class MeetingService {
         meeting.setContent(meetingDto.getContent());
         meeting.setMeetingDate(meetingDto.getMeetingDate());
         meeting.setUpdatedAt(meetingDto.getUpdatedAt());
+        meeting.setCategory(meetingDto.getCategory());
 
         return meetingRepository.save(meeting);
     }
@@ -103,6 +105,7 @@ public class MeetingService {
                 .meetingDate(meeting.getMeetingDate())
                 .createdAt(meeting.getCreatedAt())
                 .updatedAt(meeting.getUpdatedAt())
+                .category(meeting.getCategory())
                 .authorName(meeting.getUsers().getUserName()) //여기서 userName 을 받아옴
                 .build();
     }

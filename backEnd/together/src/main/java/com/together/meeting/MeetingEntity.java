@@ -34,6 +34,10 @@ public class MeetingEntity {
 
     private LocalDateTime updatedAt; // 수정 날짜
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private MeetingCategory category;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     @JsonIgnore

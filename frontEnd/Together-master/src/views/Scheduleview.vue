@@ -45,7 +45,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, onActivated, onDeactivated, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import axios from 'axios'
 import 'dhtmlx-gantt/codebase/dhtmlxgantt.css'
@@ -66,6 +66,8 @@ const teamMembers = ref([])
 const searchTerm = ref('')
 const filterMode = ref('all')
 let allRows = []
+
+const ganttEventIds = [] // 이벤트 핸들러 ID 저장용 배열
 
 // 피드백 상태
 const showFeedbackInput = ref(false)
@@ -115,7 +117,8 @@ function flattenTask(task, parent = null) {
     duration,
     assignee: task.assignedUserName,
     color: member?.userColor || null,
-    parent
+    parent,
+    status: task.status // status 필드 추가
   }]
   if (task.childTasks) task.childTasks.forEach(c => row.push(...flattenTask(c, task.id)))
   return row
@@ -157,6 +160,7 @@ function setupGantt() {
   gantt.locale.labels.section_description = '작업 이름'
   gantt.locale.labels.section_time        = '기간'
   gantt.locale.labels.section_assignee    = '담당자'
+  gantt.locale.labels.section_status      = '상태' // 상태 섹션 라벨 추가
   gantt.locale.labels.button_save         = '저장'
   gantt.locale.labels.button_cancel       = '취소'
   gantt.locale.labels.button_delete       = '삭제'
@@ -185,6 +189,12 @@ function setupGantt() {
   gantt.config.lightbox.sections = [
     { name:'description', map_to:'text', type:'textarea', label:'작업 이름' },
     { name:'time',        map_to:'auto', type:'duration', label:'기간' },
+    // 상태 선택 드롭다운 추가
+    { name:'status',      map_to:'status', type:'select', options: [
+        { key: 'PENDING',     label: '작업 목록' },
+        { key: 'IN_PROGRESS', label: '진행 중' },
+        { key: 'COMPLETED',   label: '완료' }
+    ], label:'상태' },
     { name:'assignee',    map_to:'assignee', type:'select', options:teamMembers.value, label:'담당자' }
   ]
 }
@@ -197,20 +207,26 @@ function onRightClick(event) {
   showFeedbackInput.value = true
 }
 
-onMounted(async () => {
+async function loadAndInitializeGantt() {
+  // 1. 필수 데이터 로드
   await fetchProjectInfo()
   await fetchCurrentUser()
   await fetchTeamMembers()
+
+  // 2. Gantt 설정
   setupGantt()
   await nextTick()
-  gantt.init(ganttContainer.value)
-  await fetchTasksFromServer()
-  if (isReadOnly.value) {
-    ganttContainer.value?.addEventListener('contextmenu', onRightClick)
+
+  // 3. 이전 이벤트 핸들러 정리 (중복 방지)
+  ganttEventIds.forEach(id => gantt.detachEvent(id));
+  ganttEventIds.length = 0;
+  if (ganttContainer.value && isReadOnly.value) {
+    ganttContainer.value.removeEventListener('contextmenu', onRightClick);
   }
 
+  // 4. 새 이벤트 핸들러 등록
   if (!isReadOnly.value) {
-    gantt.attachEvent("onAfterTaskAdd", (tempId, task) => {
+    ganttEventIds.push(gantt.attachEvent("onAfterTaskAdd", (tempId, task) => {
       const startStr = gantt.date.date_to_str("%Y-%m-%d")(task.start_date)
       const endStr   = gantt.date.date_to_str("%Y-%m-%d")(gantt.calculateEndDate({ start_date: task.start_date, duration: task.duration }))
       const sel      = rawTeamMembers.value.find(u => u.userName === task.assignee)
@@ -219,9 +235,9 @@ onMounted(async () => {
       axios.post('/work-tasks', payload)
           .then(({ data }) => gantt.changeTaskId(tempId, data.id))
           .catch(err => { console.error('작업 생성 실패', err); gantt.deleteTask(tempId) })
-    })
+    }));
 
-    gantt.attachEvent("onAfterTaskDrag", (id, mode) => {
+    ganttEventIds.push(gantt.attachEvent("onAfterTaskDrag", (id, mode) => {
       if (mode !== 'move' && mode !== 'resize') return
       const task = gantt.getTask(id)
       const payload = {
@@ -229,9 +245,9 @@ onMounted(async () => {
         endDate: gantt.date.date_to_str("%Y-%m-%d")(gantt.calculateEndDate({ start_date: task.start_date, duration: task.duration }))
       }
       axios.patch(`/work-tasks/${id}/schedule`, payload).catch(err => console.error('일정 업데이트 실패', err))
-    })
+    }));
 
-    gantt.attachEvent('onAfterTaskUpdate', (id, task) => {
+    ganttEventIds.push(gantt.attachEvent('onAfterTaskUpdate', (id, task) => {
       const startStr = gantt.date.date_to_str('%Y-%m-%d')(task.start_date)
       const endStr   = gantt.date.date_to_str('%Y-%m-%d')(gantt.calculateEndDate({ start_date: task.start_date, duration: task.duration }))
       const sel      = rawTeamMembers.value.find(u => u.userName === task.assignee)
@@ -245,43 +261,194 @@ onMounted(async () => {
       }
       axios.patch(`/work-tasks/${id}`, dto)
           .catch(err => console.error('작업 업데이트 실패', err))
-          // .finally(() => fetchTasksFromServer())
-    })
+    }));
 
-    gantt.attachEvent("onBeforeTaskDelete", id => {
+    ganttEventIds.push(gantt.attachEvent("onBeforeTaskDelete", id => {
       axios.delete(`/work-tasks/${id}`).catch(err => { console.error('작업 삭제 실패', err); fetchTasksFromServer() })
       return true
-    })
+    }));
   }
-})
+
+  // 5. Gantt 초기화 및 데이터 렌더링
+  if (ganttContainer.value) {
+    gantt.init(ganttContainer.value)
+    await fetchTasksFromServer()
+    if (isReadOnly.value) {
+      ganttContainer.value.addEventListener('contextmenu', onRightClick)
+    }
+  }
+}
+
+function cleanupGantt() {
+  // 등록된 이벤트 핸들러만 정리합니다.
+  ganttEventIds.forEach(id => gantt.detachEvent(id));
+  ganttEventIds.length = 0;
+
+  // DOM에 직접 추가한 이벤트 리스너도 제거합니다.
+  if (ganttContainer.value) {
+    ganttContainer.value.removeEventListener('contextmenu', onRightClick);
+  }
+  // gantt.destructor()는 전역 gantt 객체를 파괴하므로 사용하지 않습니다.
+  // 대신 clearAll()을 사용하여 차트 내용만 지웁니다.
+  gantt.clearAll();
+}
+
+onMounted(loadAndInitializeGantt);
+
+onBeforeUnmount(cleanupGantt);
+onActivated(loadAndInitializeGantt);
+onDeactivated(cleanupGantt);
 </script>
 
 <style scoped>
-.task-board-page { padding:5px; background-color: #ffffff;  position: relative; }
-.search-bar { display:flex; align-items:center; margin:8px 0px 4px ;}
-.search-bar input { width:200px; padding:4px 8px; border:1px solid #ccc; border-radius:4px }
-.filter-toggle button { margin-left:5px; padding:4px 10px; border:1px solid #ccc; border-radius:4px; background:#fff; cursor:pointer }
-.filter-toggle button.active { background:#3f8efc; color:#fff; border-color:#3f8efc }
+.task-board-page {
+  padding: 24px;
+  background-color: #f7f8fc;
+  position: relative;
+}
+
+/* 검색창 및 필터 디자인 개선 */
+.search-bar {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+  padding: 8px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+.search-bar input {
+  width: 220px;
+  padding: 8px 12px;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  font-size: 14px;
+}
+.search-bar input:focus {
+  border-color: #80bdff;
+  outline: 0;
+  box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+}
+.filter-toggle {
+  margin-left: 12px;
+}
+.filter-toggle button {
+  margin-left: 5px;
+  padding: 8px 14px;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+.filter-toggle button.active {
+  background: #3f8efc;
+  color: #fff;
+  border-color: #3f8efc;
+}
+
+/* 간트 차트 컨테이너 디자인 */
 .gantt-container {
   width: 100%;
-  height: calc(100vh - 120px);
+  height: calc(100vh - 160px);
   margin: 0;
   padding: 0;
-  position: relative; /* ✅ 꼭 있어야 함 */
-  overflow: visible;   /* ✅ 숨겨진 마커 방지 */
+  position: relative;
+  overflow: visible;
   z-index: 0;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
 }
 
-.feedback-note {
-  position: absolute;
-  font-size: 24px;
-  z-index: 10000; /* 간트보다 위로 올라가게 */
-  color: red; /* 테스트용 */
-  pointer-events: auto;
+/* dhtmlx-gantt 내부 요소 디자인 오버라이드 */
+:deep(.gantt_grid_scale .gantt_scale_cell),
+:deep(.gantt_task_scale .gantt_scale_cell) {
+  background-color: #f8f9fa;
+  border-color: #e9ecef;
+  color: #495057;
+  font-weight: 600;
 }
 
+:deep(.gantt_row),
+:deep(.gantt_task_row) {
+  border-color: #f1f3f5 !important;
+}
 
-html, body { scrollbar-width:none; -ms-overflow-style:none }
-html::-webkit-scrollbar, body::-webkit-scrollbar { display:none }
+:deep(.gantt_grid_data .gantt_row.odd:not(.gantt_selected)),
+:deep(.gantt_task_bg .gantt_task_row.odd) {
+  background-color: #fdfdff;
+}
 
+:deep(.gantt_task_line) {
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  border: 1px solid rgba(0,0,0,0.1);
+}
+
+:deep(.gantt_task_line .gantt_task_progress) {
+  background: linear-gradient(to right, #28a745, #218838);
+  opacity: 0.8;
+  border-radius: 4px;
+}
+
+:deep(.gantt_task_line.gantt_project) {
+  height: 8px !important;
+  margin-top: 4px !important;
+  background: #6c757d;
+}
+
+/* 라이트박스(모달) 디자인 */
+:deep(.gantt_cal_light) {
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  background-color: #f8f9fa;
+}
+
+:deep(.gantt_cal_ltitle) {
+  border-bottom: 1px solid #e9ecef;
+  color: #212529;
+  font-weight: 600;
+}
+
+:deep(.gantt_cal_lsection) {
+  color: #495057;
+  font-weight: 500;
+}
+
+:deep(.gantt_cal_larea textarea),
+:deep(.gantt_cal_larea select) {
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  padding: 8px;
+  transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+}
+:deep(.gantt_cal_larea textarea:focus),
+:deep(.gantt_cal_larea select:focus) {
+  border-color: #80bdff;
+  outline: 0;
+  box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+}
+
+:deep(.gantt_btn_set button) {
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+}
+:deep(.gantt_btn_set .gantt_save_btn) {
+  background-color: #007bff;
+  color: white;
+}
+:deep(.gantt_btn_set .gantt_cancel_btn) {
+  background-color: #6c757d;
+  color: white;
+}
+:deep(.gantt_btn_set .gantt_delete_btn) {
+  background-color: #dc3545;
+  color: white;
+}
 </style>

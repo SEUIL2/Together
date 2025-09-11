@@ -316,7 +316,7 @@ const goHelp = () => router.push('/HelpPage')
 const goMyTask = createGoToFunction('/TaskPage', 'professor/task')
 const goSchedule = createGoToFunction('/Scheduletest', 'professor/schedule')
 const goFeedback = createGoToFunction('/Feedback', 'professor/feedback')
-const goReport = createGoToFunction('/Report', 'professor/report')
+const goReport = createGoToFunction('/ReportPage', 'professor/report')
 </script>
 
 <style scoped>

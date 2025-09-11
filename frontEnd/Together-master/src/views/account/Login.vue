@@ -86,7 +86,7 @@ const handleLogin = async () => {
     if (isProfessor) {
       router.push('/professor/mainpage')
     } else if (hasProject) {
-      router.push('/MyProject')
+      router.push('/Dashboard')
     } else {
       router.push('/MainPage2')
     }

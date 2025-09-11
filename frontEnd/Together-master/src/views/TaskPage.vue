@@ -1,20 +1,37 @@
 <template>
-  <div class="task-board-page" @contextmenu.prevent="handleRightClick" style="position: relative">
+  <div class="task-board-page" @contextmenu.prevent="handleRightClick" style="position: relative;">
     <!-- 검색 + 필터 -->
     <div class="search-bar">
-      <input v-model="searchTerm" @input="onSearch" type="text" placeholder="작업 검색..." />
-      <div class="filter-toggle">
-        <button :class="{ active: filterMode === 'all' }" @click="setFilter('all')">모든 작업</button>
-        <button :class="{ active: filterMode === 'mine' }" @click="setFilter('mine')">내 작업</button>
+      <div class="search-filters">
+        <input v-model="searchTerm" @input="onSearch" type="text" placeholder="작업 검색..." />
+        <div class="filter-toggle">
+          <button :class="{ active: filterMode === 'all' }" @click="setFilter('all')">모든 작업</button>
+          <button :class="{ active: filterMode === 'mine' }" @click="setFilter('mine')">내 작업</button>
+        </div>
+      </div>
+
+      <!-- 프로젝트 진행률 바 -->
+      <div class="progress-container">
+        <span class="progress-title">작업 진행률</span>
+        <div class="progress-bar-wrapper">
+          <div class="progress-bar">
+            <div class="progress-fill" :style="{ width: progress + '%' }"></div>
+          </div>
+          <span class="progress-percentage">{{ progress }}%</span>
+        </div>
       </div>
     </div>
-
-    <hr class="divider" />
 
     <div class="board">
       <!-- 작업 컬럼들 -->
       <div class="column" v-for="(tasks, status) in taskColumns" :key="status">
-        <h3><span>{{ columnTitles[status] }}</span></h3>
+        <div class="column-header">
+          <h3>
+            <span>{{ columnTitles[status] }}</span>
+            <span class="task-count">{{ tasks.length }}</span>
+          </h3>
+          <button v-if="status === 'PENDING' && !isReadOnly" @click="openNewTaskModal" class="add-task-btn" title="새 작업 추가">+</button>
+        </div>
         <draggable
           v-model="taskColumns[status]"
           itemKey="id"
@@ -24,9 +41,17 @@
           class="task-list"
         >
           <template #item="{ element: task }">
-            <div class="card" @dblclick="openLightbox(task.id)">
-              <div class="card-title">{{ task.title }}</div>
-              <div class="card-assignee">{{ task.assignedUserName }}</div>
+            <div class="card" @dblclick="openLightbox(task.id)" :style="{ borderLeftColor: getAssigneeDetails(task.assignedUserName)?.userColor || '#e0e0e0' }">
+              <div class="card-content">
+                <div class="card-title">{{ task.title }}</div>
+                <div v-if="task.endDate" class="card-due-date">
+                  📅 {{ new Date(task.endDate).toLocaleDateString() }}
+                </div>
+              </div>
+              <div class="card-footer">
+                <span class="card-assignee">{{ task.assignedUserName || '미지정' }}</span>
+                <img :src="getAssigneeDetails(task.assignedUserName)?.profileImageUrl || defaultAvatar" class="assignee-avatar" :alt="task.assignedUserName" />
+              </div>
             </div>
           </template>
         </draggable>
@@ -72,7 +97,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, onActivated, onDeactivated } from 'vue'
 import { useRoute } from 'vue-router'
 import axios from 'axios'
 import draggable from 'vuedraggable'
@@ -92,6 +117,7 @@ const currentUser = ref('')
 const workTasks = ref([])
 const rawTeamMembers = ref([])
 const teamMembers = ref([])
+const defaultAvatar = new URL('@/assets/defaultimage.png', import.meta.url).href
 const columnTitles = { PENDING: '작업 목록', IN_PROGRESS: '진행 중', COMPLETED: '완료' }
 const taskColumns = ref({ PENDING: [], IN_PROGRESS: [], COMPLETED: [] })
 
@@ -100,6 +126,15 @@ const showFeedbackInput = ref(false)
 const feedbackPosition = ref({ x: 0, y: 0 })
 const selectedFeedback = ref(null)
 const { markFeedbackAsRead } = useFeedback()
+
+const ganttEventIds = [] // 이벤트 핸들러 ID 저장용 배열
+
+const progress = computed(() => {
+  const total = workTasks.value.length;
+  if (total === 0) return 0;
+  const completed = workTasks.value.filter(t => t.status === 'COMPLETED').length;
+  return Math.round((completed / total) * 100);
+});
 
 function handleRightClick(e) {
   if (!isReadOnly.value) return
@@ -152,7 +187,9 @@ async function fetchTeamMembers() {
     teamMembers.value = data.map(u => ({
       key: u.userName,
       label: u.userName,
-      userId: u.userId
+      userId: u.userId,
+      userColor: u.userColor,
+      profileImageUrl: u.profileImageUrl
     }))
   } catch (e) {
     console.error('팀원 정보 조회 실패:', e)
@@ -169,6 +206,10 @@ async function fetchTasks() {
   } catch (e) {
     console.error('작업 목록 조회 실패:', e)
   }
+}
+
+function getAssigneeDetails(userName) {
+  return rawTeamMembers.value.find(member => member.userName === userName);
 }
 
 function splitByStatus(filteredTasks) {
@@ -235,12 +276,17 @@ function openLightbox(id) {
   gantt.showLightbox(id)
 }
 
-onMounted(async () => {
-  await fetchCurrentUser()
-  await fetchTeamMembers()
-  await fetchTasks()
-  await loadFeedbacks()
-  gantt.init(ganttHidden.value)
+function openNewTaskModal() {
+  if (isReadOnly.value) return;
+  refreshHiddenGantt();
+  gantt.createTask({ status: 'PENDING' }); // 새 작업 생성 시 기본 상태를 'PENDING'으로 설정
+}
+
+async function loadAndInitialize() {
+  // Gantt 초기화
+  if (ganttHidden.value) {
+    gantt.init(ganttHidden.value);
+  }
 
   gantt.config.readonly = isReadOnly.value
   gantt.locale.labels.section_description = '작업 이름'
@@ -256,8 +302,29 @@ onMounted(async () => {
     { name:'assignee', map_to:'assignee', type:'select', options: teamMembers.value, label:'담당자' }
   ]
 
+  // 이전 이벤트 핸들러 정리
+  ganttEventIds.forEach(id => gantt.detachEvent(id));
+  ganttEventIds.length = 0;
+
   if (!isReadOnly.value) {
-    gantt.attachEvent('onAfterTaskUpdate', async (id, task) => {
+    ganttEventIds.push(gantt.attachEvent("onAfterTaskAdd", async (tempId, task) => {
+      const startStr = gantt.date.date_to_str("%Y-%m-%d")(task.start_date)
+      const endStr = gantt.date.date_to_str("%Y-%m-%d")(gantt.calculateEndDate({ start_date: task.start_date, duration: task.duration }))
+      const sel = rawTeamMembers.value.find(u => u.userName === task.assignee)
+      const payload = { title: task.text, description: task.text, startDate: startStr, endDate: endStr, assignedUserId: sel?.userId ?? null, status: 'PENDING', parentTaskId: task.parent || null }
+      try {
+        const { data } = await axios.post('/work-tasks', payload)
+        gantt.changeTaskId(tempId, data.id)
+      } catch (err) {
+        console.error('작업 생성 실패', err);
+        gantt.deleteTask(tempId)
+      } finally {
+        await fetchTasks()
+        refreshHiddenGantt()
+      }
+    }));
+
+    ganttEventIds.push(gantt.attachEvent('onAfterTaskUpdate', async (id, task) => {
       const startStr = gantt.date.date_to_str('%Y-%m-%d')(task.start_date)
       const endStr = gantt.date.date_to_str('%Y-%m-%d')(gantt.calculateEndDate({ start_date: task.start_date, duration: task.duration }))
       const sel = rawTeamMembers.value.find(u => u.userName === task.assignee)
@@ -278,9 +345,9 @@ onMounted(async () => {
         await fetchTasks()
         refreshHiddenGantt()
       }
-    })
+    }));
 
-    gantt.attachEvent('onBeforeTaskDelete', async id => {
+    ganttEventIds.push(gantt.attachEvent('onBeforeTaskDelete', async id => {
       try {
         await axios.delete(`/work-tasks/${id}`)
       } catch (e) {
@@ -290,106 +357,270 @@ onMounted(async () => {
         refreshHiddenGantt()
       }
       return true
-    })
+    }));
   }
 
   refreshHiddenGantt()
-})
+}
+
+function cleanup() {
+  // Gantt 인스턴스를 파괴하는 대신, 등록된 이벤트만 정리합니다.
+  // destructor()는 다른 페이지에서 사용하는 gantt 객체까지 파괴하여 오류를 유발합니다.
+  ganttEventIds.forEach(id => gantt.detachEvent(id));
+  ganttEventIds.length = 0;
+  // 다른 페이지에서의 재초기화를 위해 차트 내용을 비웁니다.
+  gantt.clearAll();
+}
+
+onMounted(async () => {
+  await fetchCurrentUser();
+  await fetchTeamMembers();
+  await fetchTasks();
+  await loadFeedbacks();
+  loadAndInitialize();
+});
+
+onBeforeUnmount(cleanup);
+onActivated(async () => {
+  // <keep-alive>로 다시 활성화될 때 데이터와 Gantt를 다시 로드
+  await fetchCurrentUser();
+  await fetchTeamMembers();
+  await fetchTasks();
+  await loadFeedbacks();
+  loadAndInitialize();
+});
+onDeactivated(cleanup);
+
 </script>
 
 
 <style scoped>
 .task-board-page {
-  padding: 32px;
+  padding: 24px;
+  background-color: #f7f8fc;
+  height: 100vh;
+  box-sizing: border-box;
 }
+
 .search-bar {
   display: flex;
   align-items: center;
-  margin-bottom: 0px;
-  margin-left: 90px;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding: 8px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
 }
+
+.search-filters {
+  display: flex;
+  align-items: center;
+}
+
 .search-bar input {
-  width: 200px;
-  padding: 6px 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  width: 220px;
+  padding: 8px 12px;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  font-size: 14px;
 }
+.search-bar input:focus {
+  border-color: #80bdff;
+  outline: 0;
+  box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+}
+
+.filter-toggle {
+  margin-left: 12px;
+}
+
 .filter-toggle button {
-  margin-left: 3px;
-  padding: 4px 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  margin-left: 5px;
+  padding: 8px 14px;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
   background: #fff;
   cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
 }
+
 .filter-toggle button.active {
   background: #3f8efc;
   color: #fff;
   border-color: #3f8efc;
 }
+
+.progress-container {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 250px;
+}
+
+.progress-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #495057;
+  white-space: nowrap;
+}
+
+.progress-bar-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.progress-bar {
+  flex-grow: 1;
+  height: 10px;
+  background-color: #e9ecef;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background-color: #3f8efc;
+  border-radius: 5px;
+  transition: width 0.5s ease-in-out;
+}
+
+.divider {
+  display: none;
+}
+
 .board {
   display: flex;
   gap: 24px;
   max-width: 1200px;
   margin: 0 auto;
-  height: 100%;
-  min-height: 550px;
+  height: calc(100vh - 150px);
 }
+
 .column {
   display: flex;
   flex-direction: column;
   flex: 1;
-  background: #f0f0f0;
+  background: #f1f3f5;
   border-radius: 12px;
   padding: 16px;
   min-width: 200px;
+}
+.column-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 8px;
+  margin-bottom: 12px;
+}
+.column h3 {
+  text-align: center;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.column h3 span:first-child {
+  background: #4A90E2;
+  color: white;
+  border-radius: 999px;
+  padding: 4px 15px;
+  font-size: 1rem;
+}
+.task-count {
+  font-size: 0.9rem;
+  color: #666;
+  background-color: #e0e0e0;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+.add-task-btn {
+  background: #767676;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  font-size: 20px;
+  line-height: 28px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.add-task-btn:hover {
+  background: #5a5a5a;
+}
+.task-list {
+  flex-grow: 1;
+  min-height: 100px;
+  padding: 4px;
   overflow-y: auto;
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
-.column h3 {
-  text-align: center;
-  margin-bottom: 12px;
+.task-list::-webkit-scrollbar {
+  display: none;
 }
-.column h3 span {
-  background: #4A90E2;
-  color: white;
-  border-radius: 999px;
-  padding: 4px 30px;
-  font-size: 1rem;
-}
-.task-list {
-  flex: 1;
-  min-height: 100px;
-  padding: 8px;
-}
+
 .card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
   background: #fff;
   border-radius: 6px;
   padding: 12px;
   margin-bottom: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   cursor: grab;
+  border-left: 5px solid #e0e0e0;
+  transition: box-shadow 0.2s;
+  min-height: 80px;
+}
+.card:hover {
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+.card-content {
+  margin-bottom: 12px;
 }
 .card-title {
   font-size: 1rem;
   margin-bottom: 4px;
+  font-weight: 500;
+  color: #343a40;
+}
+.card-due-date {
+  font-size: 0.8rem;
+  color: #888;
+}
+.card-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
 }
 .card-assignee {
   font-size: 0.85rem;
-  color: #555;
+  color: #6c757d;
 }
-.divider {
-  border: none;
-  border-top: 1px solid #bbbbbb;
-  width: 87%;
-  margin: 12px auto;
+.assignee-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
 }
+
 .feedback-marker {
   font-size: 18px;
   cursor: pointer;
   position: absolute;
 }
+
 .popup-container {
   position: absolute;
   z-index: 9999; /* 마커보다 위로 */

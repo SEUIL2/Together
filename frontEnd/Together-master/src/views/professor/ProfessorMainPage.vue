@@ -104,8 +104,8 @@ onMounted(async () => {
           })
         ])
 
-        // ✅ createdAt 확인 및 연도 추출
-        const createdAt = p.createdAt
+        // ✅ [수정] 프로젝트 상세 정보에서 정확한 createdAt 값을 사용합니다.
+        const createdAt = projectRes.data.createdAt
         if (createdAt) {
           const parsedDate = new Date(createdAt)
           const year = parsedDate.getFullYear()

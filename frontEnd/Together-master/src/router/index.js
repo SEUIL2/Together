@@ -12,6 +12,7 @@ import DashBoard from '../views/DashBoard.vue'
 // import Schedule from '../views/Schedule.vue'
 import SignUpForm from '../views/test/SignupForm.vue'
 import Scheduletest from '../views/Scheduleview.vue'
+import ReportPage from '../views/ReportPage.vue'
 // import DiagramPage from '../views/DiagramPage.vue'
 import MeetingPage from '../views/MeetingPage.vue'
 import TeamManagement from "@/views/TeamManagement.vue"
@@ -26,6 +27,8 @@ import ClassDiagramPage from '../views/toolview/classDiagramPage.vue'
 import ERDiagramPage from '../views/toolview/ErdDiagramPage.vue'
 import UseCasePage from '../views/toolview/UseCasePage.vue'
 import InfoStructurePage from '../views/toolview/InfoStructurePage.vue'
+import Feedback from '../views/FeedbackPage.vue'
+
 const routes = [
   {
     path: '/',
@@ -122,6 +125,16 @@ const routes = [
     path: '/TaskPage',
     name: 'TaskPage',
     component: TaskPage,
+  },
+    {
+    path: '/ReportPage',
+    name: 'ReportPage',
+    component: ReportPage,
+  },
+      {
+    path: '/Feedback',
+    name: 'Feedback',
+    component: Feedback,
   },
   {
   path: '/professor/MainPage',

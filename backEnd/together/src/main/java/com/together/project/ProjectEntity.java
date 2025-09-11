@@ -9,6 +9,7 @@ import com.together.comment.CommentEntity;
 import com.together.documentManger.FileEntity;
 import com.together.generatedCodeAI.GeneratedCodeEntity;
 import com.together.meeting.MeetingEntity;
+import com.together.meeting.meetingSchedule.MeetingScheduleEntity;
 import com.together.notice.NoticeEntity;
 import com.together.privateNote.PrivateNoteEntity;
 import com.together.worktask.WorkTaskEntity;
@@ -132,4 +133,7 @@ public class ProjectEntity{
     private List<UnitTestRowEntity> unitTests = new ArrayList<>();
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<IntegrationTestRowEntity> integrationTests = new ArrayList<>();
+
+    @OneToMany(mappedBy = "project")
+    private List<MeetingScheduleEntity> meetingSchedules = new ArrayList<>();
 }

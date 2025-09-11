@@ -1,66 +1,113 @@
 <template>
   <div class="dashboard-container">
-     <div class="dashboard-top">
-  <!-- 프로젝트 카드 -->
-  <div class="card info-card">
-    <ProjectInfoCard
-      :project-id="projectId"
-      :project-name="projectName"
-      :project-description="projectDescription"
-      :team-members="teamMembers"
-      :project-image-url="projectImageUrl"
-      :progress="progress"
-    />
-  </div>
-
-  <!-- 공지사항 -->
-  <div class="card notice-card-wrapper">
-    <div class="card-header">
-      <h3 class="board-title" @click="showAllModal = true">공지사항</h3>
-      <button class="create-btn" @click.stop="showCreateModal = true">+</button>
-    </div>
-    <NoticeList :notices="notices" @selectNotice="openNoticeDetail" />
-  </div>
-
-  <!-- 팀 투표 -->
-  <div class="card vote-card-wrapper">
-    <div class="card-header" style="display:flex; align-items:center; justify-content:space-between;">
-      <h3 class="board-title" @click="showVotingListModal = true">팀 투표</h3>
-      <button class="create-btn" @click="showVoteCreateModal = true">+</button>
-    </div>
-<div class="card-body">
-    <VotingList 
-      @created="onVoteCreated" 
-      ref="votingListRef"
-      :project-id="projectId"
-      :user-type="userType"
-    />
-  </div>
-  </div>
-</div>
-
-    <!-- 중간 작업 카드 -->
-    <div class="dashboard-mid">
-      <div class="card">
-        <AllTasksCard :tasks="tasks" />
+    <!-- 작업 진행률 바 -->
+    <div class="card progress-card">
+      <div class="progress-header">
+        <span class="progress-title">프로젝트 진행률</span>
+        <span class="progress-percentage">{{ progress }}%</span>
       </div>
-      <div class="card">
-        <MyTasksCard :tasks="tasks" :currentUserName="currentUserName" />
+      <div class="progress-bar">
+        <div class="progress-fill" :style="{ width: progress + '%' }"></div>
       </div>
     </div>
 
-    <!-- 하단 카드 -->
-    <div class="dashboard-bottom">
-  
-
-
-
-      <!-- ✅ 피드백 내역 카드 -->
-      <div class="card">
-        <div class="card-header">
-          <h3 class="board-title" @click="showFeedbackModal = true">피드백 내역</h3>
+    <!-- 작업 현황 카드 -->
+    <div class="stats-row">
+      <!-- 전체 작업 -->
+      <div class="card stat-card">
+        <div class="stat-icon-wrapper" style="background-color: #eef6ff;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3f8efc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
         </div>
-        <FeedbackHistoryList/>
+        <div class="stat-info">
+          <div class="stat-title">전체 작업</div>
+          <div class="stat-count">{{ tasks.length }}개</div>
+        </div>
+      </div>
+      <!-- 진행중 -->
+      <div class="card stat-card">
+        <div class="stat-icon-wrapper" style="background-color: #fffbeb;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+        </div>
+        <div class="stat-info">
+          <div class="stat-title">진행중</div>
+          <div class="stat-count">{{ inProgressTasksCount }}개</div>
+        </div>
+      </div>
+      <!-- 완료 -->
+      <div class="card stat-card">
+        <div class="stat-icon-wrapper" style="background-color: #f0fdf4;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        </div>
+        <div class="stat-info">
+          <div class="stat-title">완료</div>
+          <div class="stat-count">{{ completedTasksCount }}개</div>
+        </div>
+      </div>
+      <!-- 팀원별 작업 분배율 -->
+      <div class="card stat-card distribution-card" @mouseenter="tooltip.show = true" @mouseleave="tooltip.show = false" @mousemove="updateTooltipPosition">
+        <div class="donut-chart-wrapper">
+          <div class="donut-chart" :style="donutChartStyle"></div>
+        </div>
+        <div class="stat-info">
+          <div class="stat-title">팀원별 작업 분배</div>
+          <div class="stat-count-small">현황 보기</div>
+        </div>
+      </div>
+      <!-- 다음 회의 일정 -->
+      <div class="card stat-card meeting-card" @click="openNewMeetingModal">
+        <div class="stat-icon-wrapper" style="background-color: #f3e8ff;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line><line x1="12" y1="14" x2="12" y2="18"></line><line x1="10" y1="16" x2="14" y2="16"></line></svg>
+        </div>
+        <div class="stat-info">
+          <div class="stat-title">새로운 회의 생성</div>
+          <div class="stat-count-small">일정 잡기</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 모든 작업 / 내 작업 -->
+    <div class="tasks-row">
+      <div class="card card-flex">
+        <div class="card-header">
+          <div class="card-title-wrapper">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+            <h3 class="board-title" @click="router.push('/TaskPage')">모든 작업</h3>
+          </div>
+        </div>
+        <div class="card-body"><AllTasksCard :tasks="tasks" /></div>
+      </div>
+      <div class="card card-flex">
+        <div class="card-header">
+          <div class="card-title-wrapper">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><polyline points="16 11 18 13 22 9"></polyline></svg>
+            <h3 class="board-title" @click="router.push('/TaskPage')">내 작업</h3>
+          </div>
+        </div>
+        <div class="card-body"><MyTasksCard :tasks="tasks" :currentUserName="currentUserName" /></div>
+      </div>
+    </div>
+
+    <!-- 공지사항 / 투표 -->
+    <div class="boards-row">
+      <div class="card card-flex">
+        <div class="card-header">
+          <div class="card-title-wrapper">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg>
+            <h3 class="board-title" @click="showAllModal = true">공지사항</h3>
+          </div>
+          <button class="create-btn" @click.stop="showCreateModal = true">+</button>
+        </div>
+        <div class="card-body"><NoticeList :notices="notices" @selectNotice="openNoticeDetail" /></div>
+      </div>
+      <div class="card card-flex">
+        <div class="card-header">
+          <div class="card-title-wrapper">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+            <h3 class="board-title" @click="showVotingListModal = true">팀 투표</h3>
+          </div>
+          <button class="create-btn" @click="showVoteCreateModal = true">+</button>
+        </div>
+        <div class="card-body"><VotingList @created="onVoteCreated" ref="votingListRef" :project-id="projectId" /></div>
       </div>
     </div>
 
@@ -115,20 +162,32 @@
       @delete="handleDeleteNotice"
     />
 
-    <!-- ✅ 피드백 전체 모달 -->
-    <FeedbackHistoryModal
-      v-if="showFeedbackModal"
-      :projectId="projectId"
-      @close="showFeedbackModal = false"
-    />
+    <!-- 도넛 차트 툴팁 -->
+    <div v-if="tooltip.show" class="chart-tooltip" :style="{ top: tooltip.y + 'px', left: tooltip.x + 'px' }">
+      <div class="tooltip-title">작업 분배 현황</div>
+      <ul>
+        <li v-for="member in workDistribution" :key="member.name">
+          <span class="tooltip-color" :style="{ backgroundColor: member.color }"></span>
+          <span class="tooltip-name">{{ member.name }}:</span>
+          <span class="tooltip-value">{{ member.count }}개 ({{ member.percentage.toFixed(1) }}%)</span>
+        </li>
+      </ul>
+    </div>
   </div>
+
+  <!-- 회의 생성 모달 -->
+  <NewMeetingModal
+    v-if="showNewMeetingModal"
+    @close="showNewMeetingModal = false"
+    @create="handleCreateMeeting"
+  />
 </template>
 
 
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, onMounted, onBeforeUnmount, computed, reactive } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import axios from 'axios'
 
 import NoticeList from '@/components/notice/NoticeList.vue'
@@ -136,38 +195,118 @@ import NoticeDetailModal from '@/components/notice/NoticeDetailModal.vue'
 import NoticeCreateModal from '@/components/notice/NoticeCreateModal.vue'
 import AllTasksCard from '@/components/dashboard/AllTasksCard.vue'
 import MyTasksCard from '@/components/dashboard/MyTasksCard.vue'
-import ProjectInfoCard from '@/components/dashboard/ProjectInfoCard.vue'
 import VotingList from '@/components/dashboard/VotingList.vue'
 import VoteCreateModal from '@/components/dashboard/VoteCreateModal.vue'
-import FeedbackHistoryModal from '@/components/feedback/FeedbackHistoryModal.vue'
-import FeedbackHistoryList from '@/components/feedback/FeedbackHistoryList.vue'
+import NewMeetingModal from '@/components/dashboard/NewMeetingModal.vue'
 
-const showFeedbackModal = ref(false)
 const showVoteCreateModal = ref(false)
 const showVotingListModal = ref(false)  // 팀 투표 전체 모달
+const showNewMeetingModal = ref(false)
 const votingListRef = ref(null)
 const route = useRoute()
+const router = useRouter()
 const projectId = ref(route.params.projectId || null)
 
 const currentUserName = ref('')
 const tasks = ref([])
-const notices = ref([])
-const projectName = ref('')
-const projectDescription = ref('')
-const projectImageUrl = ref('')
 const teamMembers = ref([])
-
+const notices = ref([])
 const showNoticeModal = ref(false)
 const selectedNotice = ref(null)
 const showCreateModal = ref(false)
 const showAllModal = ref(false)
 let refreshTimer
 
+const tooltip = reactive({
+  show: false,
+  x: 0,
+  y: 0,
+});
+
 const progress = computed(() => {
   const total = tasks.value.length
   const completed = tasks.value.filter(t => t.status === 'COMPLETED').length
   return total ? Math.round((completed / total) * 100) : 0
 })
+
+const inProgressTasksCount = computed(() => {
+  return tasks.value.filter(t => t.status === 'IN_PROGRESS').length
+})
+
+const completedTasksCount = computed(() => {
+  return tasks.value.filter(t => t.status === 'COMPLETED').length
+})
+
+const COLORS = ['#4A90E2', '#50E3C2', '#F5A623', '#F8E71C', '#BD10E0', '#9013FE', '#417505', '#D0021B'];
+
+const workDistribution = computed(() => {
+  if (!tasks.value.length) return [];
+
+  const distributionMap = new Map();
+
+  // 팀원 목록을 기반으로 초기화
+  teamMembers.value.forEach((member, index) => {
+    distributionMap.set(member.userName, { 
+      name: member.userName, 
+      count: 0,
+      color: member.userColor || COLORS[index % COLORS.length]
+    });
+  });
+
+  // 작업 할당 계산
+  tasks.value.forEach(task => {
+    const assignee = task.assignedUserName || '미지정';
+    if (!distributionMap.has(assignee)) {
+      distributionMap.set(assignee, { 
+        name: assignee, 
+        count: 0,
+        color: '#B8B8B8' // 미지정 색상
+      });
+    }
+    distributionMap.get(assignee).count++;
+  });
+
+  return Array.from(distributionMap.values())
+    .filter(item => item.count > 0)
+    .map(item => ({ ...item, percentage: tasks.value.length > 0 ? (item.count / tasks.value.length) * 100 : 0 }))
+    .sort((a, b) => b.count - a.count);
+});
+
+function openNewMeetingModal() {
+  showNewMeetingModal.value = true;
+}
+
+function handleCreateMeeting(meetingData) {
+  // 백엔드 연동 전 임시 처리
+  console.log('새 회의 생성:', meetingData);
+  alert(`새로운 회의 "${meetingData.title}" 일정을 생성합니다. (백엔드 연동 필요)`);
+  showNewMeetingModal.value = false;
+}
+
+const donutChartStyle = computed(() => {
+  if (!workDistribution.value.length) {
+    return { background: '#e9ecef' };
+  }
+
+  let gradientString = 'conic-gradient(';
+  let currentPercentage = 0;
+
+  workDistribution.value.forEach(member => {
+    if (member.percentage > 0) {
+      gradientString += `${member.color} ${currentPercentage}% ${currentPercentage + member.percentage}%, `;
+      currentPercentage += member.percentage;
+    }
+  });
+
+  gradientString = gradientString.slice(0, -2); // 마지막 ', ' 제거
+  gradientString += ')';
+  return { background: gradientString };
+});
+
+function updateTooltipPosition(event) {
+  tooltip.x = event.clientX + 15;
+  tooltip.y = event.clientY + 15;
+}
 
 
 async function fetchTasks() {
@@ -176,6 +315,20 @@ async function fetchTasks() {
     withCredentials: true
   })
   tasks.value = taskRes.data
+}
+
+async function fetchTeamMembers() {
+  if (!projectId.value) return;
+  try {
+    const { data } = await axios.get('/projects/members/students', {
+      params: { projectId: projectId.value },
+      headers: { Authorization: localStorage.getItem('authHeader') },
+      withCredentials: true
+    });
+    teamMembers.value = data.filter(m => m.role === 'STUDENT').map(m => ({...m, userName: m.userName.trim()}));
+  } catch (e) {
+    console.error('팀원 정보 불러오기 실패:', e);
+  }
 }
 
 // 공지사항 목록 불러오기
@@ -195,36 +348,6 @@ async function fetchNotices() {
   } catch (e) {
     console.error('공지사항 불러오기 실패:', e)
 }
-}
-
-async function fetchProjectInfo() {
-  try {
-    const projectRes = await axios.get('/projects/my', {
-      headers: { Authorization: localStorage.getItem('authHeader') },
-      withCredentials: true
-    })
-    projectId.value = projectRes.data.projectId
-    projectName.value = projectRes.data.title
-    projectImageUrl.value = projectRes.data.imageUrl || ''
-
-    const planningRes = await axios.get('/planning/all', {
-      params: { projectId: projectId.value },
-      headers: { Authorization: localStorage.getItem('authHeader') },
-      withCredentials: true
-    })
-    projectDescription.value = planningRes.data.description?.text || ''
-
-    const memberRes = await axios.get('/projects/members/students', {
-      params: { projectId: projectId.value },
-      headers: { Authorization: localStorage.getItem('authHeader') },
-      withCredentials: true
-    })
-    teamMembers.value = memberRes.data
-      .filter(m => m.role === 'STUDENT')
-      .map(m => ({ name: m.userName, id: m.userId }))
-  } catch (e) {
-    console.error('프로젝트 정보 불러오기 실패:', e)
-  }
 }
 
 // 공지 생성
@@ -267,7 +390,7 @@ onMounted(async () => {
     const { data: me } = await axios.get('/auth/me', { withCredentials: true })
     currentUserName.value = me.userName
     projectId.value = me.projectId
-    await fetchProjectInfo()
+    await fetchTeamMembers()
     await fetchTasks()
     await fetchNotices()
     refreshTimer = setInterval(async () => {
@@ -300,81 +423,169 @@ function onVoteCreated() {
   display: flex;
   flex-direction: column;
   gap: 24px;
-  background-color: #f5f6f8;
+  background-color: #f7f8fc;
 }
 .card {
   background: #fff;
-  border-radius: 8px;
-  padding: 16px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.04);
-  width: 25%;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
 }
-.dashboard-top {
+
+.progress-card {
+  padding: 20px;
+}
+.progress-header {
   display: flex;
-  grid-template-columns: repeat(3, 1fr); /* 같은 너비 3등분 */
-  gap: 16px;
-  height: 400px;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 12px;
 }
-/* 카드가 자체 높이 안에서만 보여주도록 */
-.vote-card-wrapper{
-  display:flex;
-  flex-direction:column;
-  min-width:0;
-  overflow:hidden;        /* 카드 밖으로 새는 것 차단 */
+.progress-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
 }
-.vote-card-wrapper .card-header{
-  flex:0 0 auto;
+.progress-percentage {
+  font-size: 20px;
+  font-weight: 700;
+  color: #3f8efc;
 }
-.vote-card-wrapper .card-body{
-  flex:1 1 auto;          /* 남은 공간 모두 차지 */
-  min-height:0;           /* 내부 스크롤 작동 핵심 */
-  overflow:hidden;        /* 내부 컴포넌트가 스크롤 담당 */
+.progress-bar {
+  width: 100%;
+  height: 12px;
+  background-color: #e9ecef;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background-color: #3f8efc;
+  border-radius: 6px;
+  transition: width 0.5s ease-in-out;
 }
 
-/* ProjectInfoCard만 살짝 띄워주기 */
-.info-card {
-  transform: translateY(-8px); /* 위로 살짝 띄움 */
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1); /* 그림자로 분리된 느낌 */
-  border-radius: 8px;
-  margin-right: 60px;
-  background-color: #bacaff;
+.stats-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1.5fr 1.5fr;
+  gap: 24px;
 }
-.notice-card-wrapper {
-height: 100%;
-width: 80%;
+.card-title {
+  font-size: 14px;
+  color: #6c757d;
+  margin: -4px 0 8px 0;
+  text-align: center;
 }
-.dashboard-mid {
+.stat-card {
   display: flex;
+  align-items: center;
   gap: 16px;
+  padding: 20px;
+  height: 100px;
 }
-.dashboard-bottom {
-  display: flex;           /* ① flex 컨테이너로 만들기 */
-  flex-direction: row;     /* ② 주 축을 가로로 설정 (기본값이기도 합니다) */
-  gap: 16px;               /* 카드 사이 간격 */
-  /* flex-wrap: nowrap;    필요시 줄바꿈 금지 */
+.stat-icon-wrapper {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.stat-title {
+  font-size: 14px;
+  color: #6c757d;
+  margin-bottom: 4px;
+}
+.stat-count {
+  font-size: 24px;
+  font-weight: 700;
+  color: #343a40;
+}
+.stat-count-small {
+  font-size: 16px;
+  font-weight: 600;
+  color: #3f8efc;
+}
+.meeting-card {
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.meeting-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0,0,0,0.08);
 }
 
-.dashboard-bottom .card {
-  flex: 1;                 /* ③ 모든 카드를 동일 너비로 분할 */
-  height: 400px; /* 고정 높이 추가 */
-  overflow-y: auto;
-  scrollbar-width: none;      /* Firefox용 스크롤바 감춤 */
-}
-.dashboard-bottom .card::-webkit-scrollbar {
-  display: none;
+.distribution-card {
+  cursor: help; /* 툴팁이 있음을 암시하는 커서 */
 }
 
-.card.wide {
-  flex: 2;
+.distribution-content {
 }
-.card:not(.wide) {
-  flex: 1;
+.donut-chart-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.donut-chart {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  transition: transform 0.3s ease;
+}
+.donut-chart:hover {
+  transform: scale(1.05);
+}
+.distribution-legend {
 }
 
-/* 공지사항 카드 헤더 */
-.notice-card-wrapper {
-  padding: 12px;
+.chart-tooltip {
+  position: fixed;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 13px;
+  z-index: 10000;
+  pointer-events: none;
+  transition: opacity 0.2s;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
+.tooltip-title {
+  font-weight: 600;
+  margin-bottom: 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.2);
+  padding-bottom: 6px;
+}
+.chart-tooltip ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.chart-tooltip li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+.tooltip-color {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.tasks-row, .boards-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.card-flex {
+  display: flex;
+  flex-direction: column;
+}
+
 .card-header {
   display: flex;
   justify-content: space-between;
@@ -382,9 +593,15 @@ width: 80%;
   margin-bottom: 8px;
   margin-top: -10px;
 }
+.card-title-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #333;
+}
 .board-title {
   font-size: 20px;
-  cursor: pointer;
+  cursor: pointer; 
 }
 .create-btn {
   background: none;
@@ -394,6 +611,12 @@ width: 80%;
   line-height: 24px;
   text-align: center;
   cursor: pointer;
+}
+
+.card-body {
+  flex-grow: 1;
+  overflow-y: auto; /* 내용이 많을 경우 스크롤 */
+  min-height: 0;
 }
 
 /* 전체보기 모달 */

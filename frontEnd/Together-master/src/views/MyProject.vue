@@ -1,95 +1,8 @@
 <template>
   <div class="project-container">
-    <aside class="sidebar">
-      <section class="card project-info-card">
-        <input
-          type="file"
-          ref="fileInput"
-          accept="image/*"
-          style="display: none"
-          @change="handleImageChange"
-        />
-        <div class="logo-wrapper" @click="!isReadOnly && triggerImageUpload()">
-           <!-- 프로젝트 이미지가 있을 때만 프로젝트 이미지를 렌더링, 없으면 기본 로고 -->
-  <img
-    v-if="projectImageUrl"
-    :src="projectImageUrl"
-    :key="projectImageUrl"  
-    alt="프로젝트 로고"
-    class="project-logo"
-    referrerpolicy="no-referrer"
-  />
-  <img
-    v-else
-    :src="defaultLogo"
-    alt="기본 로고"
-    class="project-logo"
-    referrerpolicy="no-referrer"
-  />
-        </div>
-
-        <!-- 이름 입력 박스: 가로 중앙 고정, 세로 중앙 정렬 -->
-        <div class="name-container">
-          <input
-            v-model="projectName"
-            ref="nameRef"
-            class="project-name"
-            placeholder="프로젝트 이름"
-            :readonly="isReadOnly"
-            @input="autoSizeName"
-          />
-        </div>
-
-        <textarea
-          v-model="projectDescription"
-          ref="descRef"
-          class="project-description"
-          placeholder="프로젝트 설명을 입력하세요"
-          :readonly="isReadOnly"
-          @input="autoResizeDescription"
-        ></textarea>
-
-        <div class="team-list">
-          <span class="member" v-for="member in teamMembers" :key="member.id">
-            {{ member.name }}
-          </span>
-        </div>
-
-        <div class="progress-container">
-          <div class="progress-label">작업 진행도 <strong>{{ progress }}%</strong></div>
-          <div class="progress-bar">
-            <div class="progress-fill" :style="{ width: progress + '%' }"></div>
-          </div>
-        </div>
-      </section>
-
-      <section class="card steps-card">
-        <div
-          class="step-btn"
-          v-for="(step, idx) in steps"
-          :key="idx"
-          :class="{ active: selectedStep === step.name }"
-          @click="selectStep(step.name)"
-        >
-          <div class="step-count">{{ step.current }}/{{ step.total }}</div>
-          <div class="step-name">{{ step.name }}</div>
-        </div>
-      </section>
-      <!-- steps-card 아래에 추가 -->
-<section class="card export-card">
-  <button class="export-btn" @click="downloadPdf" :disabled="!projectId">
-    📄 PDF 문서 추출
-  </button>
-        <button
-          v-if="!isReadOnly"
-          class="leave-btn"
-          @click="leaveProject"
-      >
-        프로젝트 탈퇴
-      </button>
-</section>
-
-    </aside>
+    <div v-if="saveStatus === 'saving'" class="save-toast saving">저장 중...</div>
+    <div v-else-if="saveStatus === 'saved'" class="save-toast saved">💾 저장 완료</div>
+    <div v-else-if="saveStatus === 'error'" class="save-toast error">저장 실패!</div>
 
     <main class="detail-panel">
       <component
@@ -97,6 +10,7 @@
         v-if="selectedStep && projectId"
         :project-id="projectId"
         :readonly="isReadOnly"
+        :substep="route.query.substep"
         @updateStepProgress="updatePlanningProgress"
       />
       <FloatingHelpWidget @open-help="showHelp = true" />
@@ -133,51 +47,7 @@ const showHelp = ref(false)
 function triggerImageUpload() {
   fileInput.value.click()
 }
-
-// 👇 여기서부터 추가!
-async function downloadPdf() {
-  if (!projectId.value) return;
-  try {
-    const response = await axios.get(
-      `/export/pdf`,
-      {
-        params: { projectId: projectId.value },
-        headers: { Authorization: localStorage.getItem('authHeader') },
-        withCredentials: true,
-        responseType: 'blob',
-      }
-    );
-    const url = window.URL.createObjectURL(new Blob([response.data]));
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `project_${projectId.value}.pdf`);
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(url);
-  } catch (err) {
-    alert('PDF 추출에 실패했습니다.');
-    console.error(err);
-  }
-}
-
-async function leaveProject() {
-  if (!projectId.value) return;
-  if (!confirm('정말로 프로젝트를 탈퇴하시겠습니까?')) return;
-  try {
-    await axios.delete('/projects/leave', {
-      params: { projectId: projectId.value },
-      headers: { Authorization: localStorage.getItem('authHeader') },
-      withCredentials: true,
-    });
-    alert('프로젝트에서 성공적으로 나갔습니다.');
-    router.push('/MainPage2');
-  } catch (err) {
-    alert('프로젝트 탈퇴에 실패했습니다.');
-    console.error(err);
-  }
-}
-// 👆 여기까지 추가!
+const saveStatus = ref('idle'); // 'idle', 'saving', 'saved', 'error'
 
 async function handleImageChange(event) {
   const file = event.target.files[0]
@@ -238,6 +108,7 @@ function updatePlanningProgress(count) {
 
 const autoSaveProjectInfo = debounce(async () => {
   if (!projectId.value || isReadOnly.value) return
+  saveStatus.value = 'saving';
 
   try {
     await axios.put(
@@ -249,20 +120,32 @@ const autoSaveProjectInfo = debounce(async () => {
     const formData = new FormData()
     formData.append('type', 'description')
     formData.append('text', projectDescription.value)
+    formData.append('projectId', projectId.value) // projectId 추가
 
     await axios.put(
       '/planning/update',
       formData,
       { headers: { Authorization: localStorage.getItem('authHeader') }, withCredentials: true }
     )
+    saveStatus.value = 'saved';
+    setTimeout(() => saveStatus.value = 'idle', 2000);
   } catch (err) {
     console.error('❌ 자동 저장 실패:', err)
+    saveStatus.value = 'error';
+    setTimeout(() => saveStatus.value = 'idle', 3000);
   }
 }, 800)
 
 if (!isReadOnly.value) {
   watch([projectName, projectDescription], autoSaveProjectInfo, { flush: 'post' })
 }
+
+watch(() => route.query.step, (newStep) => {
+  if (newStep && steps.value.some(s => s.name === newStep)) {
+    selectedStep.value = newStep;
+  }
+}, { immediate: true });
+
 
 onMounted(async () => {
   try {
@@ -370,17 +253,8 @@ steps.value.find(s => s.name === '개발').current = developCount
 
 <style scoped>
 .project-container {
-  display: flex;
-  gap: 10px;
   padding: 24px;
   background-color: #fafcff;
-}
-
-.sidebar {
-  width: 320px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
 }
 
 .card {
@@ -526,44 +400,27 @@ steps.value.find(s => s.name === '개발').current = developCount
 }
 
 .detail-panel {
-  flex: 1;
   background: #fff;
   border-radius: 16px;
   padding: 24px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   min-height: 600px;
 }
-.export-card {
-  padding: 1rem;
-  text-align: center;
-}
 
-.export-btn {
-  width: 100%;
-  padding: 0.6rem;
-  background-color: #72b9ff;
-  color: white;
-  font-weight: bold;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.export-btn:hover {
-  background-color: #148aff;
-}
-
-.leave-btn {
-  width: 100%;
-  margin-top: 10px;
-  padding: 8px 0;
-  background: #f44336;
+.save-toast {
+  position: fixed;
+  top: 80px; /* 헤더 아래 */
+  right: 24px;
+  z-index: 2000;
+  background: #333;
   color: #fff;
-  border: none;
   border-radius: 8px;
-  cursor: pointer;
+  font-size: 14px;
+  padding: 10px 16px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  transition: opacity .3s, transform .3s;
+  pointer-events: none;
 }
-.leave-btn:hover {
-  background: #d32f2f;
-}
+.save-toast.saved { background: #28a745; }
+.save-toast.error { background: #dc3545; }
 </style>

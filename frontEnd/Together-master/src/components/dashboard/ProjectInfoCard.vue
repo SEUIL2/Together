@@ -1,5 +1,9 @@
 <template>
   <div class="pi-card">
+    <div v-if="saveStatus === 'saving'" class="save-toast saving">저장 중...</div>
+    <div v-else-if="saveStatus === 'saved'" class="save-toast saved">💾 저장 완료</div>
+    <div v-else-if="saveStatus === 'error'" class="save-toast error">저장 실패!</div>
+
     <!-- 숨김 파일 입력 -->
     <input
       type="file"
@@ -9,9 +13,8 @@
       @change="handleImageChange"
     />
 
-    <!-- 헤더: 로고 + 이름 -->
-    <div class="pi-header">
-      <button class="logo-wrapper" :disabled="isReadOnly" @click="triggerImageUpload">
+    <!-- 로고 -->
+    <button class="logo-wrapper" :disabled="isReadOnly" @click="triggerImageUpload">
         <img
           v-if="projectImageUrl"
           :src="projectImageUrl"
@@ -27,19 +30,17 @@
           class="project-logo"
           referrerpolicy="no-referrer"
         />
-      </button>
+    </button>
 
-      <div class="name-container">
+    <!-- 이름 -->
+    <div class="name-container">
         <input
           v-model="projectName"
           ref="nameRef"
           class="project-name"
           placeholder="프로젝트 이름"
           :readonly="isReadOnly"
-          @input="autoSizeName"
         />
-        <span class="pi-badge">진행 {{ progress }}%</span>
-      </div>
     </div>
 
     <!-- 설명 -->
@@ -49,25 +50,15 @@
       class="project-description"
       placeholder="프로젝트 설명을 입력하세요"
       :readonly="isReadOnly"
-      @input="autoResizeDescription"
     ></textarea>
 
     <!-- 팀원 -->
-<!-- 팀원 -->
-<div class="team-list">
-  <span class="member" v-for="member in teamMembers" :key="member.id || member.name">
-    {{ member.name }}
-  </span>
-</div>
-
-    <!-- 진행도 -->
-    <div class="progress-container">
-      <div class="progress-top">
-        <div class="progress-label">작업 진행도</div>
-        <div class="progress-state" :data-state="healthState">{{ healthText }}</div>
-      </div>
-      <div class="progress-bar">
-        <div class="progress-fill" :style="{ width: progress + '%' }"></div>
+    <div class="team-section">
+      <h4 class="team-title">팀원</h4>
+      <div class="team-list">
+        <span class="member" v-for="member in teamMembers" :key="member.id || member.name">
+          {{ member.name }}
+        </span>
       </div>
     </div>
   </div>
@@ -79,13 +70,14 @@ import axios from 'axios'
 import { debounce } from 'lodash'
 import defaultLogo from '@/assets/togetherlogo.png'
 
+const emit = defineEmits(['project-updated'])
+
 const props = defineProps({
   projectId: { type: [String, Number], default: null },
   projectName: { type: String, default: '' },
   projectDescription: { type: String, default: '' },
   teamMembers: { type: Array, default: () => [] }, // [{id, name}]
   projectImageUrl: { type: String, default: '' },
-  progress: { type: Number, default: 0 },
   isReadOnly: { type: Boolean, default: false }
 })
 
@@ -126,22 +118,10 @@ async function handleImageChange(event) {
   }
 }
 
-function autoSizeName() {
-  const el = nameRef.value
-  if (!el) return
-  el.style.width = 'auto'
-  el.style.width = `${el.scrollWidth}px`
-}
-
-function autoResizeDescription() {
-  const el = descRef.value
-  if (!el) return
-  el.style.height = 'auto'
-  el.style.height = `${el.scrollHeight}px`
-}
-
+const saveStatus = ref('idle'); // 'idle', 'saving', 'saved', 'error'
 const autoSaveProjectInfo = debounce(async () => {
   if (!props.projectId || props.isReadOnly) return
+  saveStatus.value = 'saving';
   try {
     await axios.put(
       `/projects/${props.projectId}/update-title`,
@@ -154,12 +134,21 @@ const autoSaveProjectInfo = debounce(async () => {
     const formData = new FormData()
     formData.append('type', 'description')
     formData.append('text', projectDescription.value)
+    formData.append('projectId', props.projectId)
     await axios.put('/planning/update', formData, {
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true
     })
+    emit('project-updated', {
+      title: projectName.value,
+      description: projectDescription.value
+    })
+    saveStatus.value = 'saved';
+    setTimeout(() => saveStatus.value = 'idle', 2000);
   } catch (err) {
     console.error('❌ 자동 저장 실패:', err)
+    saveStatus.value = 'error';
+    setTimeout(() => saveStatus.value = 'idle', 3000);
   }
 }, 800)
 
@@ -175,16 +164,6 @@ const initials = (name = '') =>
     .join('')
     .slice(0, 2)
     .toUpperCase()
-
-const healthState = computed(() => {
-  if (props.progress >= 80) return 'good'
-  if (props.progress >= 50) return 'warn'
-  return 'risk'
-})
-const healthText = computed(() => {
-  const s = healthState.value
-  return s === 'good' ? '양호' : s === 'warn' ? '보통' : '위험'
-})
 </script>
 <style scoped>
 :root{
@@ -199,61 +178,69 @@ const healthText = computed(() => {
 
 /* 카드 */
 .pi-card{
-  display:flex; flex-direction:column; gap:14px;
-  padding:16px 16px 18px;
+  position: relative; /* 저장 알림 위치 기준점 */
+  display:flex; flex-direction:column; align-items:center; gap:16px;
+  padding:24px;
   background: var(--bg);
   border:1px solid var(--line);
   border-radius:14px;
   box-shadow: var(--shadow);
-  transform: translateY(-4px);
 }
 
-/* 헤더: 로고 + 이름 */
-.pi-header{ display:flex; align-items:center; gap:14px; }
+/* 로고 */
 .logo-wrapper{
-  width:84px; height:84px; border-radius:16px;
+  width:100px; height:100px; border-radius:50%;
   display:flex; align-items:center; justify-content:center;
   background:#f8fafc;
   border:1px solid var(--line);
   cursor:pointer;
   transition: transform .15s ease, box-shadow .15s ease;
+  padding: 0; /* 버튼 기본 패딩 제거 */
 }
 .logo-wrapper:hover:not(:disabled){
   transform: translateY(-2px);
   box-shadow: 0 6px 18px rgba(2,6,23,.08);
 }
 .project-logo{
-  width:64px; height:64px; border-radius:12px; object-fit:cover;
+  width:100%; height:100%; border-radius:50%; object-fit:cover;
   box-shadow: inset 0 0 0 1px rgba(15,23,42,.06);
 }
 
-/* 이름/배지 */
-.name-container{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; min-height:28px; }
+/* 이름 */
+.name-container{ text-align:center; }
 .project-name{
-  font-size:20px; font-weight:800; color:var(--text);
+  font-size:24px; font-weight:800; color:var(--text);
   border:none; outline:none; background:transparent;
-  width:auto; min-width:140px; max-width:100%;
+  width:100%;
   border-bottom:2px solid transparent;
+  text-align: center;
+  padding-bottom: 4px;
 }
 .project-name:focus{ border-bottom-color: rgba(37,99,235,.35); }
-.pi-badge{
-  font-size:12px; font-weight:700; color:#0b1224;
-  padding:4px 10px; border-radius:999px;
-  background:#eef2ff;
-  border:1px solid rgba(15,23,42,.06);
-}
 
 /* 설명 */
 .project-description{
-  width:100%; min-height:78px;
+  width:100%; min-height:80px;
   border:1px solid var(--line); border-radius:12px;
   padding:12px 14px; resize:none;
-  background:#fff; color:var(--text);
+  background:#f8fafc; color:var(--text);
+  text-align: center;
+  font-size: 14px;
 }
 .project-description::placeholder{ color:#9aa4b2 }
 
-/* 팀원 뱃지 (풀네임) */
-.team-list{ display:flex; flex-wrap:wrap; gap:8px; }
+/* 팀원 */
+.team-section {
+  width: 100%;
+  text-align: center;
+}
+.team-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+  margin: 0 0 10px 0;
+}
+.team-list{ display:flex; flex-wrap:wrap; gap:8px; justify-content: center; }
 .member{
   background:#eef6ff;
   color:#2563eb;
@@ -264,25 +251,20 @@ const healthText = computed(() => {
   border:1px solid rgba(37,99,235,.15);
 }
 
-/* 진행도 */
-.progress-container{ width:100% }
-.progress-top{ display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
-.progress-label{ font-size:13px; color:var(--muted) }
-.progress-state{
-  font-size:12px; padding:2px 8px; border-radius:999px;
-  border:1px solid var(--line); color:#0f172a; background:#f8fafc;
+.save-toast {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 10;
+  background: #333;
+  color: #fff;
+  border-radius: 8px;
+  font-size: 13px;
+  padding: 8px 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  transition: opacity .3s, transform .3s;
+  pointer-events: none;
 }
-.progress-state[data-state="good"]{ border-color: rgba(34,197,94,.3); background:#ecfdf5; color:#065f46; }
-.progress-state[data-state="warn"]{ border-color: rgba(245,158,11,.35); background:#fffbeb; color:#92400e; }
-.progress-state[data-state="risk"]{ border-color: rgba(239,68,68,.35); background:#fef2f2; color:#991b1b; }
-
-.progress-bar{
-  width:100%; height:10px; border-radius:999px; overflow:hidden;
-  background:#f1f5f9; border:1px solid var(--line);
-}
-.progress-fill{
-  height:100%;
-  background: var(--brand);
-  transition: width .3s ease;
-}
+.save-toast.saved { background: #2563eb; }
+.save-toast.error { background: #dc3545; }
 </style>

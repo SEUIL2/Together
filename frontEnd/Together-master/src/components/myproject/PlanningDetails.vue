@@ -2,7 +2,7 @@
   <section class="planning-details">
     <!-- 상단 버튼 네비게이션 -->
     <div class="nav-buttons">
-      <button
+      <button 
         v-for="(item, idx) in planningItems"
         :key="idx"
         :class="['nav-btn', { active: selectedIndex === idx, completed: item.completed }]"
@@ -109,7 +109,7 @@
   </section>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import axios from 'axios'
 import Editor from '@tinymce/tinymce-vue'
@@ -264,6 +264,18 @@ function selectTab(idx) {
     selectedIndex.value = idx
   }
 }
+
+import { watch } from 'vue'
+
+watch(() => route.query.substep, (newSubstep) => {
+  if (newSubstep) {
+    const index = planningItems.findIndex(item => item.type === newSubstep);
+    if (index !== -1) {
+      // selectTab 함수를 호출하여 페이지 이동 로직까지 처리
+      selectTab(index);
+    }
+  }
+}, { immediate: true });
 
 
 function markCompleted() {

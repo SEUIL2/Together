@@ -73,6 +73,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import Editor from '@tinymce/tinymce-vue'
 import axios from 'axios'
+import { useRoute } from 'vue-router'
 
 const fileInputRef = ref(null)
 const props = defineProps({ projectId: Number, readonly: Boolean })
@@ -86,6 +87,7 @@ const devItems = reactive([
   { name: '폴더 구조 및 파일 규칙', type: 'folder',      content: '', files: [], completed: false }
 ])
 
+const route = useRoute()
 const selectedIndex = ref(0)
 const activeItem = computed(() => devItems[selectedIndex.value])
 
@@ -146,6 +148,18 @@ const editorConfig = {
 function selectTab(idx) {
   selectedIndex.value = idx
 }
+
+import { watch } from 'vue'
+
+watch(() => route.query.substep, (newSubstep) => {
+  if (newSubstep) {
+    const index = devItems.findIndex(item => item.type === newSubstep);
+    if (index !== -1) {
+      selectTab(index);
+    }
+  }
+}, { immediate: true });
+
 
 function markCompleted() {
   activeItem.value.completed =

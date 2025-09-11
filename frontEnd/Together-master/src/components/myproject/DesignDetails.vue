@@ -97,7 +97,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import axios from 'axios'
 
@@ -193,6 +193,16 @@ function selectTab(idx) {
     selectedIndex.value = idx
   }
 }
+
+watch([() => route.query.substep, () => props.projectId], ([newSubstep, newProjectId]) => {
+  if (newSubstep && newProjectId) {
+    const index = designItems.findIndex(item => item.type === newSubstep);
+    if (index !== -1) {
+      // selectTab 함수를 호출하여 페이지 이동 로직까지 처리
+      selectTab(index);
+    }
+  }
+}, { immediate: true });
 
 
 function markCompleted() {

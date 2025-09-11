@@ -1,16 +1,39 @@
 <!-- App.vue -->
 <template>
-  <div id="app">
-    <!-- Signup, CreateProject 페이지가 아닐 때만 헤더 표시 -->
-    <HeaderBar v-if="!['/Signup', '/CreateProject'].includes($route.path)" />
-    <div class="content">
+  <div id="app" :class="{ 'has-sidebar': showLayout, 'sidebar-collapsed': isSidebarCollapsed }">
+    <!-- 특정 페이지가 아닐 때만 사이드바와 헤더 표시 -->
+    <SideBar
+      v-if="showLayout"
+      :is-collapsed="isSidebarCollapsed"
+      @toggle="toggleSidebar"
+    />
+    <HeaderBar v-if="showLayout" />
+
+    <main class="content">
       <router-view />
-    </div>
+    </main>
   </div>
 </template>
 
 <script setup>
-import HeaderBar from '@/components/HeaderBar.vue'
+import { ref, computed } from 'vue';
+import { useRoute } from 'vue-router';
+import HeaderBar from '@/components/HeaderBar.vue';
+import SideBar from '@/components/SideBar.vue';
+
+
+const route = useRoute();
+const isSidebarCollapsed = ref(false);
+
+const toggleSidebar = () => {
+  isSidebarCollapsed.value = !isSidebarCollapsed.value;
+};
+
+// 레이아웃(헤더, 사이드바)을 표시할지 여부를 결정합니다.
+const showLayout = computed(() => {
+  // 로그인, 회원가입, 프로젝트 생성, 랜딩 페이지에서는 숨깁니다.
+  return !['/', '/login', '/Login', '/Signup', '/CreateProject'].includes(route.path);
+});
 </script>
 
 <style>
@@ -29,24 +52,37 @@ body,
   background-color: #fff;
 }
 
-/* #app를 Flex 컨테이너로 세로 배치 */
 #app {
-  display: flex;
-  flex-direction: column;
+  transition: padding-left 0.3s ease-in-out;
 }
 
-/* 헤더바를 고정 (HeaderBar.vue 내에 동일한 클래스가 적용되어 있거나, 여기서 덮어쓰기 가능) */
+/* 헤더는 항상 상단에 고정 */
 .header-bar {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
-  z-index: 1000;
+  z-index: 1001; /* 사이드바보다 위에 오도록 */
 }
 
-/* 콘텐츠 영역은 헤더 높이만큼 여백을 주어 겹치지 않도록 */
-.content {
-  flex: 1;
-  padding-top: 60px; /* 헤더 높이에 맞게 조정 */
+/* 사이드바가 있을 때, 사이드바와 콘텐츠 영역에 상단 여백을 주어 헤더와 겹치지 않게 함 */
+.has-sidebar .sidebar {
+  padding-top: 60px; /* 헤더 높이 */
 }
+.has-sidebar .content {
+  padding-top: 60px; /* 헤더 높이 */
+  padding-left: 16%; /* 사이드바 너비 (SideBar.vue의 .sidebar width와 동일하게) */
+}
+
+/* 사이드바가 접혔을 때의 콘텐츠 영역 */
+.has-sidebar.sidebar-collapsed .content {
+  padding-left: 70px; /* 접힌 사이드바 너비 (SideBar.vue와 일치) */
+}
+
+/* 사이드바가 없을 때의 콘텐츠 영역 */
+.content {
+  padding-top: 60px;
+  transition: padding-left 0.3s ease-in-out;
+}
+
 </style>

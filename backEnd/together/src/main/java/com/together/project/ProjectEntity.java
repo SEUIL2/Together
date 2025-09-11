@@ -12,6 +12,7 @@ import com.together.meeting.MeetingEntity;
 import com.together.meeting.meetingSchedule.MeetingScheduleEntity;
 import com.together.notice.NoticeEntity;
 import com.together.privateNote.PrivateNoteEntity;
+import com.together.ProjectDetail.develop.DevOrderItemEntity;
 import com.together.worktask.WorkTaskEntity;
 import com.together.user.UserEntity;
 import com.together.user.professor.ProfessorEntity;
@@ -136,4 +137,8 @@ public class ProjectEntity{
 
     @OneToMany(mappedBy = "project")
     private List<MeetingScheduleEntity> meetingSchedules = new ArrayList<>();
+
+    //기능 개발 순서
+    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<DevOrderItemEntity> devOrderItems = new ArrayList<>();
 }

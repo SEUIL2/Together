@@ -28,6 +28,9 @@ import ERDiagramPage from '../views/toolview/ErdDiagramPage.vue'
 import UseCasePage from '../views/toolview/UseCasePage.vue'
 import InfoStructurePage from '../views/toolview/InfoStructurePage.vue'
 import Feedback from '../views/FeedbackPage.vue'
+//admin Page
+import AdminDashboard from '../views/AdminDashboard.vue'
+
 
 const routes = [
   {
@@ -284,6 +287,12 @@ const routes = [
   }),
   meta: { requiresAuth: true }
 },
+  {
+    path: '/admin',
+    name: 'AdminDashboard',
+    component: AdminDashboard,
+    meta: { requiresAuth: true }
+  },
 ]
 
 const router = createRouter({

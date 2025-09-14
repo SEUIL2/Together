@@ -2,6 +2,7 @@ package com.together.user;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.together.generatedCodeAI.GeneratedCodeEntity;
+import com.together.report.ReportEntity;
 import com.together.worktask.WorkTaskEntity;
 import com.together.topicRecommendAI.UserKeywordHistoryEntity;
 import com.together.comment.CommentEntity;
@@ -131,6 +132,12 @@ public class UserEntity {
 
     @OneToMany(mappedBy = "author")
     private List<GeneratedCodeEntity> generatedCodes = new ArrayList<>();
+
+    /**
+     * 이 사용자가 작성한 보고서 목록
+     */
+    @OneToMany(mappedBy = "author", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ReportEntity> reports = new ArrayList<>();
 
 
 }

@@ -13,6 +13,7 @@ import com.together.meeting.meetingSchedule.MeetingScheduleEntity;
 import com.together.notice.NoticeEntity;
 import com.together.privateNote.PrivateNoteEntity;
 import com.together.ProjectDetail.develop.DevOrderItemEntity;
+import com.together.report.ReportEntity;
 import com.together.worktask.WorkTaskEntity;
 import com.together.user.UserEntity;
 import com.together.user.professor.ProfessorEntity;
@@ -141,4 +142,10 @@ public class ProjectEntity{
     //기능 개발 순서
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<DevOrderItemEntity> devOrderItems = new ArrayList<>();
+
+    /**
+     * 이 프로젝트에 속한 보고서 목록
+     */
+    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ReportEntity> reports = new ArrayList<>();
 }

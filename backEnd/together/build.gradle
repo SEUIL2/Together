@@ -57,6 +57,10 @@ dependencies {
 	implementation 'org.apache.httpcomponents:httpclient:4.5.14'
 	implementation 'org.json:json:20230227'
 	implementation 'org.apache.httpcomponents:httpmime:4.5.14'
+	// PDF 생성을 위한 iText7 라이브러리
+	implementation 'com.itextpdf:itext7-core:7.2.5'
+	implementation 'com.itextpdf:html2pdf:4.0.5'
+	implementation 'com.itextpdf:font-asian:7.2.5'
 }
 
 tasks.named('test') {

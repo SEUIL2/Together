@@ -132,7 +132,7 @@ const designItems = [
 
 const developItems = [
     { name: '개발 환경 설정', type: 'environment' },
-    { name: '버전 관리 전략', type: 'versioning' },
+    { name: '기능별 개발 순서', type: 'devOrder' },
     { name: '커밋 메시지 규칙', type: 'commitRule' },
     { name: '폴더 구조 및 파일 규칙', type: 'folder' }
 ];

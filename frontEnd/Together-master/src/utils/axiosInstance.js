@@ -2,9 +2,7 @@
 import axios from 'axios'
 
 const instance = axios.create({
-    baseURL: 'http://localhost:8081', // 필요에 따라 수정
-    // baseURL: 'http://25.12.59.4:3000', // 필요에 따라 수정
-    withCredentials: true,
+    baseURL: 'http://localhost:8081',
     headers: {
         'Content-Type': 'application/json',
     },

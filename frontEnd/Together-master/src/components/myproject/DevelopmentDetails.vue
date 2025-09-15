@@ -8,56 +8,61 @@
         :class="['nav-btn', { active: selectedIndex === idx, completed: item.completed }]"
         @click="selectTab(idx)"
       >
-        <span class="circle" :class="{ active: item.completed }"></span>
         {{ item.name }}
       </button>
     </div>
 
-    <!-- 에디터/읽기전용 -->
-    <div class="editor-container">
-      <Editor
-        v-if="!readonly"
-        v-model="activeItem.content"
-        :init="editorConfig"
-        :api-key="editorConfig.apiKey"
-        :tinymce-script-src="`https://cdn.tiny.cloud/1/${editorConfig.apiKey}/tinymce/6/tinymce.min.js`"
-        @update:modelValue="onContentChange"
-      />
-      <div v-else class="readonly-content" v-html="activeItem.content"></div>
-    </div>
+    <template v-if="activeItem.type === 'devOrder'">
+      <DevOrderTable :project-id="projectId" />
+    </template>
 
-    <!-- 파일 및 이미지 업로드 -->
-    <div class="upload-section">
-      <div v-if="!readonly" class="upload-zone"
-           @click="fileInputRef.click()"
-           @dragover.prevent
-           @drop.prevent="handleDrop">
-        <input type="file" multiple ref="fileInputRef" @change="onFileSelect" hidden />
-        <div class="upload-message">
-          파일 또는 이미지를 드래그 혹은 클릭하여 업로드
-        </div>
+    <template v-else>
+      <!-- 에디터/읽기전용 -->
+      <div class="editor-container">
+        <Editor
+          v-if="!readonly"
+          v-model="activeItem.content"
+          :init="editorConfig"
+          :api-key="editorConfig.apiKey"
+          :tinymce-script-src="`https://cdn.tiny.cloud/1/${editorConfig.apiKey}/tinymce/6/tinymce.min.js`"
+          @update:modelValue="onContentChange"
+        />
+        <div v-else class="readonly-content" v-html="activeItem.content"></div>
       </div>
 
-      <div class="file-grid">
-        <div v-for="(file, i) in activeItem.files" :key="i" class="file-card">
-          <button v-if="!readonly" class="file-delete-btn" @click.stop="removeFile(i)">×</button>
-          <template v-if="isImage(file.url)">
-            <img :src="toDrivePreview(file.url)" class="file-thumb" @click="openImageModal(file.url)" />
-          </template>
-          <template v-else>
-            <div class="file-icon">📄</div>
-          </template>
-          <div class="file-info">
-            <a
-              :href="file.url"
-              download
-              :title="extractFileName(file.url)"
-            >{{ extractFileName(file.url) }}</a>
-            <span class="file-date">{{ formatDate(file.uploadedAt) }}</span>
+      <!-- 파일 및 이미지 업로드 -->
+      <div class="upload-section">
+        <div v-if="!readonly" class="upload-zone"
+            @click="fileInputRef.click()"
+            @dragover.prevent
+            @drop.prevent="handleDrop">
+          <input type="file" multiple ref="fileInputRef" @change="onFileSelect" hidden />
+          <div class="upload-message">
+            파일 또는 이미지를 드래그 혹은 클릭하여 업로드
+          </div>
+        </div>
+
+        <div class="file-grid">
+          <div v-for="(file, i) in activeItem.files" :key="i" class="file-card">
+            <button v-if="!readonly" class="file-delete-btn" @click.stop="removeFile(i)">×</button>
+            <template v-if="isImage(file.url)">
+              <img :src="toDrivePreview(file.url)" class="file-thumb" @click="openImageModal(file.url)" />
+            </template>
+            <template v-else>
+              <div class="file-icon">📄</div>
+            </template>
+            <div class="file-info">
+              <a
+                :href="file.url"
+                download
+                :title="extractFileName(file.url)"
+              >{{ extractFileName(file.url) }}</a>
+              <span class="file-date">{{ formatDate(file.uploadedAt) }}</span>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </template>
 
     <!-- 이미지 미리보기 모달 -->
     <div class="modal-overlay" v-if="showModal" @click="closeModal">
@@ -72,19 +77,20 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import Editor from '@tinymce/tinymce-vue'
+import DevOrderTable from './DevOrderTable.vue'
 import axios from 'axios'
 import { useRoute } from 'vue-router'
 
 const fileInputRef = ref(null)
-const props = defineProps({ projectId: Number, readonly: Boolean })
+const props = defineProps({ projectId: Number, readonly: Boolean, substep: String })
 const emit = defineEmits(['updateStepProgress'])
 
 // 타입 이름을 백엔드 엔티티 필드명에 맞춤
 const devItems = reactive([
-  { name: '개발 환경 설정',      type: 'environment',  content: '', files: [], completed: false },
-  { name: '버전 관리 전략',      type: 'versioning',   content: '', files: [], completed: false },
-  { name: '커밋 메시지 규칙',    type: 'commitRule',   content: '', files: [], completed: false },
-  { name: '폴더 구조 및 파일 규칙', type: 'folder',      content: '', files: [], completed: false }
+  { name: '개발 환경 설정', type: 'environment', content: '', files: [], completed: false },
+  { name: '기능별 개발 순서', type: 'devOrder', content: '', files: [], completed: false, rows: [] },
+  { name: '커밋 메시지 규칙', type: 'commitRule', content: '', files: [], completed: false },
+  { name: '폴더 구조 및 파일 규칙', type: 'folder', content: '', files: [], completed: false }
 ])
 
 const route = useRoute()
@@ -259,6 +265,7 @@ onMounted(async () => {
     })
 
     devItems.forEach(item => {
+      if (item.type === 'devOrder') return;
       // 백엔드에서 json 필드는 없으므로 text나 json 모두 담기
       let html = res.data[item.type]?.json || res.data[item.type]?.text || ''
       item.content = convertDownloadToView(html)
@@ -267,6 +274,9 @@ onMounted(async () => {
         Boolean(item.content.trim()) || item.files.length > 0
     })
     emit('updateStepProgress', devItems.filter(i => i.completed).length)
+
+    // '기능별 개발 순서' 탭 데이터 로드
+    // await fetchDevOrderItems(); // DevOrderTable 컴포넌트에서 자체적으로 로드
   } catch (err) {
     console.error('데이터 로딩 오류', err)
   }
@@ -330,4 +340,64 @@ const formatDate = date => new Date(date).toLocaleString()
 }
 .file-date { font-size: 10px; color: #999; }
 .readonly-content { padding: 12px; border: 1px solid #eee; border-radius: 8px; background: #f9f9f9; min-height: 200px; }
+</style>
+<style scoped>
+.dev-order-container {
+  margin-top: 16px;
+}
+.dev-order-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.dev-order-table th, .dev-order-table td {
+  border: 1px solid #e0e0e0;
+  padding: 8px 12px;
+  text-align: left;
+  vertical-align: middle;
+}
+.dev-order-table th {
+  background-color: #f7f9fc;
+  font-weight: 600;
+}
+.dev-order-table input[type="text"],
+.dev-order-table input[type="number"],
+.dev-order-table select {
+  width: 100%;
+  border: 1px solid transparent;
+  padding: 6px;
+  border-radius: 4px;
+  background-color: transparent;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+.dev-order-table input:focus, .dev-order-table select:focus {
+  outline: none;
+  border-color: #4a90e2;
+  background-color: #fff;
+}
+.dev-order-table input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+}
+.text-center {
+  text-align: center;
+}
+.delete-row-btn {
+  background: none;
+  border: none;
+  color: #e53935;
+  cursor: pointer;
+  font-size: 18px;
+  font-weight: bold;
+}
+.add-row-btn {
+  margin-top: 12px;
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: 1px solid #4a90e2;
+  background-color: #eef6ff;
+  color: #4a90e2;
+  cursor: pointer;
+  font-weight: 600;
+}
 </style>

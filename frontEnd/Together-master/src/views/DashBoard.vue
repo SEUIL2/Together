@@ -54,14 +54,15 @@
         </div>
       </div>
       <!-- 다음 회의 일정 -->
-      <div class="card stat-card meeting-card" @click="openNewMeetingModal">
-        <div class="stat-icon-wrapper" style="background-color: #f3e8ff;">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line><line x1="12" y1="14" x2="12" y2="18"></line><line x1="10" y1="16" x2="14" y2="16"></line></svg>
-        </div>
-        <div class="stat-info">
-          <div class="stat-title">새로운 회의 생성</div>
-          <div class="stat-count-small">일정 잡기</div>
-        </div>
+      <div class="card stat-card meeting-card" @click="handleMeetingCardClick">
+          <div class="stat-icon-wrapper" :style="{ backgroundColor: nextMeeting ? '#e0f2fe' : '#f3e8ff' }">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" :stroke="nextMeeting ? '#0ea5e9' : '#8b5cf6'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+          </div>
+          <div class="stat-info">
+            <div class="stat-title">새로운 회의 생성</div>
+            <div v-if="nextMeeting" class="stat-count-small next-meeting-date">{{ formatMeetingDate(nextMeeting.scheduleDate) }}</div>
+            <div v-else class="stat-count-small">일정 잡기</div>
+          </div>
       </div>
     </div>
 
@@ -177,9 +178,11 @@
 
   <!-- 회의 생성 모달 -->
   <NewMeetingModal
-    v-if="showNewMeetingModal"
-    @close="showNewMeetingModal = false"
+    v-if="showMeetingModal"
+    :initial-data="meetingToEdit"
+    @close="showMeetingModal = false"
     @create="handleCreateMeeting"
+    @update="handleUpdateMeeting"
   />
 </template>
 
@@ -201,7 +204,9 @@ import NewMeetingModal from '@/components/dashboard/NewMeetingModal.vue'
 
 const showVoteCreateModal = ref(false)
 const showVotingListModal = ref(false)  // 팀 투표 전체 모달
-const showNewMeetingModal = ref(false)
+const showMeetingModal = ref(false)
+const meetingToEdit = ref(null)
+const nextMeeting = ref(null)
 const votingListRef = ref(null)
 const route = useRoute()
 const router = useRouter()
@@ -272,16 +277,59 @@ const workDistribution = computed(() => {
     .sort((a, b) => b.count - a.count);
 });
 
-function openNewMeetingModal() {
-  showNewMeetingModal.value = true;
+function handleMeetingCardClick() {
+  if (nextMeeting.value) {
+    // 기존 회의 수정
+    meetingToEdit.value = nextMeeting.value;
+  } else {
+    // 새 회의 생성
+    meetingToEdit.value = null;
+  }
+  showMeetingModal.value = true;
 }
 
-function handleCreateMeeting(meetingData) {
-  // 백엔드 연동 전 임시 처리
-  console.log('새 회의 생성:', meetingData);
-  alert(`새로운 회의 "${meetingData.title}" 일정을 생성합니다. (백엔드 연동 필요)`);
-  showNewMeetingModal.value = false;
+async function handleCreateMeeting(meetingData) {
+  const scheduleDto = {
+    title: meetingData.title,
+    description: meetingData.description,
+    scheduleDate: meetingData.meetingDate,
+  };
+  try {
+    await axios.post('/api/meeting/schedules', scheduleDto, {
+      headers: { Authorization: localStorage.getItem('authHeader') },
+      withCredentials: true,
+    });
+    showMeetingModal.value = false;
+    await fetchMeetingSchedules();
+  } catch (err) {
+    console.error('회의 일정 생성 실패:', err);
+    alert('회의 일정 생성에 실패했습니다.');
+  }
 }
+
+async function handleUpdateMeeting(meetingData) {
+  const scheduleDto = {
+    title: meetingData.title,
+    description: meetingData.description,
+    scheduleDate: meetingData.meetingDate,
+  };
+  try {
+    await axios.put(`/api/meeting/schedules/${meetingData.id}`, scheduleDto, {
+      headers: { Authorization: localStorage.getItem('authHeader') },
+      withCredentials: true,
+    });
+    showMeetingModal.value = false;
+    await fetchMeetingSchedules();
+  } catch (err) {
+    console.error('회의 일정 수정 실패:', err);
+    alert('회의 일정 수정에 실패했습니다.');
+  }
+}
+
+const formatMeetingDate = (dateString) => {
+  const date = new Date(dateString);
+  return date.toLocaleString('ko-KR', { month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
+};
 
 const donutChartStyle = computed(() => {
   if (!workDistribution.value.length) {
@@ -350,6 +398,22 @@ async function fetchNotices() {
 }
 }
 
+async function fetchMeetingSchedules() {
+  try {
+    const { data } = await axios.get('/api/meeting/schedules', {
+      headers: { Authorization: localStorage.getItem('authHeader') },
+      withCredentials: true,
+    });
+    const upcoming = data
+      .filter(schedule => new Date(schedule.scheduleDate) > new Date())
+      .sort((a, b) => new Date(a.scheduleDate) - new Date(b.scheduleDate));
+
+    nextMeeting.value = upcoming.length > 0 ? upcoming[0] : null;
+  } catch (err) {
+    console.error('회의 일정 불러오기 실패:', err);
+  }
+}
+
 // 공지 생성
 async function handleCreateNotice(newNotice) {
   try {
@@ -393,9 +457,11 @@ onMounted(async () => {
     await fetchTeamMembers()
     await fetchTasks()
     await fetchNotices()
+    await fetchMeetingSchedules()
     refreshTimer = setInterval(async () => {
       await fetchTasks()
       await fetchNotices()
+      await fetchMeetingSchedules()
     }, 10000)
   } catch (e) {
     console.error('❌ 데이터 로드 실패:', e)
@@ -514,6 +580,9 @@ function onVoteCreated() {
 .meeting-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 8px 16px rgba(0,0,0,0.08);
+}
+.next-meeting-date {
+  color: #0ea5e9;
 }
 
 .distribution-card {

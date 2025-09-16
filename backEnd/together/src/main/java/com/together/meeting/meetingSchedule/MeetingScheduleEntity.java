@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Getter
@@ -29,7 +30,7 @@ public class MeetingScheduleEntity {
     private String description;
 
     @Column(nullable = false)
-    private LocalDate scheduleDate;
+    private LocalDateTime scheduleDate;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

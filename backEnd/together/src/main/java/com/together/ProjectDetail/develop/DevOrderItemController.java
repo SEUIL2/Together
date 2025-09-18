@@ -3,8 +3,10 @@ package com.together.ProjectDetail.develop;
 import com.together.ProjectDetail.develop.dto.DevOrderItemResponseDto;
 import com.together.ProjectDetail.develop.dto.DevOrderItemSaveRequestDto;
 import com.together.ProjectDetail.develop.dto.DevOrderItemStatusUpdateDto;
+import com.together.systemConfig.UserDetailsImpl;
 import com.together.util.customAnnotation.CurrentProject;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -28,10 +30,14 @@ public class DevOrderItemController {
         return ResponseEntity.ok(items);
     }
 
-    // 새 항목 추가
+    // 새 항목 추가 API 수정
     @PostMapping
-    public ResponseEntity<DevOrderItemResponseDto> addDevOrderItem(@CurrentProject Long projectId, @RequestBody DevOrderItemSaveRequestDto requestDto) {
-        DevOrderItemResponseDto createdItem = devOrderItemService.addDevOrderItem(projectId, requestDto);
+    public ResponseEntity<DevOrderItemResponseDto> addDevOrderItem(
+            @CurrentProject Long projectId,
+            @AuthenticationPrincipal UserDetailsImpl userDetails, // 현재 로그인한 사용자 정보 가져오기
+            @RequestBody DevOrderItemSaveRequestDto requestDto) {
+        Long userId = userDetails.getUser().getUserId();
+        DevOrderItemResponseDto createdItem = devOrderItemService.addDevOrderItem(projectId, userId, requestDto);
         return new ResponseEntity<>(createdItem, HttpStatus.CREATED);
     }
 

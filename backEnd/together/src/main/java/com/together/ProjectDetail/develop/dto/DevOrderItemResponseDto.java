@@ -1,14 +1,13 @@
 // backEnd/together/src/main/java/com/together/ProjectDetail/develop/dto/DevOrderItemResponseDto.java
-
 package com.together.ProjectDetail.develop.dto;
 
 import com.together.ProjectDetail.develop.DevOrderItemEntity;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.Getter;
 import lombok.Setter;
 
 /**
- * '기능별 개발 순서' 항목의 조회 결과를 클라이언트로 '보내기' 위한 DTO입니다.
- * 서버의 응답(Response) 데이터로 사용됩니다.
+ * 기능별 개발 순서 조회 응답 DTO
  */
 @Getter
 @Setter
@@ -20,21 +19,33 @@ public class DevOrderItemResponseDto {
     private String priority;
     private String description;
     private boolean completed;
+    private String authorName;
 
-    /**
-     * DevOrderItem 엔티티를 DevOrderItemResponseDto로 변환하는 정적 팩토리 메서드입니다.
-     * 서비스 로직에서 변환을 쉽게 처리할 수 있도록 도와줍니다.
-     * @param devOrderItem 엔티티 객체
-     * @return 변환된 DTO 객체
-     */
-    public static DevOrderItemResponseDto fromEntity(DevOrderItemEntity devOrderItem) {
+    // 엔티티를 DTO로 변환
+    public static DevOrderItemResponseDto fromEntity(DevOrderItemEntity devOrderItemEntity) {
         DevOrderItemResponseDto dto = new DevOrderItemResponseDto();
-        dto.setId(devOrderItem.getId());
-        dto.setFeatureName(devOrderItem.getFeatureName());
-        dto.setFeatureOrder(devOrderItem.getFeatureOrder());
-        dto.setPriority(devOrderItem.getPriority());
-        dto.setDescription(devOrderItem.getDescription());
-        dto.setCompleted(devOrderItem.isCompleted());
+        dto.setId(devOrderItemEntity.getId());
+        dto.setFeatureName(devOrderItemEntity.getFeatureName());
+        dto.setFeatureOrder(devOrderItemEntity.getFeatureOrder());
+        dto.setPriority(devOrderItemEntity.getPriority());
+        dto.setDescription(devOrderItemEntity.getDescription());
+        dto.setCompleted(devOrderItemEntity.isCompleted());
+
+        // --- 작성자 조회 오류를 해결하기 위해 이 부분을 수정했습니다 ---
+        try {
+            // 연결된 작성자가 있는지 확인하고 이름을 설정합니다.
+            if (devOrderItemEntity.getAuthor() != null) {
+                dto.setAuthorName(devOrderItemEntity.getAuthor().getUserName());
+            } else {
+                dto.setAuthorName("작성자 없음");
+            }
+        } catch (EntityNotFoundException e) {
+            // author_id는 있지만 실제 UserEntity가 없는 경우 (옛날 데이터)
+            // 오류를 발생시키는 대신 기본값을 설정합니다.
+            dto.setAuthorName("작성자 정보 없음");
+        }
+        // --- 여기까지 수정 ---
+
         return dto;
     }
 }

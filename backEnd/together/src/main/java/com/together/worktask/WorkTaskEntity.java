@@ -11,6 +11,8 @@ import lombok.Setter;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 import org.hibernate.annotations.Where;
+import com.together.report.ReportCategory;
+import jakarta.persistence.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -77,6 +79,13 @@ public class WorkTaskEntity {
     @ManyToOne(fetch = FetchType.LAZY, optional = true)
     @JoinColumn(name = "parent_task_id", nullable = true)
     private WorkTaskEntity parentTask;
+
+    /**
+     * 작업의 카테고리 (기획, 설계, 개발, 테스트)
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = true) // 카테고리는 필수가 아닐 수 있으므로 nullable = true 설정
+    private ReportCategory category;
 
     /** 하위 작업들 (NULL 허용) */
     @OneToMany(mappedBy = "parentTask", cascade = CascadeType.ALL, orphanRemoval = true)

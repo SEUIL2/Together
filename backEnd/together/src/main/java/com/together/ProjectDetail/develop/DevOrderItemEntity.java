@@ -1,6 +1,7 @@
 package com.together.ProjectDetail.develop;
 
 import com.together.project.ProjectEntity;
+import com.together.user.UserEntity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -51,4 +52,11 @@ public class DevOrderItemEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_id", nullable = false)
     private ProjectEntity project;
+
+    /**
+     * 이 항목을 작성한 사용자 (새로 추가)
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private UserEntity author;
 }

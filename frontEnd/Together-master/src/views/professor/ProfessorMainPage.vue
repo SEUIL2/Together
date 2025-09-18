@@ -2,7 +2,6 @@
   <div class="professor-mainpage">
     <h2 class="page-title">📂 담당 프로젝트 목록</h2>
 
-    <!-- 🔘 연도 필터 드롭다운 -->
     <div class="year-filter">
       <div class="current-year-display">
         <span class="current-year-label">{{ selectedYear }}년 프로젝트</span>
@@ -23,7 +22,6 @@
       </div>
     </div>
 
-    <!-- 📋 프로젝트 카드 목록 -->
     <div class="project-cards">
       <TeamCard
           v-for="project in filteredProjects"
@@ -48,88 +46,20 @@ const selectedYear = ref(currentYear)
 const availableYears = ref([])
 const showYearDropdown = ref(false)
 
-const extractYear = (value) => {
-  if (!value && value !== 0) {
-    return null
-  }
-
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return Math.trunc(value)
-  }
-
-  if (value instanceof Date && !Number.isNaN(value.getTime())) {
-    return value.getFullYear()
-  }
-
-  if (typeof value === 'string') {
-    const trimmed = value.trim()
-    if (!trimmed) {
-      return null
-    }
-
-    const directNumber = Number(trimmed)
-    if (!Number.isNaN(directNumber) && trimmed.length === 4) {
-      return Math.trunc(directNumber)
-    }
-
-    const parsedDate = new Date(trimmed)
-    if (!Number.isNaN(parsedDate.getTime())) {
-      return parsedDate.getFullYear()
-    }
-
-    const yearMatch = trimmed.match(/\d{4}/)
-    if (yearMatch) {
-      const matchedYear = Number(yearMatch[0])
-      if (!Number.isNaN(matchedYear)) {
-        return Math.trunc(matchedYear)
-      }
-    }
-  }
-
-  return null
-}
-
-const buildYearRange = (startYear, endYear) => {
-  const safeStart = Math.min(startYear, endYear)
-  const years = []
-
-  for (let year = safeStart; year <= endYear; year += 1) {
-    years.push(year)
-  }
-
-  if (years.length === 0) {
-    years.push(endYear)
-  }
-
-  return Array.from(new Set(years)).sort((a, b) => a - b)
-}
-
-const selectYear = (year) => {
-  selectedYear.value = year
-  showYearDropdown.value = false
-}
-
-const toggleYearDropdown = () => {
-  showYearDropdown.value = !showYearDropdown.value
-}
-
+// 선택된 연도에 따라 프로젝트를 필터링합니다.
 const filteredProjects = computed(() => {
-  return projects.value.filter((project) => {
-    if (!selectedYear.value) {
-      return true
-    }
+  return projects.value.filter(p => p.createdYear === selectedYear.value);
+});
 
-    const projectYear = project.createdYear ?? extractYear(
-        project.createdAt || project.createdDate || project.startDate || project.updatedAt
-    )
 
-    if (projectYear == null) {
-      return selectedYear.value === currentYear
-    }
+function selectYear(year) {
+  selectedYear.value = year;
+  showYearDropdown.value = false;
+}
 
-    return projectYear === selectedYear.value
-  })
-})
+function toggleYearDropdown() {
+  showYearDropdown.value = !showYearDropdown.value;
+}
 
 onMounted(async () => {
   try {
@@ -139,118 +69,31 @@ onMounted(async () => {
       return
     }
 
-    // ✅ 교수 프로젝트 ID 리스트 가져오기
-    const res = await axios.get('/auth/me', {
+    // 1. 교수가 관리하는 모든 프로젝트의 기본 정보를 가져옵니다.
+    const res = await axios.get('/projects/my-projects/sorted-by-created', {
       headers: { Authorization: authHeader },
-      withCredentials: true
-    })
+      withCredentials: true,
+    });
 
-    const professorProjectsRaw = res.data.projectId
-    const professorProjects = Array.isArray(professorProjectsRaw)
-        ? professorProjectsRaw
-        : professorProjectsRaw
-            ? [professorProjectsRaw]
-            : []
-    console.log('📦 professorProjects:', professorProjects)
+    const allProjects = res.data || [];
+    const years = new Set();
 
-    const joinYearCandidates = [
-      res.data.joinYear,
-      res.data.joinDate,
-      res.data.joinedAt,
-      res.data.createdAt,
-      res.data.createdDate,
-      res.data.createdDateTime,
-      res.data.registrationDate,
-      res.data.signupDate
-    ]
+    // 2. 각 프로젝트의 생성 연도를 추출하고, 전체 연도 목록을 만듭니다.
+    const processedProjects = allProjects.map(p => {
+      const createdYear = p.createdAt ? new Date(p.createdAt).getFullYear() : currentYear;
+      years.add(createdYear);
+      return { ...p, createdYear };
+    });
 
-    const detectedJoinYear = joinYearCandidates
-        .map(candidate => extractYear(candidate))
-        .find(year => typeof year === 'number' && !Number.isNaN(year))
+    projects.value = processedProjects;
+    availableYears.value = Array.from(years).sort((a, b) => b - a); // 최신 연도 순으로 정렬
 
-    const joinYear = detectedJoinYear ?? currentYear
-
-    availableYears.value = buildYearRange(joinYear, currentYear)
+    // 만약 프로젝트가 있는 연도 중에 올해가 없다면, 올해를 추가해줍니다.
     if (!availableYears.value.includes(currentYear)) {
-      availableYears.value.push(currentYear)
-      availableYears.value.sort((a, b) => a - b)
+      availableYears.value.push(currentYear);
+      availableYears.value.sort((a, b) => b - a);
     }
-    selectedYear.value = currentYear
 
-    const yearsSet = new Set()
-
-    const detailedProjects = await Promise.all(
-        professorProjects.map(async (p, i) => {
-          console.log(`🔍 [${i}] projectId: ${p.projectId}, createdAt: ${p.createdAt}`)
-
-          const projectId = p.projectId
-
-          const [projectRes, planningRes, taskRes, memberRes, noticeRes] = await Promise.all([
-            axios.get(`/projects/${projectId}`, {
-              headers: { Authorization: authHeader },
-              withCredentials: true
-            }),
-            axios.get(`/planning/all`, {
-              params: { projectId },
-              headers: { Authorization: authHeader },
-              withCredentials: true
-            }),
-            axios.get(`/work-tasks/project`, {
-              params: { projectId },
-              headers: { Authorization: authHeader },
-              withCredentials: true
-            }),
-            axios.get(`/projects/members`, {
-              params: { projectId },
-              headers: { Authorization: authHeader },
-              withCredentials: true
-            }),
-            axios.get(`/notices/all-notice`, {
-              params: { projectId },
-              headers: { Authorization: authHeader },
-              withCredentials: true
-            })
-          ])
-
-          // ✅ [수정] 프로젝트 상세 정보에서 정확한 createdAt 값을 사용합니다.
-          const createdAt = projectRes.data.createdAt
-          const projectYear = extractYear(createdAt)
-          if (projectYear != null) {
-            console.log(`📆 ${i}번 프로젝트 연도 추출:`, projectYear)
-            yearsSet.add(projectYear)
-          } else {
-            console.warn(`⚠️ ${i}번 프로젝트에 createdAt이 없음`)
-          }
-
-          const tasks = taskRes.data || []
-          const totalTasks = tasks.length
-          const completedTasks = tasks.filter(t => t.status === 'COMPLETED').length
-          const progress = totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100)
-
-          const teamMembers = memberRes.data.map(member => ({
-            name: member.userName,
-            id: member.userId,
-            role: member.role,
-            avatarUrl: member.avatarUrl || ''
-          }))
-
-          return {
-            ...projectRes.data,
-            createdAt,
-            createdYear: projectYear,
-            description: planningRes.data.description?.text || '',
-            progress,
-            members: teamMembers,
-            notices: noticeRes.data || []
-          }
-        })
-    )
-
-    const discoveredYears = Array.from(yearsSet)
-        .filter(y => typeof y === 'number' && !Number.isNaN(y))
-        .sort((a, b) => a - b)
-    console.log('📅 프로젝트에서 확인된 연도:', discoveredYears)
-    projects.value = detailedProjects
   } catch (error) {
     console.error('❌ 교수 프로젝트 목록 조회 실패:', error)
   }

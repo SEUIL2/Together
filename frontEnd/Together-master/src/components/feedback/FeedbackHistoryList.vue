@@ -21,25 +21,22 @@ onMounted(fetchFeedbacks)
 
 async function fetchFeedbacks() {
   try {
-    const { data: me } = await axios.get('/auth/me', {
-      headers: { Authorization: localStorage.getItem('authHeader') },
-      withCredentials: true
-    })
-
-    const projectId = me.mainProjectId || me.projectId || me.project?.projectId
-    if (!projectId) return
-
+    // 학생 본인의 피드백을 가져오는 것이므로, projectId 없이 호출합니다.
+    // 백엔드에서 현재 로그인한 사용자를 기준으로 프로젝트를 식별합니다.
     const res = await axios.get('/feedbacks/my', {
-      params: { projectId },
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true
-    })
-
-    feedbacks.value = res.data
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-      // .slice(0, 5) // 필요하면 제한
+    });
+    
+    // API 응답이 배열인 경우에만 데이터를 처리합니다.
+    if (Array.isArray(res.data)) {
+      feedbacks.value = res.data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    } else {
+      feedbacks.value = [];
+    }
   } catch (e) {
-    console.error('❌ 피드백 불러오기 실패:', e)
+    console.error('❌ 피드백 불러오기 실패:', e);
+    feedbacks.value = []; // 에러 발생 시 빈 배열로 초기화
   }
 }
 

@@ -292,12 +292,14 @@ const extractFileName = url => url.split('/').pop()
 const isImage = url =>
   /\.(jpe?g|png|gif|bmp|webp)$/i.test(url) ||
   url.includes('drive.google.com/')
-function toDrivePreview(url) {
-  if (url.includes('uc?export=download')) {
-    return url.replace('export=download', 'export=view')
+const toDrivePreview = (url) => {
+  if (!url) return '';
+  const fileIdMatch = url.match(/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (fileIdMatch && fileIdMatch[1]) {
+    return `https://drive.google.com/uc?export=view&id=${fileIdMatch[1]}`;
   }
-  return url
-}
+  return url.includes('uc?export=download') ? url.replace('export=download', 'export=view') : url;
+};
 function openImageModal(url) {
   modalImageSrc.value = url
   showModal.value = true

@@ -89,7 +89,8 @@ async function fetchVotes() {
       params: { projectId: idToUse },
       headers: { Authorization: localStorage.getItem('authHeader') },
     })
-    votes.value = res.data
+    // 최신순으로 정렬합니다.
+    votes.value = res.data.sort((a, b) => new Date(b.createdDate) - new Date(a.createdDate));
   } catch (err) {
     console.error('❌ 투표 목록 불러오기 실패:', err)
   }

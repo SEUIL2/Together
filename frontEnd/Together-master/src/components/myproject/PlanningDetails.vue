@@ -8,136 +8,192 @@
         :class="['nav-btn', { active: selectedIndex === idx, completed: item.completed }]"
         @click="selectTab(idx)"
       >
-        {{ item.name }}
+        <svg v-if="item.completed" class="check-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        <span>{{ item.name }}</span>
+        <svg v-if="item.type === 'infostructure'" class="link-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
       </button>
     </div>
 
-    <!-- 편집 영역 -->
-    <div class="editor-container" @contextmenu.prevent="handleRightClick" style="position: relative">
-      <template v-if="activeItem.type === 'storyboard'">
-        <textarea
-          v-model="activeItem.content"
-          class="basic-textarea"
-          :readonly="readonly"
-          placeholder="스토리보드 또는 Figma 공유 링크 입력"
-          @input="onContentChange($event.target.value)"
-        />
-        <iframe
-          v-if="isValidFigmaLink(activeItem.content)"
-          :src="convertToFigmaEmbed(extractFigmaUrl(activeItem.content))"
-          width="100%"
-          height="500"
-          allowfullscreen
-          style="margin-top: 12px; border: 1px solid #ccc; border-radius: 8px;"
-        ></iframe>
-      </template>
-      <template v-else>
-        <Editor
-          v-if="!readonly"
-          v-model="activeItem.content"
-          :init="editorConfig"
-          :api-key="editorConfig.apiKey"
-          :tinymce-script-src="`https://cdn.tiny.cloud/1/${editorConfig.apiKey}/tinymce/6/tinymce.min.js`"
-          @update:modelValue="onContentChange"
-        />
-        <div v-else class="readonly-content" v-html="activeItem.content"></div>
-      </template>
-    </div>
+    <div class="content-grid">
+      <!-- 왼쪽: 편집 영역 -->
+      <div class="editor-wrapper">
+        <div class="editor-container" @contextmenu.prevent="handleRightClick">
+          <!-- 수정/저장/취소 버튼 -->
+          <div class="edit-controls" v-if="!props.readonly">
+            <button v-if="!isEditing" @click="startEditing" class="control-btn edit-btn">수정</button>
+            <template v-else>
+              <button @click="saveChanges" class="control-btn save-btn">저장</button>
+              <button @click="cancelEditing" class="control-btn cancel-btn">취소</button>
+            </template>
+          </div>
 
-    <!-- 파일 및 이미지 업로드 -->
-    <div class="upload-section">
-      <div v-if="!readonly" class="upload-zone"
-           @click="fileInputRef.click()"
-           @dragover.prevent
-           @drop.prevent="handleDrop">
-        <input type="file" multiple ref="fileInputRef" @change="onFileSelect" hidden />
-        <div class="upload-message">
-          파일 또는 이미지를 드래그 혹은 클릭하여 업로드
-        </div>
-      </div>
-
-      <div class="file-grid">
-        <div v-for="(file, i) in activeItem.files" :key="i" class="file-card">
-          <button v-if="!readonly" class="file-delete-btn" @click.stop="removeFile(i)">×</button>
-          <template v-if="isImage(file.url)">
-            <img :src="file.url" class="file-thumb" />
+          <!-- 내용 표시 영역 -->
+          <template v-if="activeItem.type === 'storyboard'">
+            <textarea
+              v-model="activeItem.content"
+              class="basic-textarea"
+              :readonly="!isEditing || readonly"
+              placeholder="스토리보드 또는 Figma 공유 링크 입력"
+              @input="onContentChange(($event.target as HTMLTextAreaElement)?.value || '')"
+            />
+            <iframe
+              v-if="isValidFigmaLink(activeItem.content)"
+              :src="convertToFigmaEmbed(extractFigmaUrl(activeItem.content))"
+              width="100%"
+              height="500"
+              allowfullscreen
+              style="margin-top: 12px; border: 1px solid #ccc; border-radius: 8px;"
+            ></iframe>
           </template>
           <template v-else>
-            <div class="file-icon">📄</div>
+            <textarea
+              v-if="isEditing && !readonly"
+              v-model="activeItem.content"
+              class="basic-textarea large"
+              placeholder="내용을 입력하세요..."
+              @input="onContentChange((($event.target as HTMLTextAreaElement)?.value) || '')"
+            ></textarea>
+            <div v-else class="readonly-content" :class="{ empty: !activeItem.content }">{{ activeItem.content || '내용이 없습니다.' }}</div>
           </template>
-          <div class="file-info">
-            <a :href="file.url" download :title="extractFileName(file.url)">
-              {{ extractFileName(file.url) }}
-            </a>
-            <span class="file-date">{{ formatDate(file.uploadedAt) }}</span>
+          <div v-if="isEditing" class="char-counter">
+            {{ (activeItem.content || '').length }} / 2000
           </div>
         </div>
       </div>
 
-      <!-- 피드백 마커 -->
-      <div
-        v-for="fb in feedbacks"
-        :key="fb.feedbackId"
-        class="feedback-marker"
-        :style="{ top: fb.y + 'px', left: fb.x + 'px', position: 'absolute' }"
-        @click="selectedFeedback = fb"
-      >
-        📌
+      <!-- 오른쪽: 파일 및 이미지 업로드 -->
+      <div class="upload-section">
+        <h4 class="section-title">첨부 파일</h4>
+        <div class="attachments-container">
+          <div class="file-grid">
+            <!-- 파일 업로드 카드 (수정 모드가 아니어도 보이도록 수정) -->
+            <div v-if="!props.readonly" class="upload-zone" @click="fileInputRef?.click()"
+                @dragover.prevent
+                @drop.prevent="handleDrop">
+              <input type="file" multiple ref="fileInputRef" @change="onFileSelect" hidden />
+              <div class="upload-message">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                <span>파일 업로드</span>
+              </div>
+            </div>
+            
+            <!-- 첨부된 파일 카드 -->
+            <div v-for="(file, i) in activeItem.files" :key="file.url || i" class="file-card" :class="{ uploading: file.isUploading }">
+              <button v-if="!props.readonly" class="file-delete-btn" @click.stop="removeFile(i)">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </button>
+              <div class="file-preview">
+                <img v-if="isImage(file)" :src="toDrivePreview(file.url)" class="file-thumb" />
+                <div v-else class="file-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                </div>
+                <div v-if="file.isUploading" class="upload-indicator">
+                  <div class="spinner"></div>
+                </div>
+              </div>
+            <div class="file-info">
+              <a class="file-name" :href="file.url" target="_blank" :title="extractFileName(file.url)">{{ extractFileName(file.url) }}</a>
+              <span class="file-date">{{ formatDate(file.uploadedAt) }}</span>
+            </div>
+          </div>
+        </div>
+          <div v-if="activeItem.files.length === 0" class="empty-files">
+            첨부된 파일이 없습니다.
+          </div>
+        </div>
       </div>
-
-      <!-- 피드백 팝업 -->
-      <FeedbackPopup
-        v-if="selectedFeedback"
-        :fb="selectedFeedback"
-        :readonly="true"
-        @read="handleReadFeedback"
-        @close="selectedFeedback = null"
-      />
-
-      <!-- 피드백 입력창 (교수 전용) -->
-      <FeedbackInput
-        v-if="showFeedbackInput"
-        :x="feedbackPosition.x"
-        :y="feedbackPosition.y"
-        :page="'planning-details'"
-        :readonly="true"
-        :projectId="resolvedProjectId"
-        @close="showFeedbackInput = false"
-        @submitted="() => { showFeedbackInput = false; loadFeedbacks() }"
-      />
     </div>
+
+    <!-- 피드백 마커 -->
+    <div
+      v-for="fb in feedbacks"
+      :key="fb.feedbackId"
+      class="feedback-marker"
+      :style="{ top: fb.y + 'px', left: fb.x + 'px', position: 'absolute' }"
+      @click="selectedFeedback = fb"
+    >
+      📌
+    </div>
+
+    <!-- 피드백 팝업 -->
+    <FeedbackPopup
+      v-if="selectedFeedback"
+      :fb="selectedFeedback"
+      :readonly="true"
+      @read="handleReadFeedback"
+      @close="selectedFeedback = null"
+    />
+
+    <!-- 피드백 입력창 (교수 전용) -->
+    <FeedbackInput
+      v-if="showFeedbackInput"
+      :x="feedbackPosition.x"
+      :y="feedbackPosition.y"
+      :readonly="true"
+      :projectId="resolvedProjectId"
+      :page="`planning-${activeItem.type}`"
+      @close="showFeedbackInput = false"
+      @submitted="() => { showFeedbackInput = false; loadFeedbacks(`planning-${activeItem.type}`) }"
+    />
   </section>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import axios from 'axios'
-import Editor from '@tinymce/tinymce-vue'
 import FeedbackInput from '@/components/feedback/FeedbackInput.vue'
 import FeedbackPopup from '@/components/feedback/FeedbackPopup.vue'
 import { useFeedback } from '@/composables/useFeedback.js'
 import { useRouter, useRoute } from 'vue-router'
 
+interface FileObject {
+  tempId?: string;
+  url: string;
+  isUploading?: boolean;
+  uploadedAt: string;
+  originalFile?: File;
+  contentType?: string;
+}
+
+interface PlanningItem {
+  name: string;
+  type: string;
+  content: string;
+  files: FileObject[];
+  completed: boolean;
+}
+
+interface Feedback {
+  feedbackId: number;
+  x: number;
+  y: number;
+  isRead: boolean;
+}
+
 const router = useRouter()
 const route = useRoute()
-const fileInputRef = ref(null)
+const fileInputRef = ref<HTMLInputElement | null>(null)
 const props = defineProps({ projectId: Number, readonly: Boolean })
 const resolvedProjectId = computed(() => props.projectId || Number(route.params.projectId))
 const emit = defineEmits(['updateStepProgress'])
 
-const feedbacks = ref([])
+const feedbacks = ref<Feedback[]>([])
 const showFeedbackInput = ref(false)
 const feedbackPosition = ref({ x: 0, y: 0 })
-const selectedFeedback = ref(null)
+const selectedFeedback = ref<Feedback | null>(null)
 const { markFeedbackAsRead } = useFeedback()
 
-function extractFigmaUrl(content) {
+const isEditing = ref(false);
+const originalContent = ref('');
+const originalFiles = ref<FileObject[]>([]);
+
+function extractFigmaUrl(content: string | null): string {
   if (!content) return ''
   const match = content.match(/https:\/\/www\.figma\.com\/(file|design)\/[^\s<"]+/)
   return match ? match[0] : ''
 }
 
-function convertToFigmaEmbed(link) {
+function convertToFigmaEmbed(link: string) {
   if (!link) return ''
   try {
     const url = new URL(link)
@@ -151,11 +207,11 @@ function convertToFigmaEmbed(link) {
   }
 }
 
-function isValidFigmaLink(content) {
+function isValidFigmaLink(content: string): boolean {
   return extractFigmaUrl(content) !== ''
 }
 
-function handleRightClick(e) {
+function handleRightClick(e: MouseEvent) {
   const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft
   const scrollTop = window.pageYOffset || document.documentElement.scrollTop
 
@@ -168,25 +224,26 @@ function handleRightClick(e) {
 }
 
 
-function handleReadFeedback(id) {
+function handleReadFeedback(id: number) {
   markFeedbackAsRead(id)
   feedbacks.value = feedbacks.value.filter(fb => fb.feedbackId !== id)
   selectedFeedback.value = null
 }
 
-async function loadFeedbacks() {
+async function loadFeedbacks(pageIdentifier: string) {
+  if (!pageIdentifier) return;
   try {
     const { data } = await axios.get('/feedbacks/project', {
-      params: { page: 'planning-details', projectId: resolvedProjectId.value },
+      params: { page: pageIdentifier, projectId: resolvedProjectId.value },
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true
     })
-    feedbacks.value = data.filter(fb => !fb.isRead)
+    feedbacks.value = data.filter((fb: Feedback) => !fb.isRead)
   } catch (err) {
     console.error('❌ 피드백 불러오기 실패:', err)
   }
 }
-const planningItems = reactive([
+const planningItems: PlanningItem[] = reactive([
   { name: '프로젝트 동기', type: 'motivation', content: '', files: [], completed: false },
   { name: '프로젝트 목표', type: 'goal', content: '', files: [], completed: false },
   { name: '요구사항 정의', type: 'requirement', content: '', files: [], completed: false },
@@ -199,69 +256,21 @@ const PAGE_LINKS = {
 const selectedIndex = ref(0)
 const activeItem = computed(() => planningItems[selectedIndex.value])
 
-const editorConfig = {
-  apiKey: '96jqrzcetlm5lwov39n7p1j9urvurkwl8ya18w22y816w94l',
-  height: 500,
-  language: 'ko_KR',
-  resize: false,
-  menubar: false,
-  branding: false,
-  statusbar: false,
-  paste_data_images: true,
-  file_picker_types: 'image',
-  plugins: 'lists link image table code autosave fullscreen',
-  toolbar: 'undo redo | bold italic underline | bullist numlist | table | image | code | fullscreen',
-  automatic_uploads: true,
-    file_picker_callback: (callback, value, meta) => {
-    if (meta.filetype === 'image') {
-      const input = document.createElement('input')
-      input.setAttribute('type', 'file')
-      input.setAttribute('accept', 'image/*')
-      input.onchange = () => {
-        const file = input.files[0]
-        const reader = new FileReader()
-        reader.onload = (e) => {
-          // base64로 읽은 결과를 img src로 바로 삽입
-          callback(e.target.result, { alt: file.name })
-        }
-        reader.readAsDataURL(file)
-      }
-      input.click()
-    }
-  },
-  images_upload_handler: async (blobInfo, success, failure) => {
-    try {
-      const form = new FormData()
-      form.append('type', activeItem.value.type)
-      form.append('projectId', props.projectId)
-      form.append('files', blobInfo.blob(), blobInfo.filename())
-      const res = await axios.post('/planning/upload', form, {
-        headers: { Authorization: localStorage.getItem('authHeader') },
-        withCredentials: true
-      })
-      const url = res.data.files[0].url
-      success(url)
-      activeItem.value.files.push({ url, uploadedAt: new Date().toISOString() })
-      markCompleted()
-    } catch {
-      failure('Upload error')
-    }
-  }
-}
-
-function selectTab(idx) {
+function selectTab(idx: number) {
   const type = planningItems[idx].type
   // 만약 정보구조도(또는 다른 다이어그램)라면 페이지 이동
   if (type === 'infostructure') {
     router.push({
       path: `/info-structure/${resolvedProjectId.value}`,
       query: {
-        readonly: props.readonly ?? route.query.readonly === 'true',
+        readonly: String(props.readonly ?? route.query.readonly === 'true'),
         projectTitle: route.query.projectTitle || '프로젝트'
       }
     })
   } else {
     selectedIndex.value = idx
+    isEditing.value = false; // 탭 전환 시 수정 모드 해제
+    loadFeedbacks(`planning-${planningItems[idx].type}`);
   }
 }
 
@@ -282,69 +291,119 @@ function markCompleted() {
   activeItem.value.completed = Boolean(activeItem.value.content.trim()) || activeItem.value.files.length > 0
   emit('updateStepProgress', planningItems.filter(i => i.completed).length)
 }
-function stripHtmlTags(html) {
-  return html
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/p>/gi, '\n')
-    .replace(/<[^>]+>/g, '')   // 모든 태그 제거
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .trim();
+function onContentChange(val: string) {
+  if (isEditing.value) {
+    activeItem.value.content = val;
+    markCompleted();
+  }
 }
-let saveTimeout
-function onContentChange(val) {
-  activeItem.value.content = val // 에디터에는 여전히 html 유지
-  markCompleted()
-  clearTimeout(saveTimeout)
-  saveTimeout = setTimeout(async () => {
-    const form = new FormData()
-    form.append('type', activeItem.value.type)
-    // 여기만 stripHtmlTags로 변경
-    form.append('text', stripHtmlTags(activeItem.value.content))
-    form.append('projectId', props.projectId)
-    try {
-      await axios.put('/planning/update', form, {
-        headers: { Authorization: localStorage.getItem('authHeader') },
-        withCredentials: true
+
+function startEditing() {
+  isEditing.value = true;
+  originalContent.value = activeItem.value.content;
+  originalFiles.value = JSON.parse(JSON.stringify(activeItem.value.files));
+}
+
+async function saveChanges() {
+  const form = new FormData();
+  let contentToSave = activeItem.value.content || '';
+
+  // TinyMCE가 남기는 빈 태그를 제거합니다.
+  if (contentToSave.trim() === '<p><br data-mce-bogus="1"></p>' || contentToSave.trim() === '<p>&nbsp;</p>') {
+    contentToSave = '';
+  }
+
+  form.append('type', activeItem.value.type as string);
+  form.append('text', contentToSave);
+  form.append('projectId', String(props.projectId));
+
+  try {
+    await axios.put('/planning/update', form, {
+      headers: { Authorization: localStorage.getItem('authHeader') },
+      withCredentials: true
+    });
+    // 파일 변경 사항은 각 파일 업로드/삭제 시 이미 서버에 반영되었으므로
+    // 여기서는 텍스트 내용만 저장합니다.
+    alert('저장되었습니다.');
+  } catch (err) {
+    console.error('저장 실패', err);
+    alert('저장 중 오류가 발생했습니다.');
+    // 실패 시 원상 복구
+    activeItem.value.content = originalContent.value;
+    activeItem.value.files = originalFiles.value;
+  } finally {
+    isEditing.value = false;
+  }
+}
+
+function cancelEditing() {
+  if (confirm('수정 중인 내용을 취소하시겠습니까? 저장되지 않은 변경사항은 사라집니다.')) {
+    activeItem.value.content = originalContent.value;
+    // 파일 변경사항은 즉시 반영되므로, 취소 시 복구 로직이 복잡해짐.
+    // 여기서는 간단하게 텍스트만 복구하고, 사용자에게 파일은 수동으로 관리하도록 안내할 수 있음.
+    // 혹은, 파일 변경도 임시 상태로 두었다가 저장 시 한 번에 반영하는 로직으로 변경 필요.
+    // 현재는 텍스트만 복구합니다.
+    // activeItem.value.files = originalFiles.value; // 이 부분은 파일 시스템 복잡성으로 인해 주석 처리
+    isEditing.value = false;
+    alert('수정이 취소되었습니다. 파일 변경사항은 이미 반영되었을 수 있습니다.');
+  }
+}
+
+function onFileSelect(e: Event) {
+  const input = e.target as HTMLInputElement | null;
+  if (!input || !input.files) return;
+  const files = Array.from(input.files);
+  uploadFiles(files);
+}
+
+function handleDrop(e: DragEvent) {
+  if (!e.dataTransfer) return;
+  const files = Array.from(e.dataTransfer.files);
+  uploadFiles(files);
+}
+
+function uploadFiles(files: File[]) {
+  const tempFiles = files.map(file => ({
+    tempId: `temp-${Date.now()}-${Math.random()}`,
+    url: URL.createObjectURL(file),
+    isUploading: true,
+    uploadedAt: new Date().toISOString(),
+    originalFile: file,
+  }));
+
+  // 즉시 미리보기를 위해 임시 파일 추가
+  activeItem.value.files.push(...tempFiles);
+
+  tempFiles.forEach(tempFile => {
+    const form = new FormData();
+    form.append('type', activeItem.value.type as string);
+    form.append('projectId', String(props.projectId ?? ''));
+    form.append('files', tempFile.originalFile);
+
+    axios.post('/planning/upload', form, {
+      headers: { Authorization: localStorage.getItem('authHeader') },
+      withCredentials: true
+    })
+      .then(res => {
+        const uploadedFile = res.data.files[0];
+        const index = activeItem.value.files.findIndex(f => f.tempId === tempFile.tempId);
+        if (index !== -1) {
+          // 업로드 완료 후, 서버에서 받은 정보로 교체
+          activeItem.value.files.splice(index, 1, uploadedFile);
+        }
+        markCompleted();
       })
-    } catch (err) {
-      console.error('자동 저장 실패', err)
-    }
-  }, 800)
+      .catch(err => {
+        console.error('파일 업로드 오류', err);
+        alert(`${tempFile.originalFile.name} 파일 업로드에 실패했습니다.`);
+        // 실패 시, 임시 파일 제거
+        const index = activeItem.value.files.findIndex(f => f.tempId === tempFile.tempId);
+        if (index !== -1) activeItem.value.files.splice(index, 1);
+      });
+  });
 }
 
-function onFileSelect(e) {
-  const files = Array.from(e.target.files)
-  uploadFiles(files)
-}
-
-function handleDrop(e) {
-  const files = Array.from(e.dataTransfer.files)
-  uploadFiles(files)
-}
-
-function uploadFiles(files) {
-  const form = new FormData()
-  form.append('type', activeItem.value.type)
-  form.append('projectId', props.projectId)
-  files.forEach(f => form.append('files', f))
-  axios.post('/planning/upload', form, {
-    headers: { Authorization: localStorage.getItem('authHeader') },
-    withCredentials: true
-  })
-    .then(res => {
-      activeItem.value.files.push(...res.data.files)
-      markCompleted()
-    })
-    .catch(err => {
-      console.error('파일 업로드 오류', err)
-      alert('파일 업로드에 실패했습니다.')
-    })
-}
-
-async function removeFile(idx) {
+async function removeFile(idx: number) {
   const file = activeItem.value.files[idx]
   try {
     await axios.delete('/planning/delete-file', {
@@ -379,8 +438,10 @@ onMounted(async () => {
     })
     emit('updateStepProgress', planningItems.filter(i => i.completed).length)
 
-    // 🔥 여기서 피드백도 불러오기
-    await loadFeedbacks()
+    // 🔥 현재 활성화된 탭의 피드백 불러오기
+    if (activeItem.value) {
+      await loadFeedbacks(`planning-${activeItem.value.type}`);
+    }
 
   } catch (err) {
     console.error('데이터 로딩 오류', err)
@@ -388,55 +449,322 @@ onMounted(async () => {
 })
 
 
-const extractFileName = url => url.split('/').pop()
-const isImage = url => /\.(jpe?g|png|gif|bmp|webp)$/i.test(url)
-const formatDate = date => new Date(date).toLocaleString()
+const extractFileName = (url: string) => url ? url.split('/').pop() : ''
+const isImage = (file: FileObject): boolean => {
+  // For local files being uploaded
+  if (file.originalFile && file.originalFile.type) {
+    return file.originalFile.type.startsWith('image/');
+  }
+  // For files from backend that have contentType
+  if (file.contentType) {
+    return file.contentType.startsWith('image/');
+  }
+  // Fallback for files that only have a URL
+  if (file.url) {
+    // Check for Google Drive link
+    if (file.url.includes('drive.google.com/')) {
+      return true;
+    }
+    // Check for standard image extensions
+    return /\.(jpe?g|png|gif|bmp|webp)$/i.test(file.url);
+  }
+  return false;
+}
+const toDrivePreview = (url: string): string => {
+  if (!url || typeof url !== 'string') return '';
+
+  // Case 1: Standard sharing link (file/d/...) or alternative (open?id=...)
+  const fileIdMatch = url.match(/file\/d\/([a-zA-Z0-9_-]+)/) || url.match(/open\?id=([a-zA-Z0-9_-]+)/);
+  if (fileIdMatch && fileIdMatch[1]) {
+    return `https://drive.google.com/uc?export=view&id=${fileIdMatch[1]}`;
+  }
+  
+  // Case 2: Already a direct viewable link (uc?export=view or uc?id=)
+  if (url.includes('/uc?')) {
+    if (url.includes('export=download')) {
+      return url.replace('export=download', 'export=view');
+    }
+    return url;
+  }
+
+  // Fallback
+  return url;
+};
+const formatDate = (date: string) => new Date(date).toLocaleString()
 </script>
 
 <style scoped>
-.planning-details { display: flex; flex-direction: column; gap: 10px; }
-.nav-buttons { display: flex; gap: 8px; }
-.nav-btn { display: flex; align-items: center; gap: 6px; padding: 8px 16px; border: 1px solid #ccc; border-radius: 12px; background: #fff; cursor: pointer; transition: background .2s, border-color .2s; }
-.nav-dot { width: 8px; height: 8px; border: 2px solid #4a90e2; border-radius: 50%; }
-.nav-dot.filled, .nav-btn.active .nav-dot, .nav-dot.selected { background: #4a90e2; }
-.nav-btn.active { background: #4a90e2; color: #fff; border-color: #4a90e2; }
-.nav-btn.completed:not(.active) { border-color: #4a90e2; }
-.editor-container { min-height: 320px; }
-
-.upload-section { display: flex; flex-direction: column; gap: 0px; }
-.upload-zone { border: 2px dashed #4a90e2; border-radius: 8px; padding: 20px; text-align: center; color: #4a90e2; font-size: 14px; cursor: pointer; height: 60px;}
-.upload-zone:hover { background: rgba(74, 144, 226, 0.1); }
-.file-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 16px; }
-.file-card { position: relative; background: #fff; border: 1px solid #eee; border-radius: 8px; padding: 8px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-.file-delete-btn { position: absolute; top: 4px; right: 4px; background: #ff5c5c; color: #fff; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; font-size: 14px; line-height: 24px; padding: 0; }
-.file-thumb { width: 100%; height: 80px; object-fit: cover; border-radius: 4px; margin-bottom: 8px; }
-.file-icon { font-size: 48px; color: #ccc; margin-bottom: 8px; }
-.file-info { font-size: 12px; color: #333; display: flex; flex-direction: column; gap: 4px; }
-.file-info a {
-  display: block;
-  width: 100%;
-  max-width: 140px;         /* 카드 너비에 맞게 조정 */
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  color: #4a90e2;
-  text-decoration: none;
-  cursor: pointer;
+.planning-details {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  position: relative;
 }
-.file-date { font-size: 10px; color: #999; }
-.readonly-content { padding: 12px; border: 1px solid #eee; border-radius: 8px; background: #f9f9f9; min-height: 200px; }
+
+/* 상단 탭 버튼 */
+.nav-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+.nav-btn {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 8px;
+  background: #f1f3f5;
+  color: #495057;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .2s;
+}
+.nav-btn:hover { background: #e9ecef; }
+.nav-btn.active { background: #3f8efc; color: #fff; }
+.nav-btn .check-icon { transition: all .2s; }
+.nav-btn.completed:not(.active) { color: #3f8efc; }
+.nav-btn.completed:not(.active) .check-icon { color: #3f8efc; }
+.nav-btn.active .check-icon { color: #fff; }
+
+/* 메인 컨텐츠 그리드 */
+.content-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.editor-wrapper {
+  min-width: 0;
+}
+
+/* 에디터 컨테이너 */
+.editor-container {
+  position: relative;
+  background: #fff;
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.readonly-content {
+  flex-grow: 1;
+  line-height: 1.7;
+  color: #343a40;
+  white-space: pre-wrap;
+  padding: 20px;
+  background-color: #fff;
+  border-radius: 8px;
+  min-height: 400px;
+}
+.readonly-content.empty {
+  color: #adb5bd;
+  font-style: italic;
+}
+.editor-container:focus-within {
+  
+  box-shadow: 0 0 0 4px rgba(63, 142, 252, 0.2);
+}
+
+
+/* 파일 업로드 */
+.upload-section { display: flex; flex-direction: column; gap: 12px; }
+.section-title { font-size: 18px; font-weight: 700; color: #343a40; margin: 0; }
+.attachments-container {
+  background: #fff;
+  border: 1px solid #e9ecef;
+  width: 100%;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+}
+.upload-zone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed #d0dffc;
+  border-radius: 10px;
+  text-align: center;
+  color: #3f8efc;
+  cursor: pointer;
+  transition: background-color .2s;
+  aspect-ratio: 1 / 1; /* 정사각형 비율 */
+}
+.upload-zone:hover { background: #f3f8ff; }
+.upload-message { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; font-weight: 600; }
+.file-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 120px);
+  gap: 12px;
+}
+.file-card {
+  position: relative;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+  transition: all .2s;
+}
+.file-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+}
+.file-card.uploading .file-preview::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.5);
+  z-index: 1;
+}
+.file-delete-btn {
+  position: absolute; top: -8px; right: -8px;
+  background: #343a40;
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 24px; height: 24px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0;
+  transform: scale(0.8);
+  transition: all .2s;
+  z-index: 2;
+}
+.file-card:hover .file-delete-btn { opacity: 1; transform: scale(1); }
+.file-preview {
+  width: 100%;
+  aspect-ratio: 1 / 1; /* 정사각형 비율 */
+  background-color: #f8f9fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.upload-indicator {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 4px solid rgba(0, 0, 0, 0.1);
+  border-left-color: #3f8efc;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+.file-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.file-icon {
+  color: #ced4da;
+}
+.file-info {
+  padding: 8px;
+  background: #fff;
+  border-top: 1px solid #f1f3f5;
+}
+.file-name {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #343a40;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 4px;
+}
+.file-date { font-size: 10px; color: #868e96; display: block; }
+.empty-files {
+  text-align: center;
+  color: #adb5bd;
+  padding: 24px;
+  font-size: 14px;
+  width: 100%;
+}
+.char-counter {
+  text-align: right;
+  font-size: 13px;
+  color: #868e96;
+  margin-top: 8px;
+  padding-right: 4px;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.nav-btn span {
+  flex-grow: 1;
+}
+.link-icon {
+  margin-left: 4px;
+  color: #adb5bd;
+}
+
+/* 피드백 마커 */
 .feedback-marker {
   font-size: 20px;
   cursor: pointer;
 }
+
+/* 스토리보드 텍스트 영역 */
 .basic-textarea {
   width: 100%;
-  height: 50px;
-  padding: 12px;
-  font-size: 14px;
-  border: 1px solid #ccc;
+  min-height: 100px;
+  padding: 20px;
+  font-size: 16px;
+  line-height: 1.7;
+  border: none;
   border-radius: 8px;
   resize: none;
   white-space: pre-wrap;
+  background-color: #fff;
+  color: #343a40;
+  transition: box-shadow 0.2s;
 }
+.basic-textarea:focus {
+  outline: none;
+}
+.basic-textarea.large {
+  min-height: 400px; /* 최소 높이 설정 */
+  flex-grow: 1; /* 남은 공간을 모두 차지하도록 */
+}
+.basic-textarea:read-only {
+  background-color: #fff;
+  box-shadow: none;
+}
+
+/* 수정/저장/취소 버튼 */
+.edit-controls {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  position: absolute;
+  top: 16px;
+  right: 24px;
+}
+.control-btn {
+  padding: 6px 14px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.edit-btn { background-color: #f8f9fa; color: #495057; border: 1px solid #dee2e6; }
+.edit-btn:hover { background-color: #f1f3f5; }
+.save-btn {
+  background-color: #3f8efc;
+  color: white;
+}
+.save-btn:hover { background-color: #3578e5; }
+.cancel-btn {
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+}
+.cancel-btn:hover { background-color: #f1f3f5; }
 </style>

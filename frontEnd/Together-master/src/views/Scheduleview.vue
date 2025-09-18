@@ -30,16 +30,37 @@
       :readonly="true"
     />
 
+    <!-- 피드백 마커 (교수 전용 표시) -->
+    <div
+      v-if="isReadOnly"
+      v-for="fb in feedbacks"
+      :key="fb.feedbackId"
+      class="feedback-marker"
+      :style="{ top: fb.y + 'px', left: fb.x + 'px', position: 'absolute' }"
+      @click="selectedFeedback = fb"
+    >
+      📌
+    </div>
+
+    <!-- 피드백 팝업 -->
+    <FeedbackPopup
+      v-if="selectedFeedback"
+      :fb="selectedFeedback"
+      :readonly="true"
+      @read="handleReadFeedback(selectedFeedback.feedbackId)"
+      @close="selectedFeedback = null"
+    />
+
     <!-- 피드백 입력창 (교수 전용) -->
     <FeedbackInput
       v-if="showFeedbackInput"
       :x="feedbackX"
       :y="feedbackY"
-      :page="'task-board'"
+      :page="'schedule-view'"
       :readonly="true"
       :project-id="projectId"
       @close="showFeedbackInput = false"
-      @submitted="showFeedbackInput = false"
+      @submitted="() => { showFeedbackInput = false; loadFeedbacks(); }"
     />
   </div>
 </template>
@@ -53,6 +74,7 @@ import gantt from 'dhtmlx-gantt'
 
 import FeedbackInput from '@/components/feedback/FeedbackInput.vue'
 import FeedbackLayer from '@/components/feedback/FeedbackLayer.vue'
+import FeedbackPopup from '@/components/feedback/FeedbackPopup.vue'
 
 const route = useRoute()
 const isReadOnly = computed(() => route.query.readonly === 'true')
@@ -73,6 +95,9 @@ const ganttEventIds = [] // 이벤트 핸들러 ID 저장용 배열
 const showFeedbackInput = ref(false)
 const feedbackX = ref(0)
 const feedbackY = ref(0)
+const feedbacks = ref([])
+const selectedFeedback = ref(null)
+
 
 async function fetchProjectInfo() {
   try {
@@ -132,6 +157,30 @@ async function fetchTasksFromServer() {
   } catch (e) {
     console.error('작업 불러오기 실패', e)
   }
+}
+
+async function loadFeedbacks() {
+  if (!projectId.value) return;
+  try {
+    const res = await axios.get('/feedbacks/project', {
+      params: {
+        page: 'schedule-view',
+        projectId: projectId.value
+      },
+      headers: { Authorization: localStorage.getItem('authHeader') },
+      withCredentials: true
+    })
+    // 학생에게는 안 읽은 피드백만, 교수에게는 모든 피드백을 보여줄 수 있습니다.
+    // 여기서는 학생과 동일하게 안 읽은 피드백만 표시하도록 처리합니다.
+    feedbacks.value = res.data.filter(fb => !fb.isRead)
+  } catch (err) {
+    console.error('❌ 피드백 불러오기 오류:', err)
+  }
+}
+
+function handleReadFeedback(id) {
+  feedbacks.value = feedbacks.value.filter(fb => fb.feedbackId !== id)
+  selectedFeedback.value = null
 }
 
 function renderGantt(rows) {
@@ -273,6 +322,7 @@ async function loadAndInitializeGantt() {
   if (ganttContainer.value) {
     gantt.init(ganttContainer.value)
     await fetchTasksFromServer()
+    await loadFeedbacks() // 피드백 로드 추가
     if (isReadOnly.value) {
       ganttContainer.value.addEventListener('contextmenu', onRightClick)
     }
@@ -361,6 +411,12 @@ onDeactivated(cleanupGantt);
   border: 1px solid #e9ecef;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.feedback-marker {
+  font-size: 18px;
+  cursor: pointer;
+  position: absolute;
 }
 
 /* dhtmlx-gantt 내부 요소 디자인 오버라이드 */

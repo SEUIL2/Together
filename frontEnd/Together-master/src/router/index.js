@@ -29,8 +29,7 @@ import UseCasePage from '../views/toolview/UseCasePage.vue'
 import InfoStructurePage from '../views/toolview/InfoStructurePage.vue'
 import Feedback from '../views/FeedbackPage.vue'
 //admin Page
-import AdminDashboard from '../views/AdminDashboard.vue'
-
+import AdminDashboard from '../views/AdminDashboard.vue'  
 
 const routes = [
   {
@@ -293,6 +292,27 @@ const routes = [
     component: AdminDashboard,
     meta: { requiresAuth: true }
   },
+  {
+  path: '/professor/announcements',
+  name: 'ProfessorAnnouncements',
+  component: () => import('@/views/professor/ProfessorAnnouncements.vue'),
+  meta: { requiresAuth: true, roles: ['PROFESSOR'] } // 교수만 접근 가능하도록 설정
+},
+{
+  path: '/professor/votes',
+  name: 'ProfessorVotes',
+  component: () => import('@/views/professor/ProfessorVotes.vue'),
+  meta: { requiresAuth: true, roles: ['PROFESSOR'] } // 교수만 접근 가능하도록 설정
+},
+
+{
+  path: '/professor/feedback',
+  name: 'ProfessorFeedbackPage',
+  component: () => import('@/views/ProfessorFeedbackPage.vue'),
+  meta: { requiresAuth: true, roles: ['PROFESSOR'] }
+},
+
+
 ]
 
 const router = createRouter({

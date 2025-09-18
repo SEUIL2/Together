@@ -1,5 +1,9 @@
 <template>
-  <section class="planning-details">
+  <section
+    class="planning-details"
+    @contextmenu.prevent="handleRightClick"
+    style="position: relative"
+  >
     <!-- 🔹 상단 탭 버튼 -->
     <div class="nav-buttons">
       <button
@@ -82,7 +86,9 @@
             <img :src="toDrivePreview(file.url)" class="file-thumb" />
           </template>
           <template v-else>
-            <div class="file-icon">📄</div>
+            <div class="file-icon-wrapper">
+              <div class="file-icon">📄</div>
+            </div>
           </template>
           <div class="file-info">
             <a :href="file.url" download :title="extractFileName(file.url)">
@@ -93,6 +99,38 @@
         </div>
       </div>
     </div>
+
+    <!-- 피드백 마커 -->
+    <div
+      v-for="fb in feedbacks"
+      :key="fb.feedbackId"
+      class="feedback-marker"
+      :style="{ top: fb.y + 'px', left: fb.x + 'px', position: 'absolute' }"
+      @click="selectedFeedback = fb"
+    >
+      📌
+    </div>
+
+    <!-- 피드백 팝업 -->
+    <FeedbackPopup
+      v-if="selectedFeedback"
+      :fb="selectedFeedback"
+      :readonly="true"
+      @read="handleReadFeedback"
+      @close="selectedFeedback = null"
+    />
+
+    <!-- 피드백 입력창 (교수 전용) -->
+    <FeedbackInput
+      v-if="showFeedbackInput"
+      :x="feedbackPosition.x"
+      :y="feedbackPosition.y"
+      :page="`design-${activeItem.type}`"
+      :readonly="true"
+      :projectId="props.projectId"
+      @close="showFeedbackInput = false"
+      @submitted="() => { showFeedbackInput = false; loadFeedbacks(`design-${activeItem.type}`) }"
+    />
   </section>
 </template>
 
@@ -100,12 +138,21 @@
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import axios from 'axios'
+import FeedbackInput from '@/components/feedback/FeedbackInput.vue'
+import FeedbackPopup from '@/components/feedback/FeedbackPopup.vue'
+import { useFeedback } from '@/composables/useFeedback.js'
 
 const router = useRouter()
 const route = useRoute()
 const fileInputRef = ref(null)
 const props = defineProps({ projectId: Number, readonly: Boolean, projectTitle: String })
 const emit = defineEmits(['updateStepProgress'])
+
+const feedbacks = ref([])
+const showFeedbackInput = ref(false)
+const feedbackPosition = ref({ x: 0, y: 0 })
+const selectedFeedback = ref(null)
+const { markFeedbackAsRead } = useFeedback()
 
 const designItems = reactive([
   { name: "유스케이스 다이어그램", type: "usecase", content: "", files: [], completed: false },
@@ -127,6 +174,37 @@ const PAGE_LINKS = {
 
 const selectedIndex = ref(null)
 const activeItem = computed(() => selectedIndex.value !== null ? designItems[selectedIndex.value] : null)
+
+function handleRightClick(e) {
+  if (!props.readonly || !activeItem.value) return
+  const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft
+  const scrollTop = window.pageYOffset || document.documentElement.scrollTop
+
+  feedbackPosition.value = {
+    x: e.clientX + scrollLeft,
+    y: e.clientY + scrollTop
+  }
+
+  showFeedbackInput.value = true
+}
+
+function handleReadFeedback(id) {
+  markFeedbackAsRead(id)
+  feedbacks.value = feedbacks.value.filter(fb => fb.feedbackId !== id)
+  selectedFeedback.value = null
+}
+
+async function loadFeedbacks(pageIdentifier) {
+  if (!pageIdentifier || !props.projectId) return;
+  try {
+    const { data } = await axios.get('/feedbacks/project', {
+      params: { page: pageIdentifier, projectId: props.projectId },
+      headers: { Authorization: localStorage.getItem('authHeader') },
+      withCredentials: true
+    })
+    feedbacks.value = data.filter(fb => !fb.isRead)
+  } catch (err) { console.error('❌ 피드백 불러오기 실패:', err); feedbacks.value = []; }
+}
 
 function extractFigmaUrl(content) {
   const parser = new DOMParser()
@@ -191,6 +269,7 @@ function selectTab(idx) {
     })
   } else {
     selectedIndex.value = idx
+    loadFeedbacks(`design-${designItems[idx].type}`);
   }
 }
 
@@ -298,6 +377,10 @@ onMounted(async () => {
     })
 
     emit('updateStepProgress', designItems.filter(i => i.completed).length)
+
+    if (activeItem.value) {
+      await loadFeedbacks(`design-${activeItem.value.type}`);
+    }
   } catch (err) {
     console.error('데이터 로딩 오류', err)
   }
@@ -305,12 +388,22 @@ onMounted(async () => {
 
 const extractFileName = url => url.split('/').pop()
 const isImage = url => /\.(jpe?g|png|gif|bmp|webp)$/i.test(url) || url.includes('drive.google.com/')
-const toDrivePreview = url => url.includes('uc?export=download') ? url.replace('export=download', 'export=view') : url
+const toDrivePreview = (url) => {
+  if (!url) return '';
+  const fileIdMatch = url.match(/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (fileIdMatch && fileIdMatch[1]) {
+    return `https://drive.google.com/uc?export=view&id=${fileIdMatch[1]}`;
+  }
+  if (url.includes('uc?export=download')) {
+    return url.replace('export=download', 'export=view');
+  }
+  return url;
+};
 const formatDate = date => new Date(date).toLocaleString()
 </script>
 
 <style scoped>
-.planning-details { display: flex; flex-direction: column; gap: 10px; }
+.planning-details { display: flex; flex-direction: column; gap: 10px; position: relative; }
 .nav-buttons { display: flex; gap: 8px; }
 .nav-btn { display: flex; align-items: center; gap: 6px; padding: 8px 16px; border: 1px solid #ccc; border-radius: 12px; background: #fff; cursor: pointer; transition: background .2s, border-color .2s; }
 .nav-dot { width: 8px; height: 8px; border: 2px solid #4a90e2; border-radius: 50%; }
@@ -327,6 +420,14 @@ const formatDate = date => new Date(date).toLocaleString()
 .file-delete-btn { position: absolute; top: 4px; right: 4px; background: #ff5c5c; color: #fff; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; font-size: 14px; line-height: 24px; padding: 0; }
 .file-thumb { width: 100%; height: 80px; object-fit: cover; border-radius: 4px; margin-bottom: 8px; }
 .file-icon { font-size: 48px; color: #ccc; margin-bottom: 8px; }
+.file-icon-wrapper {
+  width: 100%;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.file-icon { font-size: 48px; color: #ccc; }
 .file-info { font-size: 12px; color: #333; display: flex; flex-direction: column; gap: 4px; }
 .file-info a {
   display: block;
@@ -371,6 +472,11 @@ const formatDate = date => new Date(date).toLocaleString()
   font-size: 2.3rem;
   display: block;
   margin-bottom: 10px;
+}
+
+.feedback-marker {
+  font-size: 20px;
+  cursor: pointer;
 }
 
 </style>

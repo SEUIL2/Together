@@ -15,8 +15,8 @@
     <nav class="sidebar-nav">
       <ul>
         <!-- 대시보드 -->
-        <li v-if="!isProfessorReadOnly && isLoggedIn">
-          <button :class="{ active: $route.path.startsWith('/DashBoard') }" @click="goMyDashBoard" :title="isCollapsed ? '대시보드' : null">
+        <li v-if="isLoggedIn">
+          <button :class="{ active: $route.path.startsWith('/DashBoard') || $route.path.startsWith('/professor/dashboard') }" @click="goMyDashBoard" :title="isCollapsed ? '대시보드' : null">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
             <span v-if="!isCollapsed">대시보드</span>
           </button>
@@ -39,16 +39,16 @@
         </li>
 
         <!-- 피드백 -->
-        <li v-if="isLoggedIn">
-          <button :class="{ active: $route.path.startsWith('/Feedback') || $route.path.startsWith('/professor/feedback') }" @click="goFeedback" :title="isCollapsed ? '피드백' : null">
+        <li v-if="!isProfessorReadOnly && isLoggedIn">
+          <button :class="{ active: $route.path.startsWith('/Feedback') || $route.path.includes('/professor/project') && $route.query.step === '피드백' }" @click="goFeedback" :title="isCollapsed ? '피드백' : null">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
             <span v-if="!isCollapsed">피드백</span>
           </button>
         </li>
 
         <!-- 보고서 -->
-        <li v-if="isLoggedIn">
-          <button :class="{ active: $route.path.startsWith('/Report') || $route.path.startsWith('/professor/report') }" @click="goReport" :title="isCollapsed ? '보고서' : null">
+        <li v-if="!isProfessorReadOnly && isLoggedIn">
+          <button :class="{ active: $route.path.startsWith('/ReportPage') || $route.path.startsWith('/professor/report') }" @click="goReport" :title="isCollapsed ? '보고서' : null">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
             <span v-if="!isCollapsed">보고서</span>
           </button>
@@ -63,7 +63,7 @@
         </li>
 
         <!-- 팀원 관리 -->
-        <li v-if="isLoggedIn">
+        <li v-if="!isProfessorReadOnly && isLoggedIn">
           <button
             :class="{ active: $route.path.startsWith('/TeamManagement') || $route.path.startsWith('/professor/team') }"
             @click="goTeam"
@@ -71,6 +71,14 @@
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><polyline points="17 11 19 13 23 9"></polyline></svg>
             <span v-if="!isCollapsed">팀원 관리</span>
+          </button>
+        </li>
+
+        <!-- PDF 문서 추출 -->
+        <li v-if="!isProfessorReadOnly && projectDetails.projectId">
+          <button @click="downloadPdf" :title="isCollapsed ? 'PDF 문서 추출' : null">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            <span v-if="!isCollapsed">PDF 문서 추출</span>
           </button>
         </li>
 
@@ -87,18 +95,15 @@
     <!-- 하단 설정/로그인 영역 -->
     <div class="sidebar-footer">
        <div v-if="isProfessorReadOnly" class="readonly-project-box">
-        <div class="project-badge">
-          <div class="badge-left">
-            <span class="project-name">{{ projectTitle }}</span>
-          </div>
-          <button class="return-btn" @click="goBack">돌아가기</button>
-        </div>
+        <button class="return-btn-new" @click="goBack" :title="isCollapsed ? '돌아가기' : null">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+          <span v-if="!isCollapsed">돌아가기</span>
+        </button>
       </div>
       <!-- 학생용 프로젝트 설정 -->
       <div v-if="!isProfessorReadOnly && projectDetails.projectId" class="project-settings">
         <!-- 설정 팝업 메뉴 -->
         <div v-if="showProjectActions" class="actions-popup">
-          <button class="popup-btn" @click="downloadPdf">📄 PDF 문서 추출</button>
           <button class="popup-btn leave" @click="leaveProject">🚪 프로젝트 탈퇴</button>
         </div>
         <!-- 설정 버튼 -->
@@ -315,7 +320,14 @@ const goTeam = createGoToFunction('/TeamManagement', 'professor/team')
 const goHelp = () => router.push('/HelpPage')
 const goMyTask = createGoToFunction('/TaskPage', 'professor/task')
 const goSchedule = createGoToFunction('/Scheduletest', 'professor/schedule')
-const goFeedback = createGoToFunction('/Feedback', 'professor/feedback')
+const goFeedback = () => {
+  if (isProfessorReadOnly.value) {
+    // 교수의 읽기 전용 모드에서는 MyProject 페이지의 피드백 탭으로 이동
+    router.push({ path: `/professor/project/${projectId.value}`, query: { ...route.query, step: '피드백' } });
+  } else {
+    router.push('/Feedback');
+  }
+}
 const goReport = createGoToFunction('/ReportPage', 'professor/report')
 </script>
 
@@ -437,6 +449,12 @@ const goReport = createGoToFunction('/ReportPage', 'professor/report')
   stroke-linecap: round;
   stroke-linejoin: round;
 }
+/* 모든 버튼의 SVG 아이콘에 공통 스타일 적용 */
+.return-btn-new svg,
+.settings-btn svg {
+  width: 20px;
+  height: 20px;
+}
 .sidebar-footer {
   padding: 16px;
   border-top: 1px solid #e2e8f0;
@@ -454,12 +472,36 @@ const goReport = createGoToFunction('/ReportPage', 'professor/report')
   color: #fff;
 }
 
-.readonly-project-box { margin-bottom: 1rem; }
+.readonly-project-box { padding: 0 12px; }
 .project-badge { display: flex; align-items: center; background: #fff; border-radius: 8px; padding: 4px 10px; }
 .badge-left { flex: 1; margin-right: 10px; }
 .project-name { font-size: 14px; font-weight: 700; color: #000; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .return-btn { background: #eee; border: 1px solid #ddd; border-radius: 6px; padding: 4px 8px; font-size: 12px; cursor: pointer; }
 
+.return-btn-new {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 16px;
+  background: none;
+  border: none;
+  color: var(--menu-text-color);
+  font-size: 1rem;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background-color 0.2s, color 0.2s;
+}
+.return-btn-new:hover {
+  background-color: var(--menu-text-hover-bg);
+  color: var(--menu-active-text);
+}
+.sidebar.collapsed .return-btn-new {
+  justify-content: center;
+  padding: 12px;
+}
 /* 모달 스타일 */
 .modal-overlay {
   position: fixed;
@@ -510,11 +552,6 @@ const goReport = createGoToFunction('/ReportPage', 'professor/report')
 .settings-btn:hover {
   background-color: var(--menu-text-hover-bg);
   color: var(--menu-active-text);
-}
-.settings-btn svg {
-  width: 20px;
-  height: 20px;
-  stroke: currentColor;
 }
 
 .actions-popup {

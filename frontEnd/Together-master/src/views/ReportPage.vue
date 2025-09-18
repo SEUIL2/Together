@@ -3,7 +3,12 @@
     <!-- 왼쪽: 보고서 목록 -->
     <aside class="report-sidebar">
       <div class="sidebar-header">
-        <h3>보고서 목록</h3>
+        <div class="sidebar-title-area">
+          <h3>보고서 목록</h3>
+          <select v-model="selectedCategoryFilter" class="category-filter">
+            <option v-for="(label, key) in filterCategories" :key="key" :value="key">{{ label }}</option>
+          </select>
+        </div>
         <button class="add-btn" @click="startNewReport">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
           <span>새 보고서 작성</span>
@@ -11,15 +16,23 @@
       </div>
       <ul class="report-list">
         <li
-          v-for="(report, index) in reports"
+          v-for="(report, index) in filteredReports"
           :key="report.id"
           :class="{ active: selectedIndex === index }"
           @click="selectReport(index)"
         >
-          <span class="report-list-title">{{ report.title }}</span>
-          <span class="report-list-date">{{ formatDate(report.createdAt || new Date()) }}</span>
+          <div class="report-list-content">
+            <span class="report-list-title">{{ report.title }}</span>
+            <div class="report-list-meta">
+              <span class="report-list-date">{{ formatDate(report.createdAt || new Date()) }}</span>
+              <span v-if="report.category" class="category-badge-list" :class="`category-${report.category}`">{{ categoryLabels[report.category] }}</span>
+            </div>
+          </div>
         </li>
       </ul>
+      <div v-if="filteredReports.length === 0" class="empty-list-message">
+        해당 카테고리의<br>보고서가 없습니다.
+      </div>
     </aside>
 
     <!-- 오른쪽: 보고서 상세 내용 또는 작성 폼 -->
@@ -148,8 +161,16 @@ const categoryLabels = {
   DEVELOPMENT: '개발',
   TEST: '테스트',
 };
+const filterCategories = {
+  ALL: '전체',
+  PLANNING: '기획',
+  DESIGN: '설계',
+  DEVELOPMENT: '개발',
+  TEST: '테스트',
+};
 const categories = ['PLANNING', 'DESIGN', 'DEVELOPMENT', 'TEST'];
 
+const selectedCategoryFilter = ref('ALL');
 const newReport = ref({
   id: null,
   title: '',
@@ -162,7 +183,17 @@ const newReport = ref({
   projectId: null,
 });
 
-const selectedReport = computed(() => (selectedIndex.value !== null ? reports.value[selectedIndex.value] : null));
+const filteredReports = computed(() => {
+  if (selectedCategoryFilter.value === 'ALL') {
+    return reports.value;
+  }
+  return reports.value.filter(report => report.category === selectedCategoryFilter.value);
+});
+
+watch(selectedCategoryFilter, () => {
+  selectedIndex.value = filteredReports.value.length > 0 ? 0 : null;
+});
+const selectedReport = computed(() => (selectedIndex.value !== null && filteredReports.value.length > selectedIndex.value ? filteredReports.value[selectedIndex.value] : null));
 const teamMemberNames = computed(() => teamMembers.value.map(m => m.userName).join(', '));
 const isProfessor = computed(() => me.value.role === 'PROFESSOR');
 
@@ -181,7 +212,7 @@ const fetchReports = async () => {
       reports.value = [];
       console.error('보고서 목록 API가 배열을 반환하지 않았습니다:', data);
     }
-    if (reports.value.length > 0 && selectedIndex.value === null) {
+    if (filteredReports.value.length > 0 && selectedIndex.value === null) {
       selectedIndex.value = 0;
     }
   } catch (error) {
@@ -245,7 +276,7 @@ const startEditingReport = () => {
 
 const cancelCreation = () => {
   isCreatingNew.value = false;
-  if (reports.value.length > 0) {
+  if (filteredReports.value.length > 0) {
     selectedIndex.value = 0;
   }
 };
@@ -279,9 +310,12 @@ const submitReport = async () => {
     }
     isCreatingNew.value = false;
     await fetchReports();
-    // 생성 또는 수정 후, 해당 보고서가 선택되도록 인덱스를 찾습니다.
-    // 여기서는 목록의 첫 번째 항목을 선택하는 것으로 단순화합니다.
-    selectedIndex.value = 0;
+    
+    // 생성 또는 수정 후, 해당 보고서를 선택합니다.
+    const newOrUpdatedReportId = newReport.value.id || (await axios.get('/reports')).data[0].id;
+    const newIndex = filteredReports.value.findIndex(r => r.id === newOrUpdatedReportId);
+    selectedIndex.value = newIndex !== -1 ? newIndex : 0;
+
   } catch (error) {
     console.error('보고서 제출/수정 실패:', error);
     alert('보고서 처리 중 오류가 발생했습니다.');
@@ -328,8 +362,8 @@ const deleteReport = async () => {
 };
 
 watch(isCreatingNew, (isCreating) => {
-  if (!isCreating && reports.value.length > 0 && selectedIndex.value === null) {
-    selectedIndex.value = 0;
+  if (!isCreating && filteredReports.value.length > 0 && selectedIndex.value === null) {
+    selectedIndex.value = filteredReports.value.length > 0 ? 0 : null;
   }
 });
 
@@ -338,36 +372,6 @@ watch(selectedReport, (newVal) => {
     isCreatingNew.value = false;
   }
 });
-
-/*
-기존 코드
-const submitReport = async () => {
-  if (!newReport.value.title || !newReport.value.category || !newReport.value.weeklyProgress || !newReport.value.futurePlans) {
-    alert('필수 항목을 모두 입력해주세요.');
-    return;
-  }
-
-  const reportData = {
-    ...newReport.value,
-    teamInfo: teamMemberNames.value,
-  };
-
-  try {
-    await axios.post('/reports', reportData);
-    alert('보고서가 성공적으로 제출되었습니다.');
-    isCreatingNew.value = false;
-    await fetchReports();
-  } catch (error) {
-    console.error('보고서 제출 실패:', error);
-    alert('보고서 제출 중 오류가 발생했습니다.');
-  }
-};
-
-watch(isCreatingNew, (isCreating) => {
-  if (!isCreating && reports.value.length > 0 && selectedIndex.value === null) {
-    selectedIndex.value = 0;
-  }
-});*/
 </script>
 
 <style scoped>
@@ -388,12 +392,27 @@ watch(isCreatingNew, (isCreating) => {
 }
 .sidebar-header {
   padding-bottom: 1rem;
-  border-bottom: 1px solid #e9ecef;
-}
-.sidebar-header h3 {
-  font-size: 1.1rem;
   margin-bottom: 1rem;
+  border-bottom: 1px solid #e9ecef;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.sidebar-title-area {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.sidebar-title-area h3 {
+  font-size: 1.1rem;
   color: #343a40;
+  margin: 0;
+}
+.category-filter {
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  width: 40%;
 }
 .add-btn {
   width: 100%;
@@ -415,8 +434,8 @@ watch(isCreatingNew, (isCreating) => {
 .report-list {
   list-style: none;
   padding: 0;
-  margin-top: 1rem;
   overflow-y: auto;
+  flex-grow: 1;
 }
 .report-list li {
   padding: 12px;
@@ -427,9 +446,40 @@ watch(isCreatingNew, (isCreating) => {
 }
 .report-list li:hover { background: #f1f3f5; }
 .report-list li.active { background: #eef6ff; color: #3f8efc; font-weight: 600; }
-.report-list-title { display: block; font-size: 15px; }
-.report-list-date { font-size: 12px; color: #868e96; }
-
+.report-list-content { display: flex; flex-direction: column; gap: 4px; width: 100%; }
+.report-list-title {
+  display: block;
+  font-size: 15px;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-grow: 1;
+}
+.report-list-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.report-list-date {
+  font-size: 12px;
+  color: #868e96;
+}
+.category-badge-list {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  color: white;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.empty-list-message {
+  text-align: center;
+  color: #adb5bd;
+  padding: 2rem 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
 /* --- 콘텐츠 영역 --- */
 .report-content {
   flex: 1;

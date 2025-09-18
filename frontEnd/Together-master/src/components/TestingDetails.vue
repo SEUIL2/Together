@@ -148,7 +148,7 @@
         v-if="showFeedbackInput"
         :x="feedbackPosition.x"
         :y="feedbackPosition.y"
-        :page="'test-table'"
+        :page="`test-${currentTab.type.toLowerCase()}`"
         :readonly="true"
         :projectId="resolvedProjectId"
         @close="showFeedbackInput = false"
@@ -359,9 +359,10 @@ async function fetchRowsForTab(tab) {
 
 async function loadFeedbacks() {
   if (!resolvedProjectId.value) return
+  const pageIdentifier = `test-${currentTab.value.type.toLowerCase()}`;
   try {
     const { data } = await axios.get('/feedbacks/project', {
-      params: { page: 'test-table', projectId: resolvedProjectId.value },
+      params: { page: pageIdentifier, projectId: resolvedProjectId.value },
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true,
     })

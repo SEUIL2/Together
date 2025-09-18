@@ -8,6 +8,9 @@
           <option v-for="(label, key) in categories" :key="key" :value="key">{{ label }}</option>
         </select>
       </div>
+      <div class="add-btn-container">
+        <button class="add-btn" @click="addMeeting">회의 생성</button>
+      </div>
       <ul>
         <li
           v-for="(meeting, index) in filteredMeetings"
@@ -24,7 +27,6 @@
           </div>
         </li>
       </ul>
-      <button class="add-btn" @click="addMeeting">회의 생성</button>
     </aside>
 
     <!-- 오른쪽: 회의 상세 -->
@@ -202,7 +204,7 @@ onMounted(() => {
 
 /* 사이드바 */
 .sidebar {
-  width: 220px;
+  width: 260px;
   background: #fff;
   border-right: 1px solid #ddd;
   padding: 1rem;
@@ -216,8 +218,13 @@ onMounted(() => {
   align-items: baseline;
   padding-bottom: 0.5rem;
   margin-bottom: 0.5rem;
-  border-bottom: 1px solid #eee;
   margin-top: -10%;
+}
+
+.add-btn-container {
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #eee;
 }
 
 .sidebar h3 {
@@ -288,16 +295,15 @@ onMounted(() => {
 .add-btn {
   width: 100%;
   padding: 10px;
-  background: #adadad;
+  background: #3f8efc;
   color: white;
   border: none;
   border-radius: 4px;
-  margin-top: 1rem;
   flex-shrink: 0; /* 버튼 크기가 줄어들지 않도록 고정 */
   cursor: pointer;
 }
 .add-btn:hover {
-    background-color: rgb(138, 138, 138);
+    background-color: #3578e5;
 
   }
 

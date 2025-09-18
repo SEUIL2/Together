@@ -9,7 +9,7 @@
       </div>
 
       <!-- 메뉴 영역: 여기에 마우스를 올리면 드롭다운 표시 -->
-      <nav class="main-nav" @mouseenter="showAllSubmenus = true">
+      <nav v-if="!isProfessor || isProfessorReadOnly" class="main-nav" @mouseenter="showAllSubmenus = true">
         <ul>
           <li><button :class="{ active: $route.query.step === '기획' }" @click="goToStep('기획')">기획</button></li>
           <li><button :class="{ active: $route.query.step === '설계' }" @click="goToStep('설계')">설계</button></li>
@@ -43,7 +43,7 @@
     />
 
     <!-- 메가 메뉴 드롭다운 -->
-    <div class="mega-menu-container" :class="{ open: showAllSubmenus }" @mouseenter="showAllSubmenus = true" @mouseleave="showAllSubmenus = false">
+    <div v-if="!isProfessor || isProfessorReadOnly" class="mega-menu-container" :class="{ open: showAllSubmenus }" @mouseenter="showAllSubmenus = true" @mouseleave="showAllSubmenus = false">
       <div class="mega-menu-content">
         <!-- 기획 컬럼 -->
         <div class="mega-menu-column">
@@ -85,9 +85,12 @@ const router = useRouter()
 const route = useRoute()
 
 const isLoggedIn = ref(false)
+const userRole = ref('');
 const showMenu = ref(false)
 const showProfileModal = ref(false)
 const settingsRef = ref(null)
+
+const isProfessor = computed(() => userRole.value === 'PROFESSOR');
 
 const isProfessorReadOnly = computed(() => route.query.readonly === 'true')
 const projectId = computed(() => {
@@ -105,6 +108,8 @@ const goMyDashBoard = () => {
     router.push(
       `/professor/dashboard/${projectId.value}?readonly=true&projectTitle=${projectTitle.value}`
     )
+  } else if (isProfessor.value) {
+    router.push('/professor/MainPage');
   } else {
     router.push('/DashBoard')
   }
@@ -153,13 +158,17 @@ const checkLoginStatus = async () => {
     if (authHeader) {
       axios.defaults.headers.common['Authorization'] = authHeader
     }
-    await axios.get('/auth/me', {
+    const response = await axios.get('/auth/me', {
       headers: { Authorization: authHeader },
       withCredentials: true,
     })
-    isLoggedIn.value = true
+    isLoggedIn.value = true;
+    const roles = response.data.roles || [];
+    const isProf = roles.some(role => role.authority === 'ROLE_PROFESSOR');
+    userRole.value = isProf ? 'PROFESSOR' : 'STUDENT';
   } catch {
-    isLoggedIn.value = false
+    isLoggedIn.value = false;
+    userRole.value = '';
   }
 }
 
@@ -222,8 +231,15 @@ const goToStep = (stepName) => {
 }
 
 const goToSubStep = (step, subStepType) => {
-  router.push({ path: '/MyProject', query: { step, substep: subStepType } });
-
+  // 교수의 읽기 전용 모드일 경우, 현재 경로와 쿼리를 유지하며 이동
+  if (isProfessorReadOnly.value && projectId.value) {
+    router.push({
+      path: `/professor/project/${projectId.value}`,
+      query: { ...route.query, step, substep: subStepType }
+    });
+  } else {
+    router.push({ path: '/MyProject', query: { step, substep: subStepType } });
+  }
   // 클릭 후 모든 드롭다운 메뉴 닫기
   showAllSubmenus.value = false;
 };

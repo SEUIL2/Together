@@ -1,9 +1,15 @@
 <!-- App.vue -->
 <template>
   <div id="app" :class="{ 'has-sidebar': showLayout, 'sidebar-collapsed': isSidebarCollapsed }">
-    <!-- 특정 페이지가 아닐 때만 사이드바와 헤더 표시 -->
+    <!-- 교수 전용 페이지 사이드바 -->
+    <ProfessorSidebar
+      v-if="showLayout && isProfessorGlobalView"
+      :is-collapsed="isSidebarCollapsed"
+      @toggle="toggleSidebar"
+    />
+    <!-- 학생 또는 교수 프로젝트 조회용 사이드바 -->
     <SideBar
-      v-if="showLayout"
+      v-else-if="showLayout"
       :is-collapsed="isSidebarCollapsed"
       @toggle="toggleSidebar"
     />
@@ -20,6 +26,7 @@ import { ref, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import HeaderBar from '@/components/HeaderBar.vue';
 import SideBar from '@/components/SideBar.vue';
+import ProfessorSidebar from '@/components/ProfessorSidebar.vue';
 
 
 const route = useRoute();
@@ -29,10 +36,16 @@ const toggleSidebar = () => {
   isSidebarCollapsed.value = !isSidebarCollapsed.value;
 };
 
+// 교수님 전용 페이지(프로젝트 상세 조회가 아닌)인지 확인
+const isProfessorGlobalView = computed(() => {
+  // /professor/ 로 시작하지만, projectId 파라미터가 없는 경우
+  return route.path.startsWith('/professor/') && !route.params.projectId;
+});
+
 // 레이아웃(헤더, 사이드바)을 표시할지 여부를 결정합니다.
 const showLayout = computed(() => {
   // 로그인, 회원가입, 프로젝트 생성, 랜딩 페이지에서는 숨깁니다.
-  return !['/', '/login', '/Login', '/Signup', '/CreateProject'].includes(route.path);
+  return !['/', '/login', '/Login', '/Signup', '/CreateProject', '/SignupDetails', '/EmailVerification'].includes(route.path);
 });
 </script>
 

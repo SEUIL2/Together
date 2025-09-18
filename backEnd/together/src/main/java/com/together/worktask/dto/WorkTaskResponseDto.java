@@ -2,6 +2,7 @@
 package com.together.worktask.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.together.report.ReportCategory;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
@@ -47,4 +48,6 @@ public class WorkTaskResponseDto {
 
     /** 하위 작업들 (재귀 구조) */
     private List<WorkTaskResponseDto> childTasks;
+
+    private ReportCategory category; //카테고리
 }

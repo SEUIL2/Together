@@ -42,6 +42,7 @@ public class WorkTaskService {
         task.setDescription(dto.getDescription());
         task.setStartDate(dto.getStartDate());
         task.setEndDate(dto.getEndDate());
+        task.setCategory(dto.getCategory());
         if (dto.getStatus() != null && !dto.getStatus().isBlank()) {
             try {
                 task.setStatus(WorkTaskStatus.valueOf(dto.getStatus().toUpperCase()));
@@ -140,6 +141,7 @@ public class WorkTaskService {
         task.setDescription(dto.getDescription());
         task.setStartDate(dto.getStartDate());
         task.setEndDate(dto.getEndDate());
+        task.setCategory(dto.getCategory());
         if (dto.getStatus() != null && !dto.getStatus().isBlank()) {
             try {
                 task.setStatus(WorkTaskStatus.valueOf(dto.getStatus().toUpperCase()));
@@ -219,7 +221,8 @@ public class WorkTaskService {
                 t.getAssignedUser() != null ? t.getAssignedUser().getUserName() : null,
                 t.getStatus() != null ? t.getStatus().name() : null,
                 t.getParentTask() != null ? t.getParentTask().getId() : null,
-                children
+                children,
+                t.getCategory()
         );
     }
 }

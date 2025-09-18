@@ -123,7 +123,6 @@
       입력 후 포커스를 벗어나면 자동으로 저장되며, 완료 체크는 즉시 반영됩니다.
     </p>
 
-    <!-- 피드백 마커 -->
     <div
         v-for="fb in feedbacks"
         :key="fb.feedbackId"
@@ -134,7 +133,6 @@
       📌
     </div>
 
-    <!-- 피드백 팝업 -->
     <FeedbackPopup
         v-if="selectedFeedback"
         :fb="selectedFeedback"
@@ -143,7 +141,6 @@
         @close="selectedFeedback = null"
     />
 
-    <!-- 피드백 입력 -->
     <FeedbackInput
         v-if="showFeedbackInput"
         :x="feedbackPosition.x"
@@ -218,10 +215,10 @@ const tabConfigs = {
         type: 'input',
         placeholder: 'OrderService.calculatePrice',
       },
-      { key: 'caseDesc', label: '케이스 설명', type: 'textarea', rows: 2 },
-      { key: 'inputs', label: '입력 / 조건', type: 'textarea', rows: 2 },
-      { key: 'expectedResult', label: '기대 결과', type: 'textarea', rows: 2 },
-      { key: 'actualResult', label: '실제 결과', type: 'textarea', rows: 2 },
+      { key: 'caseDesc', label: '케이스 설명', type: 'input' },
+      { key: 'inputs', label: '입력 / 조건', type: 'input' },
+      { key: 'expectedResult', label: '기대 결과', type: 'input' },
+      { key: 'actualResult', label: '실제 결과', type: 'input' },
       { key: 'caseType', label: '유형', type: 'input', placeholder: '정상 / 예외' },
       {
         key: 'linkedIntegrationId',

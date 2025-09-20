@@ -1,5 +1,6 @@
 package com.together.user.professor.feedback.DTO;
 
+import com.together.user.professor.feedback.FeedbackCategory;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -16,4 +17,5 @@ public class FeedbackSummaryDto {
     private String text;
     private Long authorId;
     private Boolean isRead;
+    private FeedbackCategory category;
 }

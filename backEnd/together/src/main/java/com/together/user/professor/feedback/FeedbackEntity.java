@@ -34,7 +34,6 @@ public class FeedbackEntity {
     @CreationTimestamp
     private LocalDateTime createdAt; //만들어진 날짜
 
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_id")
     private ProjectEntity project;
@@ -47,4 +46,8 @@ public class FeedbackEntity {
     private List<FeedbackReadEntity> feedbacks = new ArrayList<>(); //피드백 읽었는지에 대한 엔티티
 
     private Boolean isRead = false;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private FeedbackCategory category;
 }

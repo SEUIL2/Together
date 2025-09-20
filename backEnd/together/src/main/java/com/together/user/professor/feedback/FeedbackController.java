@@ -48,7 +48,8 @@ public class FeedbackController {
                 feedback.getText(),
                 userDetails.getUsername(), // author
                 feedback.getCreatedAt(),
-                feedback.getIsRead()
+                feedback.getIsRead(),
+                feedback.getCategory()
         );
         return ResponseEntity.ok(response);
     }
@@ -91,7 +92,8 @@ public class FeedbackController {
                 feedback.getText(),
                 feedback.getAuthor().getUserName(),
                 feedback.getCreatedAt(),
-                feedback.getIsRead()
+                feedback.getIsRead(),
+                feedback.getCategory()
         );
         return ResponseEntity.ok(response);
     }

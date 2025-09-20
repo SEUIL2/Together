@@ -40,6 +40,8 @@ public class FeedbackService {
         feedback.setY(dto.getY());
         feedback.setText(dto.getText());
         feedback.setIsRead(false); //false로 명시
+        feedback.setCategory(dto.getCategory());
+        feedback.setCreatedAt(LocalDateTime.now());
 
         return feedbackRepository.save(feedback);
     }
@@ -59,7 +61,8 @@ public class FeedbackService {
                             feedback.getPage(),
                             feedback.getText(),
                             feedback.getAuthor().getUserId(),
-                            feedback.getIsRead()
+                            feedback.getIsRead(),
+                            feedback.getCategory()
                             //readFeedbackIds.contains(feedback.getFeedbackId())
                     ))
                     .collect(Collectors.toList());
@@ -73,7 +76,8 @@ public class FeedbackService {
                             feedback.getPage(),
                             feedback.getText(),
                             feedback.getAuthor().getUserId(),
-                            true // 교수가 작성한 피드백은 본인이므로 항상 읽은 상태(고정값)
+                            true, // 교수가 작성한 피드백은 본인이므로 항상 읽은 상태(고정값)
+                            feedback.getCategory()
                     ))
                     .collect(Collectors.toList());
         }
@@ -102,7 +106,8 @@ public class FeedbackService {
                         fb.getText(),
                         fb.getAuthor().getUserName(),
                         fb.getCreatedAt(),
-                        fb.getIsRead()
+                        fb.getIsRead(),
+                        fb.getCategory()
                 )).toList();
     }
 

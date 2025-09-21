@@ -61,7 +61,7 @@
         >
           <td class="delete-cell">
             <button
-                v-if="!isReadOnly && hoveredRow === row.id"
+                v-if="!isReadOnly"
                 class="delete-btn"
                 title="삭제"
                 @click="deleteRow(currentTab.type, row.id)"
@@ -553,7 +553,6 @@ watch(
   transform: translateY(-2px);
   box-shadow: 0 14px 24px rgba(79, 70, 229, 0.35);
 }
-
 .table-wrapper {
   overflow-x: auto;
   background-color: #fff;
@@ -562,8 +561,7 @@ watch(
 }
 
 .test-table {
-  width: 100%;
-  min-width: 980px;
+  width: auto; /* 테이블 너비를 내용에 따라 자동으로 조절하도록 변경 */
   border-collapse: separate;
   border-spacing: 0;
 }
@@ -578,6 +576,7 @@ watch(
   font-weight: 700;
   text-align: left;
   border-bottom: 1px solid #cbd5f5;
+  white-space: nowrap;
   z-index: 1;
 }
 
@@ -586,6 +585,7 @@ watch(
   padding: 12px 16px;
   vertical-align: top;
   background-color: #fff;
+  white-space: nowrap;
 }
 
 .table-row:hover td {
@@ -595,6 +595,7 @@ watch(
 .cell textarea,
 .cell input[type='text'] {
   width: 100%;
+  /* min-width를 제거하여 칸의 너비가 내용에 맞게 줄어들 수 있도록 함 */
   font-size: 13px;
   padding: 8px 10px;
   border: 1px solid #cbd5f5;
@@ -659,6 +660,7 @@ watch(
 .delete-cell {
   width: 50px;
   text-align: center;
+  vertical-align: middle; /* 아이콘을 세로 중앙에 위치시키기 위함 */
 }
 
 .delete-btn {
@@ -667,7 +669,14 @@ watch(
   cursor: pointer;
   font-size: 18px;
   color: #ef4444;
-  transition: transform 0.2s ease, color 0.2s ease;
+  /* 기본적으로 투명하게 만들어 보이지 않게 처리 */
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease, color 0.2s ease;
+}
+
+/* 행에 마우스를 올렸을 때 휴지통 아이콘이 보이도록 변경 */
+.table-row:hover .delete-btn {
+  opacity: 1;
 }
 
 .delete-btn:hover {

@@ -1,100 +1,61 @@
-나의 말:
 <template>
-  <div v-if="visible" class="modal-overlay">
-    <div class="modal-container">
-      <!-- 모달 종료 버튼 -->
+  <div v-if="visible" class="modal-overlay" @click="closeModal">
+    <div class="modal-container" @click.stop>
       <button class="close-btn" @click="closeModal">&times;</button>
       <h2 class="modal-title">프로필 설정</h2>
-      <!-- 입력 영역 -->
+
       <div class="profile-settings">
-        <!-- 좌측 폼 -->
         <div class="form-section">
           <div class="form-group">
             <label for="name">이름</label>
-            <input
-                id="name"
-                v-model="userName"
-                type="text"
-                placeholder="이름을 입력하세요"
-            />
-            <small>기여한 프로젝트에 표시될 이름입니다. 언제든지 변경할 수 있습니다.</small>
+            <input id="name" v-model="userName" type="text" placeholder="이름을 입력하세요" />
+            <small>프로젝트에 표시될 이름입니다. 언제든지 변경할 수 있습니다.</small>
           </div>
 
           <div class="form-group">
             <label for="email">이메일</label>
-            <input
-                id="email"
-                v-model="userEmail"
-                type="email"
-                disabled
-            />
-            <small>다른 사람들이 알게 될 이메일 주소입니다. 변경할 수 없습니다.</small>
+            <input id="email" v-model="userEmail" type="email" disabled />
+            <small>계정의 이메일 주소입니다. 변경할 수 없습니다.</small>
           </div>
 
           <div class="form-group">
             <label for="bio">자기소개</label>
-            <textarea
-                id="bio"
-                v-model="bio"
-                placeholder="나를 소개하는 말을 적어 보세요."
-                rows="3"
-            ></textarea>
+            <textarea id="bio" v-model="bio" placeholder="나를 소개하는 말을 적어 보세요." rows="4"></textarea>
             <small>다른 사람들에게 표시될 자기소개입니다.</small>
           </div>
 
-          <!-- 색상 선택 (설명은 아래로) -->
+          <div class="form-group delete-section">
+            <label>회원 탈퇴</label>
+            <button class="btn-delete" @click="deleteAccount">회원 탈퇴</button>
+            <small>탈퇴 시 모든 정보가 영구 삭제되며, 복구할 수 없습니다.</small>
+          </div>
+        </div>
+
+        <div class="side-section">
+          <div class="image-section">
+            <label>프로필 사진</label>
+            <div class="image-wrapper">
+              <img :src="profileImageUrl || defaultImage" alt="Profile Image" class="profile-image" />
+              <button class="edit-image-btn" @click="triggerFileInput" title="이미지 변경">
+                ✎
+              </button>
+              <input ref="fileInput" type="file" accept="image/*" @change="onFileChange" style="display: none;" />
+            </div>
+          </div>
+
           <div class="form-group">
             <label>테마 색상</label>
             <div class="color-picker-section">
-              <div
-                  class="color-circle"
-                  :style="{ backgroundColor: userColor }"
-                  @click="toggleColorMenu"
-              ></div>
+              <div class="color-circle" :style="{ backgroundColor: userColor }" @click="toggleColorMenu"></div>
               <div v-if="showColorMenu" class="color-menu">
-                <div
-                    v-for="color in availableColors"
-                    :key="color"
-                    class="color-option"
-                    :style="{ backgroundColor: color }"
-                    @click="selectColor(color)"
-                ></div>
+                <div v-for="color in availableColors" :key="color" class="color-option" :style="{ backgroundColor: color }" @click="selectColor(color)"></div>
               </div>
             </div>
             <small>프로필에 적용할 테마 색상을 선택하세요.</small>
           </div>
-
-          <!-- 회원 탈퇴 섹션 -->
-          <div class="form-group delete-section">
-            <label>회원 탈퇴</label>
-            <button class="btn-delete" @click="deleteAccount">회원 탈퇴</button>
-            <small>회원 탈퇴 시 모든 정보가 영구 삭제됩니다.</small>
-          </div>
-        </div>
-
-        <!-- 우측 이미지 -->
-        <div class="image-section">
-          <div class="image-wrapper">
-            <img
-                :src="profileImageUrl || defaultImage"
-                alt="Profile Image"
-                class="profile-image"
-            />
-            <button class="edit-image-btn" @click="triggerFileInput">
-              ✎
-            </button>
-            <input
-                ref="fileInput"
-                type="file"
-                accept="image/*"
-                @change="onFileChange"
-                style="display: none;"
-            />
-          </div>
         </div>
       </div>
 
-      <!-- 저장 버튼 (프로필 사진 아래, 오른쪽 끝) -->
       <div class="save-container">
         <button class="btn-save" @click="saveProfile">저장</button>
       </div>
@@ -103,27 +64,23 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from 'vue'
+import {ref, watch, onMounted} from 'vue'
 import axios from 'axios'
-import { useRouter } from 'vue-router'
+import {useRouter} from 'vue-router'
 import defaultImage from '@/assets/defaultimage.png'
 
 // Props
 const props = defineProps({
-  visible: { type: Boolean, default: false }
+  visible: {type: Boolean, default: false}
 })
 const emit = defineEmits(['close', 'updated'])
 
 const router = useRouter()
 
-// // Axios 기본 설정
-// const API_URL = 'http://localhost:8081'
-// axios.defaults.baseURL = API_URL
-// axios.defaults.withCredentials = true
 const authHeader = localStorage.getItem('authHeader')
 if (authHeader) axios.defaults.headers.common['Authorization'] = authHeader
 
-// reactive data
+// State
 const userId = ref(null)
 const userName = ref('')
 const userEmail = ref('')
@@ -134,8 +91,7 @@ const theme = ref('LIGHT')
 const fileInput = ref(null)
 
 const axiosInstance = axios.create({
- baseURL: 'http://localhost:8081', // 꼭 백엔드 주소 맞게
-  //  baseURL: 'http://25.12.59.4:3000', // 건우 주소
+  baseURL: 'http://localhost:8081',
   headers: {
     'Authorization': localStorage.getItem('authHeader') || ''
   },
@@ -146,41 +102,32 @@ axiosInstance.interceptors.request.use(config => {
   const token = localStorage.getItem('authHeader')
   if (token) {
     config.headers.Authorization = token
-  } else {
-    delete config.headers.Authorization
   }
   return config
 })
 
-
-// 색상 옵션
-const availableColors = ['#FF5733', '#33FF57', '#3357FF', '#FFD133', '#33FFF2']
+const availableColors = ['#FF8C00', '#F44336', '#2196F3', '#4CAF50', '#9C27B0']
 const showColorMenu = ref(false)
 
-// 모달 닫기
 function closeModal() {
   emit('close')
 }
 
-// 프로필 조회 및 userId 설정
 async function fetchProfile() {
   try {
-    const res = await axiosInstance.get('/users/profile')
-    const data = res.data
-    userId.value           = data.userId
-    userName.value         = data.userName
-    userEmail.value        = data.userEmail
-    bio.value              = data.bio
-    profileImageUrl.value  = data.profileImageUrl
-    theme.value            = data.theme || theme.value
-    // 유저 색상 조회
-    try {
-      const memberRes = await axiosInstance.get('/projects/members')
-      const me = memberRes.data.find(m => m.userId === userId.value)
-      userColor.value = me?.userColor || userColor.value
-    } catch (colorErr) {
-      console.error('색상 조회 실패', colorErr)
-    }
+    const {data} = await axiosInstance.get('/users/profile')
+    userId.value = data.userId
+    userName.value = data.userName
+    userEmail.value = data.userEmail
+    bio.value = data.bio
+    profileImageUrl.value = data.profileImageUrl
+    theme.value = data.theme || 'LIGHT'
+
+    // Fetch user color
+    const memberRes = await axiosInstance.get('/projects/members')
+    const me = memberRes.data.find(m => m.userId === userId.value)
+    userColor.value = me?.userColor || '#cccccc'
+
   } catch (err) {
     console.error('프로필 조회 실패', err)
     if (err.response?.status === 401 || err.response?.status === 403) {
@@ -193,9 +140,6 @@ async function fetchProfile() {
   }
 }
 
-
-
-// 프로필 저장
 async function saveProfile() {
   try {
     await axiosInstance.put('/users/profile', {
@@ -213,12 +157,10 @@ async function saveProfile() {
   }
 }
 
-// 이미지 업로드 트리거
 function triggerFileInput() {
   fileInput.value.click()
 }
 
-// 파일 변경 시 이미지 업로드
 async function onFileChange(e) {
   const file = e.target.files[0]
   if (!file) return
@@ -228,9 +170,8 @@ async function onFileChange(e) {
     const res = await axiosInstance.put(
         '/users/profile/image',
         formData,
-        { headers: { 'Content-Type': 'multipart/form-data' } }
+        {headers: {'Content-Type': 'multipart/form-data'}}
     )
-    console.log('▶ upload response.data:', res.data)
     profileImageUrl.value = res.data
     alert('프로필 이미지가 업데이트되었습니다.')
   } catch (err) {
@@ -239,23 +180,21 @@ async function onFileChange(e) {
   }
 }
 
-// 색상 메뉴 토글
 function toggleColorMenu() {
   showColorMenu.value = !showColorMenu.value
 }
 
-// 색상 선택 및 서버 저장
 async function selectColor(color) {
   if (!userId.value) {
     alert('사용자 정보를 불러오는 중입니다. 잠시만 기다려주세요.')
     return
   }
   try {
-     await axiosInstance.put(
-             `/projects/members/${userId.value}/color`,
-             null,
-             { params: { colorHex: color } }
-         )
+    await axiosInstance.put(
+        `/projects/members/${userId.value}/color`,
+        null,
+        {params: {colorHex: color}}
+    )
     userColor.value = color
     showColorMenu.value = false
     alert('색상이 성공적으로 저장되었습니다.')
@@ -265,23 +204,21 @@ async function selectColor(color) {
   }
 }
 
-// 회원 탈퇴
 async function deleteAccount() {
-  const ok = confirm('정말로 회원 탈퇴하시겠습니까? 탈퇴하면 모든 정보가 삭제됩니다.')
+  const ok = confirm('정말로 회원 탈퇴하시겠습니까? 모든 정보가 영구적으로 삭제됩니다.')
   if (!ok) return
 
   try {
     await axiosInstance.delete('/auth/me')
     alert('회원 탈퇴가 완료되었습니다. 그동안 이용해 주셔서 감사합니다.')
     localStorage.removeItem('authHeader')
-    router.push({ name: 'MainPage' })
+    router.push({name: 'MainPage'})
   } catch (err) {
     console.error('회원 탈퇴 실패', err)
     alert('회원 탈퇴 중 오류가 발생했습니다.')
   }
 }
 
-// 모달 visible 변경 시 프로필 다시 로드
 watch(() => props.visible, (newVal) => {
   if (newVal) fetchProfile()
 })
@@ -294,158 +231,235 @@ onMounted(() => {
 <style scoped>
 .modal-overlay {
   position: fixed;
-  top: 0;
+  top: 0; /* 어두운 배경이 화면 전체를 덮도록 top: 0 으로 수정 */
   left: 0;
   width: 100%;
-  height: 100%;
-  background-color: rgba(0,0,0,0.4);
+  height: 100%; /* 어두운 배경이 화면 전체를 덮도록 height: 100% 으로 수정 */
+  background-color: rgba(0, 0, 0, 0.6);
   display: flex;
-  align-items: center;
-  justify-content: center;
+  justify-content: center; /* 가로 중앙 정렬 */
+  align-items: flex-start; /* 세로 정렬 기준을 상단으로 변경 */
   z-index: 1000;
+  overflow-y: auto; /* 모달 컨텐츠가 길어질 경우 스크롤을 위함 */
 }
+
 .modal-container {
+  margin-top: 100px; /* 요청하신대로 100px만큼 상단 여백 추가 */
+  margin-bottom: 50px; /* 하단 여백 추가 (스크롤 시 보기 좋게) */
   position: relative;
   background: #fff;
-  border-radius: 8px;
-  padding: 24px;
-  width: 800px;
-  max-width: 95%;
+  border-radius: 16px;
+  padding: 28px 32px;
+  width: 100%;
+  max-width: 800px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  animation: fadeIn 0.3s ease-out;
 }
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 .close-btn {
   position: absolute;
   top: 16px;
   right: 16px;
   background: transparent;
   border: none;
-  font-size: 1.5rem;
+  font-size: 1.8rem;
   cursor: pointer;
+  color: #888;
 }
+
 .modal-title {
-  margin-bottom: 16px;
-  font-size: 1.5rem;
-  border-bottom: 1px solid #ddd;
-  padding-bottom: 8px;
+  margin-bottom: 24px;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #333;
 }
+
 .profile-settings {
   display: flex;
-  gap: 24px;
+  gap: 32px;
 }
+
 .form-section {
   flex: 1;
-  display: flex;
-  flex-direction: column;
 }
+
 .form-group {
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
+
 .form-group label {
   display: block;
-  margin-bottom: 4px;
-  font-weight: bold;
+  margin-bottom: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #555;
 }
+
 .form-group input,
 .form-group textarea {
   width: 100%;
-  padding: 8px;
+  padding: 12px;
   border: 1px solid #ccc;
-  border-radius: 4px;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
-/* 색상 선택: 레이아웃 분리 */
-.color-picker-section {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+
+.form-group textarea {
+  resize: none;
 }
-.color-circle {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  cursor: pointer;
-  border: 1px solid #ccc;
+
+.form-group input:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #3f8efc;
+  box-shadow: 0 0 0 3px rgba(63, 142, 252, 0.2);
 }
-.color-menu {
-  display: flex;
-  gap: 8px;
-  margin-top: 4px;
-}
-.color-option {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  cursor: pointer;
-  border: 1px solid #ccc;
-}
+
 .form-group small {
   display: block;
-  margin-top: 4px;
-  color: #666;
-  font-size: 0.85rem;
+  margin-top: 6px;
+  color: #777;
+  font-size: 0.8rem;
 }
-/* 회원 탈퇴 버튼 스타일 */
-.btn-delete {
-  padding: 10px 20px;
-  background-color: #c0392b;
-  color: #fff;
-  border: none;
-  border-radius: 20px;
-  cursor: pointer;
-  margin-top: 4px;
-}
-.btn-delete:hover {
-  background-color: #a93226;
-}
-.image-section {
-  width: 200px;
+
+.side-section {
+  width: 220px;
   display: flex;
-  justify-content: center;
-  align-items: flex-start;   /* 중앙 → 상단 정렬 */
-  padding-top: 8px;          /* 제목과 적당한 여백 */
+  flex-direction: column;
+  align-items: center;
+}
+
+.image-section {
+  width: 100%;
+  text-align: center;
+  margin-bottom: 24px;
 }
 
 .image-wrapper {
   position: relative;
-  width: 200px;
-  height: 200px;
+  width: 180px;
+  height: 180px;
+  margin: 0 auto;
 }
+
 .profile-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
   border-radius: 50%;
+  border: 4px solid #fff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
+
 .edit-image-btn {
   position: absolute;
-  bottom: 8px;
-  left: 8px;
+  bottom: 10px;
+  right: 10px;
   background: #fff;
-  border: none;
-  border-radius: 4px;
-  padding: 6px;
-  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  font-size: 1.2rem;
   cursor: pointer;
-  box-shadow: 0 0 4px rgba(0,0,0,0.2);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-/* 저장 버튼 컨테이너: 모달 오른쪽 끝 정렬 */
+
+.color-picker-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: relative;
+}
+
+.color-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.color-menu {
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  position: absolute;
+  top: 45px;
+  left: 0;
+  z-index: 1;
+}
+
+.color-option {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid #fff;
+  transition: transform 0.2s;
+}
+
+.color-option:hover {
+  transform: scale(1.1);
+}
+
+.delete-section {
+  margin-top: auto;
+  padding-top: 20px;
+  border-top: 1px solid #eee;
+}
+
+.btn-delete {
+  padding: 10px 20px;
+  background-color: #e74c3c;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.btn-delete:hover {
+  background-color: #c0392b;
+}
+
 .save-container {
-  margin-top: 16px;
+  margin-top: 24px;
   display: flex;
   justify-content: flex-end;
 }
+
 .btn-save {
-  padding: 10px 20px;
-  background-color: #555;
+  padding: 12px 24px;
+  background-color: #3f8efc;
   color: #fff;
   border: none;
-  border-radius: 20px;
+  border-radius: 8px;
   cursor: pointer;
+  font-weight: 600;
+  font-size: 1rem;
 }
+
 .btn-save:hover {
-  background-color: #444;
-}
-/* 회원 탈퇴 설명 텍스트 간격 */
-.delete-section small {
-  margin-top: 4px;
-  display: block;
+  background-color: #3578e5;
 }
 </style>

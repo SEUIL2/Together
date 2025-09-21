@@ -553,6 +553,7 @@ watch(
   transform: translateY(-2px);
   box-shadow: 0 14px 24px rgba(79, 70, 229, 0.35);
 }
+
 .table-wrapper {
   overflow-x: auto;
   background-color: #fff;
@@ -561,7 +562,7 @@ watch(
 }
 
 .test-table {
-  width: auto; /* 테이블 너비를 내용에 따라 자동으로 조절하도록 변경 */
+  width: auto; /* 테이블 너비를 내용에 따라 자동으로 조절 */
   border-collapse: separate;
   border-spacing: 0;
 }
@@ -576,7 +577,7 @@ watch(
   font-weight: 700;
   text-align: left;
   border-bottom: 1px solid #cbd5f5;
-  white-space: nowrap;
+  white-space: nowrap; /* 헤더 텍스트 줄바꿈 방지 */
   z-index: 1;
 }
 
@@ -585,7 +586,7 @@ watch(
   padding: 12px 16px;
   vertical-align: top;
   background-color: #fff;
-  white-space: nowrap;
+  white-space: nowrap; /* 셀 내용 줄바꿈 방지 */
 }
 
 .table-row:hover td {
@@ -595,7 +596,7 @@ watch(
 .cell textarea,
 .cell input[type='text'] {
   width: 100%;
-  /* min-width를 제거하여 칸의 너비가 내용에 맞게 줄어들 수 있도록 함 */
+  min-width: 120px; /* 모든 입력 필드에 최소 너비(120px)를 지정합니다. */
   font-size: 13px;
   padding: 8px 10px;
   border: 1px solid #cbd5f5;

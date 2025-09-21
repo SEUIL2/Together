@@ -96,7 +96,7 @@ body,
 
 /* 사이드바가 없을 때의 콘텐츠 영역 */
 .content {
-  padding-top: 60px;
+  /* padding-top: 60px;  <-- 이 줄을 삭제하거나 주석 처리 */
   transition: padding-left 0.3s ease-in-out;
 }
 

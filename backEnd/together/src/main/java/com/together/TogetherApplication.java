@@ -1,4 +1,4 @@
-package com.together.application;
+package com.together;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

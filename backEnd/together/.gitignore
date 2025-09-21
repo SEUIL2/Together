@@ -77,7 +77,6 @@ Thumbs.db
 .cache/
 *.class
 *.war
-*.jar
 *.ear
 
 # .gitignore 파일에 추가

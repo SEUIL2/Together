@@ -623,5 +623,21 @@ public class ProjectService {
         }
         return members;
     }
+
+    /**
+     * 교수의 프로젝트를 개발 언어로 검색하는 기능
+     */
+    public List<ProjectResponseDto> searchProjectsByLanguage(Long professorId, String language) {
+        List<ProjectEntity> projects = projectRepository.findProjectsByProfessorAndLanguage(professorId, language);
+
+        return projects.stream()
+                .map(project -> new ProjectResponseDto(
+                        project.getProjectId(),
+                        project.getTitle(),
+                        project.getImageUrl()
+                        // createdAt 필드가 DTO에 없으므로 생성자에서 제거
+                ))
+                .collect(Collectors.toList());
+    }
 }
 

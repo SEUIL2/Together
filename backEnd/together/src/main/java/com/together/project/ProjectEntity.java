@@ -3,6 +3,7 @@ package com.together.project;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.together.ProjectDetail.develop.DevelopmentEnvironmentEntity;
 import com.together.ProjectDetail.test.IntegrationTestRowEntity;
 import com.together.ProjectDetail.test.UnitTestRowEntity;
 import com.together.comment.CommentEntity;
@@ -148,4 +149,13 @@ public class ProjectEntity{
      */
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ReportEntity> reports = new ArrayList<>();
+
+    @OneToMany(mappedBy = "projectEntity", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<DevelopmentEnvironmentEntity> developmentEnvironmentEntities = new ArrayList<>();
+
+    // == 연관관계 편의 메서드 == //
+    public void addDevelopmentEnvironmentEntity(DevelopmentEnvironmentEntity developmentEnvironmentEntity) {
+        this.developmentEnvironmentEntities.add(developmentEnvironmentEntity);
+        developmentEnvironmentEntity.setProjectEntity(this);
+    }
 }

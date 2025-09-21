@@ -9,6 +9,7 @@ import com.together.project.ProjectDto.ProjectMembersDto;
 import com.together.project.ProjectDto.ProjectResponseDto;
 import com.together.project.ProjectDto.ProjectSummaryWithMembersDto;
 import com.together.project.ProjectDto.ProjectTitleUpdateRequestDto;
+import com.together.user.UserEntity;
 import com.together.user.professor.ProfessorResponseDto;
 import com.together.user.student.StudentEntity;
 import com.together.util.customAnnotation.CurrentProject;
@@ -409,4 +410,24 @@ public class ProjectController {
         return ResponseEntity.ok(allMembers);
     }
 
+
+    /**
+     * [최종 수정] 교수가 담당하는 프로젝트를 개발 언어로 검색
+     */
+    @GetMapping("/search/language")
+    public ResponseEntity<List<ProjectResponseDto>> searchMyProjectsByLanguage(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @RequestParam("lang") String language) {
+
+        UserEntity currentUser = userDetails.getUser();
+
+        // [수정] Enum 타입을 직접 비교하는 방식으로 변경
+        if (currentUser.getRole() != UserEntity.UserRole.PROFESSOR) {
+            return ResponseEntity.status(403).build(); // 403 Forbidden (권한 없음)
+        }
+
+        Long professorId = currentUser.getUserId();
+        List<ProjectResponseDto> result = projectService.searchProjectsByLanguage(professorId, language);
+        return ResponseEntity.ok(result);
+    }
 }

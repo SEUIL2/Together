@@ -1,5 +1,5 @@
 <template>
-  <v-group
+  <v-group ref="groupRef"
     :x="config.x"
     :y="config.y"
     :draggable="!isEditing && !midDragging"
@@ -11,6 +11,8 @@
       event: e.evt
     })
   }"
+  @mouseenter="isHovered = true"
+  @mouseleave="isHovered = false"
   >
     <!-- 박스 배경 -->
     <v-rect
@@ -20,13 +22,18 @@
       stroke="#999"
       :strokeWidth="1.2"
       :cornerRadius="4"
+      :shadowColor="'#000'"
+      :shadowBlur="10"
+      :shadowOpacity="0.1"
+      :shadowOffsetX="0"
+      :shadowOffsetY="4"
     />
 
     <!-- 블록 제목 영역 -->
     <v-rect
       :width="boxWidth"
       :height="headerHeight"
-      fill="#f9f9f9"
+      fill="#f5f5f5"
       stroke="#ccc"
     />
     <v-line
@@ -80,6 +87,7 @@
       :key="dir"
       :x="anchorX(dir)"
       :y="anchorY(dir)"
+      :visible="isHovered"
       :radius="5"
       fill="#fff"
       stroke="#007bff"
@@ -92,6 +100,7 @@
       :key="'item-anchor-' + index"
       :x="boxWidth - 12"
       :y="headerHeight + index * itemHeight + itemHeight / 2"
+      :visible="isHovered"
       :radius="4"
       fill="#fff"
       stroke="#000"
@@ -102,7 +111,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 
 const props = defineProps({
   config: Object,
@@ -117,6 +126,8 @@ const emit = defineEmits([
   'add-item',       // 항목 추가 클릭
   'open-context'    // 우클릭 메뉴 (박스)
 ])
+
+const isHovered = ref(false)
 
 const boxWidth = 180
 const headerHeight = 30

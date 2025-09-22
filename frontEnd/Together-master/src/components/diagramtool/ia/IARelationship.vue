@@ -2,12 +2,14 @@
   <v-group
     @contextmenu="handleRightClick"
     @dblclick="handleLineDblClick"
+    @mouseenter="isHovered = true"
+    @mouseleave="isHovered = false"
   >
     <!-- 관계 꺾인 선 -->
     <v-line
       :points="allPoints"
       :stroke="strokeColor"
-      :strokeWidth="2"
+      :strokeWidth="1.5"
       :hitStrokeWidth="16"
       :dash="dashPattern"
       lineCap="round"
@@ -26,74 +28,32 @@
 
     <!-- 중간점: 드래그/삭제(더블클릭) -->
 <v-circle
-  v-for="(mid, idx) in midPoints"
-  :key="idx"
-  :x="mid.x"
-  :y="mid.y"
-  :radius="4"
-  fill="#fff"
-  stroke="#555"
-  :strokeWidth="2"
-  :draggable="true"
-  :dragCursor="'move'"
-  @dragmove="e => { 
-  console.log('emit 전', idx, e.target.x(), e.target.y());
-  emit('update-mid-point', { rel, idx, x: e.target.x(), y: e.target.y() })
-}"
-
-  @dragend="() => emit('mid-drag-end', rel)"
-  @dblclick="e => handleMidDblClick(e, idx)"
-/>
-
-
-    <!-- 관계선 끝 심볼 (ERD 표기) -->
-    <v-image
-      v-if="fromOuter"
-      :image="getSymbolImage(fromOuter)"
-      v-bind="getSymbolPosition('from', 'outer')"
-      :width="24" :height="24" :offsetX="12" :offsetY="12"
-      :rotation="getSymbolRotation('from', 'outer', fromOuter)"
-    />
-    <v-image
-      v-if="fromInner"
-      :image="getSymbolImage(fromInner)"
-      v-bind="getSymbolPosition('from', 'inner')"
-      :width="24" :height="24" :offsetX="12" :offsetY="12"
-      :rotation="getSymbolRotation('from', 'inner', fromInner)"
-    />
-    <v-image
-      v-if="toInner"
-      :image="getSymbolImage(toInner)"
-      v-bind="getSymbolPosition('to', 'inner')"
-      :width="24" :height="24" :offsetX="12" :offsetY="12"
-      :rotation="getSymbolRotation('to', 'inner', toInner)"
-    />
-    <v-image
-      v-if="toOuter"
-      :image="getSymbolImage(toOuter)"
-      v-bind="getSymbolPosition('to', 'outer')"
-      :width="24" :height="24" :offsetX="12" :offsetY="12"
-      :rotation="getSymbolRotation('to', 'outer', toOuter)"
+      v-for="(mid, idx) in midPoints"
+      :key="idx"
+      :x="mid.x"
+      :y="mid.y"
+      :radius="isHovered ? 5 : 4"
+      :fill="strokeColor"
+      :opacity="isHovered ? 1 : 0.5"
+      :strokeWidth="isHovered ? 6 : 0"
+      stroke="#007bff44"
+      :draggable="true"
+      :dragCursor="'move'"
+      @dragmove="e => emit('update-mid-point', { rel, idx, x: e.target.x(), y: e.target.y() })"
+      @dragend="() => emit('mid-drag-end', rel)"
+      @dblclick="e => handleMidDblClick(e, idx)"
     />
   </v-group>
 </template>
 
 <script setup>
-import { computed } from 'vue'
-import crowsfootSrc from '@/assets/erd-symbols/crowsfoot.svg'
-import barSrc from '@/assets/erd-symbols/bar.svg'
-import circleSrc from '@/assets/erd-symbols/circle.svg'
-import arrowSrc from '@/assets/erd-symbols/arrow.svg'
+import { computed, ref } from 'vue'
 
 const props = defineProps({
   from: Object, to: Object,
   midPoints: Array,
   lineStyle: String,
   rel: Object,
-  fromOuter: String,
-  fromInner: String,
-  toOuter: String,
-  toInner: String,
 })
 const emit = defineEmits([
   'open-context',      // 우클릭 메뉴 (삭제 등)
@@ -103,7 +63,9 @@ const emit = defineEmits([
   'mid-drag-end',      // 중간점 드래그 끝
 ])
 
-const strokeColor = '#333'
+const isHovered = ref(false)
+
+const strokeColor = '#555'
 const dashPattern = computed(() =>
   props.lineStyle === 'dashed' ? [6, 4] : []
 )
@@ -169,46 +131,5 @@ function handleMidDblClick(e, idx) {
     e.evt.cancelBubble = true;
   }
   emit('delete-mid-point', { rel: props.rel, idx })
-}
-
-
-// --- 심볼 이미지 로딩/계산 (ERD 도형) ---
-const imageCache = {}
-function loadImage(src) {
-  if (imageCache[src]) return imageCache[src]
-  const img = new window.Image()
-  img.src = src
-  imageCache[src] = img
-  return img
-}
-function getSymbolImage(symbol) {
-  switch (symbol) {
-    case 'crowsfoot': return loadImage(crowsfootSrc)
-    case 'bar': return loadImage(barSrc)
-    case 'circle': return loadImage(circleSrc)
-    case 'arrow': return loadImage(arrowSrc)
-    default: return null
-  }
-}
-function getSymbolAngle(which) {
-  const a = (which === 'from') ? props.from : props.to
-  const b = props.midPoints?.[which === 'from' ? 0 : props.midPoints.length - 1] || ((which === 'from') ? props.to : props.from)
-  return Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI
-}
-function getSymbolRotation(which, pos, symbol) {
-  let angle = getSymbolAngle(which)
-  if (symbol === 'crowsfoot') angle += 180
-  return angle
-}
-function getSymbolPosition(which, pos) {
-  const base = which === 'from' ? props.from : props.to
-  const angle = getSymbolAngle(which) * Math.PI / 180
-  const offset = (which === 'from')
-    ? (pos === 'outer' ? 30 : 10)
-    : (pos === 'outer' ? -10 : -30)
-  return {
-    x: base.x + Math.cos(angle) * offset,
-    y: base.y + Math.sin(angle) * offset
-  }
 }
 </script>

@@ -169,6 +169,7 @@ const PAGE_LINKS = {
   usecase: '/usecase-diagram',
   classDiagram: '/class-diagram',
   erd: '/erd-diagram',
+  sequence: '/sequence-diagram',
   schedule: '/Scheduletest'
 }
 
@@ -259,7 +260,7 @@ function selectTab(idx) {
     router.push('/Scheduletest')
     return
   }
-  if (['usecase', 'classDiagram', 'erd'].includes(type)) {
+  if (['usecase', 'classDiagram', 'erd', 'sequence'].includes(type)) {
     router.push({
       path: `${PAGE_LINKS[type]}/${props.projectId}`,
       query: {

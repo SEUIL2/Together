@@ -255,7 +255,7 @@ function openBlockContext({block,event}){ relContextMenu.value={visible:true,x:e
 }
 .ia-canvas {
   flex: 1;
-  background: #fff;
+  background: #fafafa;
   position: relative;
 }
 

@@ -63,6 +63,7 @@ const currentDiagram = computed(() => {
   if (route.path.startsWith('/erd-diagram')) return 'erd'
   if (route.path.startsWith('/info-structure')) return 'info'
   if (route.path.startsWith('/usecase-diagram')) return 'usecase'
+  if (route.path.startsWith('/sequence-diagram')) return 'sequence'
   return 'class'
 })
 
@@ -111,6 +112,33 @@ const toolButtons = {
       subtype: 'usecase',
       icon: new URL('@/assets/circle.png', import.meta.url).href
     },
+  ],
+  sequence: [
+    {
+      label: '객체',
+      type: 'box',
+      subtype: 'lifeline',
+      icon: new URL('@/assets/classbox.png', import.meta.url).href
+    },
+    {
+      label: '액터',
+      type: 'box',
+      subtype: 'actor',
+      icon: new URL('@/assets/actor.png', import.meta.url).href
+    },
+    {
+      label: '반복(Loop)',
+      type: 'fragment',
+      subtype: 'loop',
+      icon: new URL('@/assets/loop.png', import.meta.url).href
+    },
+    {
+      label: '대안(Alt)',
+      type: 'fragment',
+      subtype: 'alt',
+      icon: new URL('@/assets/alt.png', import.meta.url).href
+    },
+    // opt는 alt와 유사하여 아이콘 생략 가능
   ]
 }
 
@@ -134,7 +162,7 @@ const goBack = () => {
 .toolbox {
   width: 210px;
   min-width: 160px;
-  height: 94%;
+  height: 500px;
   background: #fafbfc;
   border-right: 1.5px solid #e4e7ef;
   box-sizing: border-box;

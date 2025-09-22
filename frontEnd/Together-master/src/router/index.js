@@ -28,6 +28,7 @@ import ERDiagramPage from '../views/toolview/ErdDiagramPage.vue'
 import UseCasePage from '../views/toolview/UseCasePage.vue'
 import InfoStructurePage from '../views/toolview/InfoStructurePage.vue'
 import Feedback from '../views/FeedbackPage.vue'
+import SequenceDiagramPage from '../views/toolview/SequenceDiagramPage.vue'
 //admin Page
 import AdminDashboard from '../views/AdminDashboard.vue'  
 
@@ -279,6 +280,17 @@ const routes = [
   path: '/info-structure/:projectId',
   name: 'InfoStructurePage',
   component: () => import('@/views/toolview/InfoStructurePage.vue'),
+  props: route => ({
+    projectId: Number(route.params.projectId),
+    readonly: route.query.readonly === 'true',
+    projectTitle: route.query.projectTitle || ''
+  }),
+  meta: { requiresAuth: true }
+},
+  {
+  path: '/sequence-diagram/:projectId',
+  name: 'SequenceDiagram',
+  component: () => import('@/views/toolview/SequenceDiagramPage.vue'),
   props: route => ({
     projectId: Number(route.params.projectId),
     readonly: route.query.readonly === 'true',

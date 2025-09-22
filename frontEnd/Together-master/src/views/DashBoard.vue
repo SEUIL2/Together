@@ -59,7 +59,7 @@
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" :stroke="nextMeeting ? '#0ea5e9' : '#8b5cf6'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
           </div>
           <div class="stat-info">
-            <div class="stat-title">새로운 회의 생성</div>
+            <div class="stat-title">다음 회의 일정</div>
             <div v-if="nextMeeting" class="stat-count-small next-meeting-date">{{ formatMeetingDate(nextMeeting.scheduleDate) }}</div>
             <div v-else class="stat-count-small">일정 잡기</div>
           </div>
@@ -183,6 +183,7 @@
     @close="showMeetingModal = false"
     @create="handleCreateMeeting"
     @update="handleUpdateMeeting"
+    @delete="handleDeleteMeeting"
   />
 </template>
 
@@ -323,6 +324,21 @@ async function handleUpdateMeeting(meetingData) {
   } catch (err) {
     console.error('회의 일정 수정 실패:', err);
     alert('회의 일정 수정에 실패했습니다.');
+  }
+}
+
+async function handleDeleteMeeting(scheduleId) {
+  if (!confirm('이 회의 일정을 삭제하시겠습니까?')) return;
+  try {
+    await axios.delete(`/api/meeting/schedules/${scheduleId}`, {
+      headers: { Authorization: localStorage.getItem('authHeader') },
+      withCredentials: true,
+    });
+    showMeetingModal.value = false;
+    await fetchMeetingSchedules();
+  } catch (err) {
+    console.error('회의 일정 삭제 실패:', err);
+    alert('회의 일정 삭제에 실패했습니다.');
   }
 }
 

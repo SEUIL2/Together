@@ -1,12 +1,7 @@
 <template>
   <div class="toolbox">
-    <div class="top-controls">
-      <button class="btn-control" @click="goBack">
-        <span class="btn-icon">←</span>
-        뒤로가기
-      </button>
+    <div class="top-controls" v-if="showTopControls">
       <button
-        v-if="currentDiagram === 'class' || currentDiagram === 'erd'"
         class="btn-control"
         @click="showCodeModal = true"
       >
@@ -15,7 +10,10 @@
       </button>
     </div>
     <!-- 아래 동일 -->
-    <div class="icon-grid">
+    <div
+      class="icon-grid"
+      :class="{ 'no-top-border': !showTopControls }"
+    >
       <div
         v-for="tool in toolButtons[currentDiagram]"
         :key="tool.label"
@@ -47,12 +45,11 @@
 </template>
 <script setup>
 import { ref, computed } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { useToolStore } from '@/stores/toolStore.js'
 import ClassCodeModal from '@/components/diagramtool/classdiagram/ClassCodeModal.vue'
 import ErdCodeModal from '@/components/diagramtool/erd/ErdCodeModal.vue'
 
-const router = useRouter()
 const route = useRoute()
 const toolStore = useToolStore()
 const showCodeModal = ref(false)
@@ -66,6 +63,9 @@ const currentDiagram = computed(() => {
   if (route.path.startsWith('/sequence-diagram')) return 'sequence'
   return 'class'
 })
+
+// Top-controls(코드 변환 등) 표시 여부
+const showTopControls = computed(() => currentDiagram.value === 'class' || currentDiagram.value === 'erd')
 
 // 코드 모달용 ID/이름 (상황 맞게 동기화)
 const classCodeId = ref(null)
@@ -151,27 +151,23 @@ const isSelected = (tool) => {
 const onDragStart = (tool, event) => {
   event.dataTransfer.setData('application/json', JSON.stringify(tool))
 }
-
-// 뒤로가기
-const goBack = () => {
-  router.back()
-}
 </script>
 
 <style scoped>
 .toolbox {
-  width: 210px;
-  min-width: 160px;
-  height: 500px;
+  position: absolute;
+  top: 80px;
+  right: 20px;
+  z-index: 10;
+  width: 150px;
   background: #fafbfc;
-  border-right: 1.5px solid #e4e7ef;
+  border: 1.5px solid #e4e7ef;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   box-sizing: border-box;
-  padding: 20px 14px 16px 14px;
+  padding: 16px 14px;
   display: flex;
   flex-direction: column;
-  /* 그림자 최소화, 모서리만 살짝 */
-  border-top-right-radius: 16px;
-  border-bottom-right-radius: 16px;
 }
 
 .top-controls {
@@ -211,10 +207,16 @@ const goBack = () => {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  align-items: flex-start;
+  align-items: center;
   margin-top: 6px;
   padding-top: 8px;
   border-top: 1px solid #e9edf5;
+}
+
+.icon-grid.no-top-border {
+  border-top: none;
+  padding-top: 0;
+  margin-top: 0;
 }
 
 .icon-button {

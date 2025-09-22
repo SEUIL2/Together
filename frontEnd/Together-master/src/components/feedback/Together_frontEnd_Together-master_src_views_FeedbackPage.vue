@@ -5,33 +5,23 @@
       <p>교수님께서 남겨주신 피드백을 확인하고 관리합니다.</p>
     </header>
 
-    <div class="controls-wrapper card">
-      <div class="category-filter">
-        <label for="category-filter">카테고리 필터:</label>
-        <select id="category-filter" v-model="selectedCategory">
-          <option value="ALL">전체 보기</option>
-          <option value="IMPROVEMENT">개선 제안</option>
-          <option value="IDEA">아이디어</option>
-          <option value="COMPLIMENT">칭찬</option>
-          <option value="QUESTION">질문</option>
-        </select>
-      </div>
-    </div>
-
     <div v-if="loading" class="loading-state">
       <p>⏳ 피드백을 불러오는 중입니다...</p>
     </div>
-    <div v-else-if="filteredFeedbacks.length === 0" class="empty-state">
-      <p>🎉 선택한 조건에 맞는 피드백이 없습니다.</p>
+    <div v-else-if="feedbacks.length === 0" class="empty-state">
+      <p>🎉 교수님으로부터 받은 피드백이 아직 없습니다.</p>
     </div>
 
     <div v-else class="feedback-grid">
-      <div v-for="fb in filteredFeedbacks" :key="fb.feedbackId" class="feedback-card" :class="{ 'is-read': fb.isRead }">
+      <div v-for="fb in feedbacks" :key="fb.feedbackId" class="feedback-card" :class="{ 'is-read': fb.isRead }">
           <div class="card-header">
-            <span class="feedback-page">{{ fb.page }}</span>
+            <div>
+              <span class="feedback-category" :class="fb.category">{{ getCategoryDisplayName(fb.category) }}</span>
+              <span class="feedback-page">{{ fb.page }}</span>
+            </div>
             <span class="feedback-date">{{ formatDate(fb.createdAt) }}</span>
           </div>
-          <p class="feedback-text">"{{ fb.text }}"</p>
+          <p class="feedback-text">{{ fb.text }}</p>
           <div class="card-footer">
             <span class="status-badge" :class="{ read: fb.isRead, unread: !fb.isRead }">{{ fb.isRead ? '읽음' : '안읽음' }}</span>
             <div class="footer-buttons">
@@ -45,14 +35,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted } from 'vue';
 import axios from 'axios';
 
 const loading = ref(true);
 
 // 학생용 데이터
 const feedbacks = ref([]);
-const selectedCategory = ref('ALL');
 
 onMounted(async () => {
   loading.value = true;
@@ -63,13 +52,6 @@ onMounted(async () => {
   } finally {
     loading.value = false;
   }
-});
-
-const filteredFeedbacks = computed(() => {
-  if (selectedCategory.value === 'ALL') {
-    return feedbacks.value;
-  }
-  return feedbacks.value.filter(fb => fb.category === selectedCategory.value);
 });
 
 const fetchFeedbacks = async () => {
@@ -108,43 +90,25 @@ const formatDate = (dateStr) => {
   const d = new Date(dateStr);
   return `${d.getMonth() + 1}월 ${d.getDate()}일 / ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
 };
+
+const getCategoryDisplayName = (category) => {
+  const categoryNames = {
+    IMPROVEMENT: '개선 제안',
+    IDEA: '아이디어',
+    COMPLIMENT: '칭찬',
+    QUESTION: '질문'
+  };
+  return categoryNames[category] || '피드백';
+};
 </script>
 
 <style scoped>
 .feedback-page-container { padding: 30px 40px; background-color: #f7f8fc; min-height: calc(100vh - 61px); }
-.page-header { margin-bottom: 24px; text-align: left; }
+.page-header { margin-bottom: 32px; text-align: center; }
 .page-header h1 { font-size: 28px; font-weight: 800; color: #2c3e50; }
 .page-header p { font-size: 16px; color: #7f8c8d; }
 
 .loading-state, .empty-state { text-align: center; padding: 60px 20px; color: #868e96; font-size: 16px; background-color: #fff; border-radius: 12px; }
-
-.card {
-  background: #fff;
-  border-radius: 12px;
-  padding: 16px 24px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-}
-.controls-wrapper {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  margin-bottom: 24px;
-}
-.category-filter {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.category-filter label {
-  font-weight: 600;
-  color: #495057;
-}
-.category-filter select {
-  padding: 8px 12px;
-  border-radius: 8px;
-  border: 1px solid #ced4da;
-  min-width: 150px;
-}
 
 .feedback-grid {
   display: grid;
@@ -181,7 +145,12 @@ const formatDate = (dateStr) => {
   transform: translateY(-4px);
   box-shadow: 0 8px 16px rgba(0,0,0,0.08);
 }
-.card-header { display: flex; justify-content: space-between; align-items: center; }
+.card-header { display: flex; justify-content: space-between; align-items: flex-start; }
+.card-header > div {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
 .feedback-page {
   font-weight: 600;
   color: #3f8efc;
@@ -189,6 +158,25 @@ const formatDate = (dateStr) => {
   padding: 4px 10px;
   border-radius: 12px;
   font-size: 13px;
+}
+.feedback-category {
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 13px;
+  color: white;
+}
+.feedback-category.IMPROVEMENT {
+  background-color: #3498db;
+}
+.feedback-category.IDEA {
+  background-color: #f1c40f;
+}
+.feedback-category.COMPLIMENT {
+  background-color: #2ecc71;
+}
+.feedback-category.QUESTION {
+  background-color: #9b59b6;
 }
 .feedback-date { font-size: 12px; color: #868e96; }
 .feedback-text { flex-grow: 1; font-size: 14px; color: #495057; line-height: 1.7; white-space: pre-wrap; max-height: 120px; overflow-y: auto; padding-right: 8px; }

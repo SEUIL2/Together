@@ -4,6 +4,9 @@
     <ul v-else>
       <li v-for="fb in feedbacks" :key="fb.feedbackId" class="feedback-item">
         <span class="date">{{ formatDate(fb.createdAt) }}</span>
+        <span class="category-badge" :class="fb.category">
+          {{ getCategoryDisplayName(fb.category) }}
+        </span>
         <span class="page">{{ fb.page }}</span>
         <span class="text">{{ fb.text }}</span>
       </li>
@@ -50,6 +53,16 @@ function formatDate(dateStr) {
 
 </script>
 
+<script>
+export default {
+  methods: {
+    getCategoryDisplayName(category) {
+      const names = { IMPROVEMENT: '개선', IDEA: '아이디어', COMPLIMENT: '칭찬', QUESTION: '질문' };
+      return names[category] || '기타';
+    }
+  }
+}
+</script>
 <style scoped>
 .feedback-list {
   padding: 0px 8px;
@@ -75,6 +88,27 @@ ul {
   font-size: 11px;
   font-weight: 600;
   min-width: 60px;
+}
+.category-badge {
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+  flex-shrink: 0;
+}
+.category-badge.IMPROVEMENT {
+  background-color: #3498db;
+}
+.category-badge.IDEA {
+  background-color: #f1c40f;
+  color: #333;
+}
+.category-badge.COMPLIMENT {
+  background-color: #2ecc71;
+}
+.category-badge.QUESTION {
+  background-color: #9b59b6;
 }
 .page {
   flex-shrink: 0;

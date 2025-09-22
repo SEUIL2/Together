@@ -323,7 +323,12 @@ const routes = [
   component: () => import('@/views/ProfessorFeedbackPage.vue'),
   meta: { requiresAuth: true, roles: ['PROFESSOR'] }
 },
-
+{
+  path: '/professor/report',
+  name: 'ProfessorReportPage',
+  component: () => import('@/views/ProfessorReportPage.vue'),
+  meta: { requiresAuth: true, roles: ['PROFESSOR'] }
+},
 
 ]
 

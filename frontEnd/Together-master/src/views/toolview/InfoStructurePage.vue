@@ -162,20 +162,51 @@ onMounted(async () => {
 // 자동저장 (디바운스, 백엔드에 저장)
 async function doSave() {
   try {
-    const form = new FormData()
-    form.append('type', 'infostructure')
-    form.append('projectId', props.projectId)
+    const stage = stageRef.value.getStage();
+    if (!stage) {
+      console.error('Stage를 찾을 수 없어 캡처할 수 없습니다.');
+      return;
+    }
+
+    // 1. 캔버스를 이미지 데이터 URL로 변환 (고화질을 위해 pixelRatio 사용)
+    const dataURL = stage.toDataURL({ pixelRatio: 2 });
+
+    // 2. 데이터 URL을 Blob 객체로 변환하는 헬퍼 함수
+    const dataURLtoBlob = (dataurl) => {
+      const arr = dataurl.split(',');
+      const mimeMatch = arr[0].match(/:(.*?);/);
+      if (!mimeMatch) return null;
+      const mime = mimeMatch[1];
+      const bstr = atob(arr[1]);
+      let n = bstr.length;
+      const u8arr = new Uint8Array(n);
+      while (n--) {
+        u8arr[n] = bstr.charCodeAt(n);
+      }
+      return new Blob([u8arr], { type: mime });
+    };
+
+    const imageBlob = dataURLtoBlob(dataURL);
+
+    // 3. FormData에 JSON 데이터와 캡처한 이미지 Blob을 함께 담기
+    const form = new FormData();
+    form.append('type', 'infostructure');
+    form.append('projectId', props.projectId);
     form.append('json', JSON.stringify({
       blocks: blocks.value,
       relationships: relationships.value
-    }))
-    // 필요시 text 등 추가 가능
+    }));
+    if (imageBlob) {
+      form.append('files', imageBlob, 'infostructure_capture.png');
+    }
+
     await axios.put('/planning/update', form, {
-      headers: { Authorization: localStorage.getItem('authHeader') },
-      withCredentials: true
-    })
-    showSaveNotice.value = true
-    setTimeout(() => showSaveNotice.value = false, 2000)
+      headers: { Authorization: localStorage.getItem('authHeader') }, // Content-Type은 axios가 자동으로 설정
+      withCredentials: true,
+    });
+
+    showSaveNotice.value = true;
+    setTimeout(() => showSaveNotice.value = false, 2000);
   } catch (err) {
     console.error('정보구조도 저장 실패', err)
     // 저장 실패 안내를 하고 싶으면 여기에 알림 추가

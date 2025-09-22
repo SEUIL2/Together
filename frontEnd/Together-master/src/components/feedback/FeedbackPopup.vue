@@ -8,7 +8,12 @@
       <div class="popup-content">
         <!-- 상단: 작성자 + 닫기 -->
         <div class="top-bar">
-          <span class="author">👤 {{ fb.author }}</span>
+          <div class="author-info">
+            <span class="category-badge" :class="fb.category">
+              {{ categoryMap[fb.category]?.icon }} {{ categoryMap[fb.category]?.label }}
+            </span>
+            <span class="author">👤 {{ fb.author }}</span>
+          </div>
           <button class="close-btn" @click="$emit('close')">✕</button>
         </div>
 
@@ -28,7 +33,26 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-const props = defineProps<{ fb: any }>()
+
+type Category = 'IMPROVEMENT' | 'IDEA' | 'COMPLIMENT' | 'QUESTION';
+
+interface Feedback {
+  feedbackId: number;
+  author: string;
+  category: Category;
+  text: string;
+  x: number;
+  y: number;
+}
+
+const categoryMap: Record<Category, { label: string; icon: string }> = {
+  IMPROVEMENT: { label: '개선 제안', icon: '💡' },
+  IDEA: { label: '아이디어', icon: '✨' },
+  COMPLIMENT: { label: '칭찬', icon: '👍' },
+  QUESTION: { label: '질문', icon: '❓' }
+};
+
+const props = defineProps<{ fb: Feedback }>()
 defineEmits(['close', 'read'])
 
 const visible = ref(false)
@@ -74,6 +98,33 @@ onMounted(() => setTimeout(() => (visible.value = true), 0))
   align-items: center;
   margin-bottom: 10px;
 }
+.author-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.category-badge {
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+}
+.category-badge.IMPROVEMENT {
+  background-color: #3498db;
+}
+.category-badge.IDEA {
+  background-color: #f1c40f;
+  color: #333;
+}
+.category-badge.COMPLIMENT {
+  background-color: #2ecc71;
+}
+.category-badge.QUESTION {
+  background-color: #9b59b6;
+}
+
 
 .author {
   font-size: 14px;

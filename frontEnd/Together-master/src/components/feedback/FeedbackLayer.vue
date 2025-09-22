@@ -8,6 +8,7 @@
       :y="note.y"
       :text="note.text"
       :author="note.author"
+      :category="note.category"
       :feedback-id="note.feedbackId"
       :readonly="readonly"
       @click="handleNoteClick"

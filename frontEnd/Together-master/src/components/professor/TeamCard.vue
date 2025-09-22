@@ -4,7 +4,7 @@
     <div class="card-header">
       <div class="project-info">
         <h3 class="project-title">{{ project.title }}</h3>
-        <p class="project-desc">{{ project.description }}</p>
+        <p class="project-desc">{{ project.description || '프로젝트 소개가 없습니다.' }}</p>
       </div>
       <button class="view-button" @click="$emit('viewProject', project.projectId)">
         <i class="arrow">➤</i>
@@ -14,10 +14,10 @@
     <!-- 진행도 -->
     <div class="progress-wrapper">
       <div class="progress-label-text">
-        📊 프로젝트 진행도 <strong>{{ project.progress || 0 }}%</strong>
+        📊 프로젝트 진행도 <strong>{{ project.progress ?? 0 }}%</strong>
       </div>
       <div class="progress-bar">
-        <div class="progress-fill" :style="{ width: project.progress + '%' }"></div>
+        <div class="progress-fill" :style="{ width: `${project.progress ?? 0}%` }"></div>
       </div>
     </div>
 
@@ -29,9 +29,9 @@
           class="avatar"
       >
         <div class="avatar-img">
-          <img :src="member.avatarUrl || defaultImage" />
+          <img :src="member.profileImageUrl || defaultImage" />
         </div>
-        <span class="member-name">{{ member.name }}</span>
+        <span class="member-name">{{ member.userName }}</span>
       </div>
     </div>
 
@@ -76,7 +76,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import NoticeModal from '@/components/notice/NoticeModal.vue'
 import FeedbackHistoryModal from '@/components/feedback/FeedbackHistoryModal.vue'
 import VotingListModalWrapper from '@/components/dashboard/VotingListModalWrapper.vue'
@@ -88,10 +88,14 @@ const showFeedbackModal = ref(false)
 const showVoteModal = ref(false)
 const showMemoModal = ref(false)
 
-const defaultImage = new URL('@/assets/defaultimage.png', import.meta.url).href
-const studentMembers = computed(() =>
-    (props.project?.members || []).filter(m => m.role === 'STUDENT')
-)
+onMounted(() => {
+  console.log('TeamCard가 받은 project 데이터:', JSON.parse(JSON.stringify(props.project)));
+});
+
+const defaultImage = new URL('@/assets/defaultimage.png', import.meta.url).href;
+const studentMembers = computed(() => {
+  return (props.project?.members || []).filter(m => m.role === 'STUDENT');
+});
 
 </script>
 

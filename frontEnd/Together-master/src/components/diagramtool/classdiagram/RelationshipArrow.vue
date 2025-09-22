@@ -1,10 +1,15 @@
 <template>
-  <v-group @contextmenu="onRightClick" @dblclick="onLineDblClick">
+  <v-group
+    @contextmenu="onRightClick"
+    @dblclick="onLineDblClick"
+    @mouseenter="isHovered = true"
+    @mouseleave="isHovered = false"
+  >
     <!-- 메인 선 -->
     <v-line
       :points="allPoints"
       :stroke="strokeColor"
-      :strokeWidth="2"
+      :strokeWidth="1.5"
       :hitStrokeWidth="16"
       :dash="lineStyle === 'dashed' ? [6, 4] : []"
       lineCap="round"
@@ -40,21 +45,22 @@
       v-for="(m, i) in midPoints"
       :key="i"
       :x="m.x" :y="m.y"
-      :radius="4"
-      fill="#fff"
-      stroke="#555"
-      :strokeWidth="2"
+      :radius="isHovered ? 5 : 4"
+      :fill="strokeColor"
+      :opacity="isHovered ? 1 : 0.5"
+      :strokeWidth="isHovered ? 6 : 0"
+      stroke="#007bff44"
       :draggable="true"
       dragCursor="move"
       @dragmove="e => emit('update-mid-point', { rel, idx: i, x: e.target.x(), y: e.target.y() })"
       @dragend="() => emit('mid-drag-end', rel)"
-      @dblclick="() => emit('delete-mid-point', { rel, idx: i })"
+      @dblclick="e => onMidDblClick(e, i)"
     />
   </v-group>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import TriangleHead from '@/components/diagramtool/shapes/TriangleHead.vue'
 import ArrowHead    from '@/components/diagramtool/shapes/ArrowHead.vue'
 import DiamondHead  from '@/components/diagramtool/shapes/DiamondHead.vue'
@@ -71,7 +77,9 @@ const props = defineProps({
 })
 const emit = defineEmits(['open-context','add-mid-point','update-mid-point','delete-mid-point','mid-drag-end'])
 
-const strokeColor = '#333'
+const isHovered = ref(false)
+
+const strokeColor = '#555'
 const midPoints = computed(() => props.midPoints || [])
 const nodes = computed(() => [props.from, ...midPoints.value, props.to])
 
@@ -134,5 +142,14 @@ function onLineDblClick(e){
   e.evt.preventDefault(); e.evt.stopPropagation()
   const pos = e.target.getStage().getPointerPosition()
   if (pos) emit('add-mid-point', { rel: props.rel, x: pos.x, y: pos.y })
+}
+
+function onMidDblClick(e, idx) {
+  if (e.evt) {
+    e.evt.stopPropagation();
+    e.evt.preventDefault();
+    e.evt.cancelBubble = true;
+  }
+  emit('delete-mid-point', { rel: props.rel, idx })
 }
 </script>

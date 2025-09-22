@@ -77,6 +77,11 @@
           </div>
         </div>
       </div>
+
+      <!-- 저장 상태 토스트 -->
+      <div v-if="saveStatus !== 'idle'" class="save-toast" :class="saveStatus">
+        {{ saveStatus === 'saving' ? '저장 중...' : saveStatus === 'saved' ? '💾 저장 완료' : '저장 실패!' }}
+      </div>
     </div>
   </div>
 </template>
@@ -299,29 +304,54 @@ const saveStatus = ref('idle')
       console.log('🔒 읽기 전용 모드입니다. 저장하지 않습니다.')
       return
     }
-
+ 
     saveStatus.value = 'saving'
-
+ 
+    const stage = stageRef.value.getStage();
+    if (!stage) {
+      console.error('Stage를 찾을 수 없어 캡처할 수 없습니다.');
+      saveStatus.value = 'error';
+      return;
+    }
+ 
+    // 1. 캔버스를 이미지 데이터 URL로 변환
+    const dataURL = stage.toDataURL({ pixelRatio: 2 });
+ 
+    // 2. 데이터 URL을 Blob 객체로 변환
+    const dataURLtoBlob = (dataurl) => {
+      const arr = dataurl.split(','), mimeMatch = arr[0].match(/:(.*?);/);
+      if (!mimeMatch) return null;
+      const mime = mimeMatch[1], bstr = atob(arr[1]);
+      let n = bstr.length;
+      const u8arr = new Uint8Array(n);
+      while (n--) u8arr[n] = bstr.charCodeAt(n);
+      return new Blob([u8arr], { type: mime });
+    };
+    const imageBlob = dataURLtoBlob(dataURL);
+ 
     const jsonData = {
       actors: actors.value,
       usecases: usecases.value,
       links: links.value
     }
-
+ 
     const formData = new FormData()
     formData.append('type', 'usecase')
     formData.append('json', JSON.stringify(jsonData))
-
+    if (imageBlob) {
+      formData.append('files', imageBlob, 'usecase_capture.png');
+    }
+ 
     const projectId = route.query.projectId
     if (projectId) {
       formData.append('projectId', projectId)
     }
-
-    const token = localStorage.getItem('authHeader')
-    const headers = token ? { Authorization: token } : {}
-
+ 
     try {
-      await axios.post('/design/upload', formData, { headers })
+      await axios.put('/design/update', formData, {
+        headers: { Authorization: localStorage.getItem('authHeader') },
+        withCredentials: true
+      });
       saveStatus.value = 'saved'
       setTimeout(() => saveStatus.value = 'idle', 1200)
       console.log('✅ 유스케이스 다이어그램 저장 성공')
@@ -425,4 +455,19 @@ onMounted(async () => {
 }
 .modal-actions { display: flex; gap: 12px; justify-content: flex-end; }
 .modal-actions button { padding: 7px 18px; border-radius: 4px; border: none; }
+
+.save-toast {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  padding: 10px 20px;
+  border-radius: 8px;
+  color: white;
+  font-weight: 600;
+  z-index: 1000;
+  transition: opacity 0.3s;
+}
+.save-toast.saving { background-color: #777; }
+.save-toast.saved { background-color: #28a745; }
+.save-toast.error { background-color: #dc3545; }
 </style>

@@ -13,6 +13,9 @@
           y: stageY
         }"
         @wheel="handleWheel"
+        @mousedown="handleStageMouseDown"
+        @mousemove="handleStageMouseMove"
+        @mouseup="handleStageMouseUp"
       >
         <v-layer>
 <ClassBox
@@ -57,7 +60,7 @@
 <RelationshipContextMenu
   v-if="arrowContextMenuVisible"
   :rel="selectedRelationship"
-  :x="contextMenuX -200"
+  :x="contextMenuX - 250"
   :y="contextMenuY -60"
 
   @update="handleUpdate"
@@ -114,7 +117,7 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted, reactive  } from 'vue'
+import { ref, watch, onMounted, onUnmounted, reactive  } from 'vue'
 import axios from 'axios'
 import { debounce } from 'lodash'
 import { useToolStore } from '@/stores/toolStore'
@@ -136,6 +139,10 @@ const stageRef = ref(null)
 const scale = ref(1)
 const stageX = ref(0)
 const stageY = ref(0)
+
+const isSpacebarDown = ref(false)
+const isPanning = ref(false)
+const lastPanPoint = reactive({ x: 0, y: 0 })
 
 const classBoxes = ref([])
 const relationships = ref([])
@@ -275,7 +282,7 @@ const handleDelete = () => {
 
 const handleBoxRightClick = ({ event, id }) => {
   event.evt.preventDefault()
-  boxMenuX.value = event.evt.clientX - 180
+  boxMenuX.value = event.evt.clientX - 250
   boxMenuY.value = event.evt.clientY - 50
   selectedBoxId.value = id
   boxContextMenuVisible.value = true
@@ -289,10 +296,24 @@ const deleteClassBox = () => {
 const getAnchorPosition = (boxId, direction) => {
   const box = classBoxes.value.find(b => b.id === boxId)
   if (!box) return { x: 0, y: 0 }
+
+  // ClassBox.vue와 동일한 높이 계산 로직 적용
+  const headerHeight = 44
+  const attrLineHeight = 22
+  const attrAddBtnGap = 8
+  const attrAddBtnHeight = 18
+  const methodSectionGap = 10
+  const methodAddBtnHeight = 20
+  const sectionVPadding = 12
+  const minBoxHeight = 80
+
+  const attributesStartY = headerHeight + sectionVPadding
+  const attrAddBtnY = attributesStartY + (box.attributes?.length || 0) * attrLineHeight + attrAddBtnGap
+  const attrSectionBottom = attrAddBtnY + attrAddBtnHeight
+  const methodsStartY = attrSectionBottom + methodSectionGap
+  const methodAddBtnY = methodsStartY + (box.methods?.length || 0) * attrLineHeight
+  const height = Math.max(methodAddBtnY + methodAddBtnHeight + sectionVPadding, minBoxHeight)
   const width = box.width
-  const attrH = box.attributes.length * 18
-  const methodH = box.methods.length * 18
-  const height = 50 + attrH + methodH
 
   switch (direction) {
     case 'top': return { x: box.x + width / 2, y: box.y }
@@ -368,11 +389,93 @@ const handleWheel = (e) => {
   stageY.value = pointer.y - mousePointTo.y * newScale
 }
 
+const handleStageMouseDown = (e) => {
+  if (e.evt.button !== 0 || !isSpacebarDown.value) return
+
+  e.evt.preventDefault()
+  isPanning.value = true
+  
+  const stage = stageRef.value.getStage()
+  stage.container().style.cursor = 'grabbing'
+  
+  lastPanPoint.x = e.evt.clientX
+  lastPanPoint.y = e.evt.clientY
+}
+
+const handleStageMouseMove = (e) => {
+  if (!isPanning.value) return
+  e.evt.preventDefault()
+
+  const dx = e.evt.clientX - lastPanPoint.x
+  const dy = e.evt.clientY - lastPanPoint.y
+
+  stageX.value += dx
+  stageY.value += dy
+
+  lastPanPoint.x = e.evt.clientX
+  lastPanPoint.y = e.evt.clientY
+}
+
+const handleStageMouseUp = () => {
+  if (!isPanning.value) return
+  isPanning.value = false
+  
+  const stage = stageRef.value.getStage()
+  stage.container().style.cursor = isSpacebarDown.value ? 'grab' : 'default'
+}
+
+const handleKeyDown = (e) => {
+  if (e.code === 'Space' && !isSpacebarDown.value) {
+    e.preventDefault()
+    isSpacebarDown.value = true
+    const stage = stageRef.value?.getStage()
+    if (stage && !isPanning.value) {
+      stage.container().style.cursor = 'grab'
+    }
+  }
+}
+
+const handleKeyUp = (e) => {
+  if (e.code === 'Space') {
+    isSpacebarDown.value = false
+    const stage = stageRef.value?.getStage()
+    if (stage && !isPanning.value) {
+      stage.container().style.cursor = 'default'
+    }
+  }
+}
+
 const saveToServer = async () => {
   if (props.readonly) {
     console.log('🔒 읽기 전용 모드입니다. 저장하지 않습니다.')
     return
   }
+
+  const stage = stageRef.value.getStage();
+  if (!stage) {
+    console.error('Stage를 찾을 수 없어 캡처할 수 없습니다.');
+    return;
+  }
+
+  // 1. 캔버스를 이미지 데이터 URL로 변환 (고화질을 위해 pixelRatio 사용)
+  const dataURL = stage.toDataURL({ pixelRatio: 2 });
+
+  // 2. 데이터 URL을 Blob 객체로 변환하는 헬퍼 함수
+  const dataURLtoBlob = (dataurl) => {
+    const arr = dataurl.split(',');
+    const mimeMatch = arr[0].match(/:(.*?);/);
+    if (!mimeMatch) return null;
+    const mime = mimeMatch[1];
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new Blob([u8arr], { type: mime });
+  };
+
+  const imageBlob = dataURLtoBlob(dataURL);
 
   const formData = new FormData()
   formData.append('type', 'classDiagram')
@@ -380,15 +483,16 @@ const saveToServer = async () => {
     classes: classBoxes.value,
     relationships: relationships.value
   }))
+  if (imageBlob) {
+    formData.append('files', imageBlob, 'class_diagram_capture.png');
+  }
 
   if (props.projectId) {
     formData.append('projectId', props.projectId)
   }
 
   try {
-    await axios.put('/design/update', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    })
+    await axios.put('/design/update', formData) // Content-Type은 FormData 사용 시 axios가 자동으로 설정합니다.
 
     showSavedMessage.value = true
     saveError.value = false
@@ -431,10 +535,15 @@ onMounted(async () => {
   } catch (err) {
     console.error('❌ 클래스 다이어그램 초기 데이터 로드 실패:', err)
   }
+
+  window.addEventListener('keydown', handleKeyDown)
+  window.addEventListener('keyup', handleKeyUp)
 })
 
-
-
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeyDown)
+  window.removeEventListener('keyup', handleKeyUp)
+})
 
 // 속성 추가/수정 (index: null이면 추가, 아니면 수정)
 function updateBoxAttribute({ boxId, index, value }) {
@@ -490,6 +599,7 @@ function updateBoxName({ boxId, value }) {
 .diagram-page {
   flex: 1;
   overflow: hidden;
+  background-color: #f7f8fc;
   position: relative;
 }
 

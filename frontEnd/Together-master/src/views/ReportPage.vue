@@ -326,7 +326,7 @@ const exportReportAsPdf = async () => {
   if (!selectedReport.value) return;
   try {
     const response = await axios.get(
-      `/reports/${selectedReport.value.id}/export`,
+      `/reports/export/${selectedReport.value.id}`,
       {
         responseType: 'blob', // 파일 다운로드를 위해 필수
       }

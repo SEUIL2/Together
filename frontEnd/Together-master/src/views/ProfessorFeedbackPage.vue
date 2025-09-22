@@ -15,20 +15,33 @@
           </option>
         </select>
       </div>
+      <div class="category-filter">
+        <label for="category-filter">카테고리 필터:</label>
+        <select id="category-filter" v-model="selectedCategory">
+          <option value="ALL">전체 보기</option>
+          <option value="IMPROVEMENT">개선 제안</option>
+          <option value="IDEA">아이디어</option>
+          <option value="COMPLIMENT">칭찬</option>
+          <option value="QUESTION">질문</option>
+        </select>
+      </div>
     </div>
 
     <div v-if="!selectedProjectId" class="empty-state"><p>먼저 프로젝트를 선택해주세요.</p></div>
     <div v-if="loading" class="loading-state">
       <p>⏳ 피드백을 불러오는 중입니다...</p>
     </div>
-    <div v-else-if="feedbacks.length === 0" class="empty-state">
-      <p>🎉 아직 작성한 피드백이 없습니다.</p>
+    <div v-else-if="filteredFeedbacks.length === 0" class="empty-state">
+      <p>🎉 선택한 조건에 맞는 피드백이 없습니다.</p>
     </div>
 
     <div v-else class="feedback-grid">
-      <div v-for="fb in feedbacks" :key="fb.feedbackId" class="feedback-card" :class="{ 'is-read': fb.isRead }">
+      <div v-for="fb in filteredFeedbacks" :key="fb.feedbackId" class="feedback-card" :class="{ 'is-read': fb.isRead }">
         <div class="card-header">
-          <span class="feedback-page">{{ getPageDisplayName(fb.page) }}</span>
+          <div>
+            <span class="feedback-category" :class="fb.category">{{ getCategoryDisplayName(fb.category) }}</span>
+            <span class="feedback-page">{{ getPageDisplayName(fb.page) }}</span>
+          </div>
           <span class="feedback-date">{{ formatDate(fb.createdAt) }}</span>
         </div>
         <p class="feedback-text">{{ fb.text || fb.content }}</p>
@@ -49,6 +62,7 @@ const loading = ref(true);
 const feedbacks = ref([]);
 const projects = ref([]);
 const selectedProjectId = ref(null);
+const selectedCategory = ref('ALL');
 
 onMounted(async () => {
   try {
@@ -58,6 +72,13 @@ onMounted(async () => {
   } finally {
     loading.value = false;
   }
+});
+
+const filteredFeedbacks = computed(() => {
+  if (selectedCategory.value === 'ALL') {
+    return feedbacks.value;
+  }
+  return feedbacks.value.filter(fb => fb.category === selectedCategory.value);
 });
 const fetchProfessorProjects = async () => {
   try {
@@ -124,6 +145,7 @@ const deleteFeedback = async (feedbackId) => {
 };
 
 const getPageDisplayName = (pageSlug) => {
+  if (!pageSlug) return '기타';
   const pageNames = {
     // 기획
     'planning-motivation': '기획-동기',
@@ -146,6 +168,17 @@ const getPageDisplayName = (pageSlug) => {
   };
   return pageNames[pageSlug] || pageSlug;
 };
+
+const getCategoryDisplayName = (category) => {
+  const categoryNames = {
+    IMPROVEMENT: '개선 제안',
+    IDEA: '아이디어',
+    COMPLIMENT: '칭찬',
+    QUESTION: '질문'
+  };
+  return categoryNames[category] || '피드백';
+};
+
 
 const formatDate = (dateStr) => {
   if (!dateStr) return '';
@@ -185,6 +218,17 @@ const formatDate = (dateStr) => {
   align-items: center;
   gap: 12px;
 }
+.category-filter {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.category-filter label { font-weight: 600; }
+.category-filter select {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #ced4da;
+}
 .project-selector label { font-weight: 600; }
 .project-selector select {
   padding: 8px 12px;
@@ -218,7 +262,12 @@ const formatDate = (dateStr) => {
   transform: translateY(-4px);
   box-shadow: 0 8px 16px rgba(0,0,0,0.08);
 }
-.card-header { display: flex; justify-content: space-between; align-items: center; }
+.card-header { display: flex; justify-content: space-between; align-items: flex-start; }
+.card-header > div {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
 .feedback-page {
   font-weight: 600;
   color: #3f8efc;
@@ -226,6 +275,25 @@ const formatDate = (dateStr) => {
   padding: 4px 10px;
   border-radius: 12px;
   font-size: 13px;
+}
+.feedback-category {
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 13px;
+  color: white;
+}
+.feedback-category.IMPROVEMENT {
+  background-color: #3498db;
+}
+.feedback-category.IDEA {
+  background-color: #f1c40f;
+}
+.feedback-category.COMPLIMENT {
+  background-color: #2ecc71;
+}
+.feedback-category.QUESTION {
+  background-color: #9b59b6;
 }
 .feedback-date { font-size: 12px; color: #868e96; }
 .feedback-text { flex-grow: 1; font-size: 14px; color: #495057; line-height: 1.7; white-space: pre-wrap; max-height: 120px; overflow-y: auto; padding-right: 8px; }

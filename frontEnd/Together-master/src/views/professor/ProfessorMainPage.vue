@@ -83,17 +83,32 @@ onMounted(async () => {
       withCredentials: true,
     });
 
-    const allProjects = res.data || [];
+    const baseProjects = res.data || [];
     const years = new Set();
 
-    // 2. 각 프로젝트의 생성 연도를 추출하고, 전체 연도 목록을 만듭니다.
-    const processedProjects = allProjects.map(p => {
-      const createdYear = p.createdAt ? new Date(p.createdAt).getFullYear() : currentYear;
-      years.add(createdYear);
-      return { ...p, createdYear };
+    // 2. 각 프로젝트의 상세 정보(소개, 진행률)를 추가로 가져옵니다.
+    const detailedProjectsPromises = baseProjects.map(async (p) => {
+      try {
+        const [planningRes, tasksRes] = await Promise.all([
+          axios.get('/planning/all', { params: { projectId: p.projectId }, headers: { Authorization: authHeader }, withCredentials: true }),
+          axios.get('/work-tasks/project', { params: { projectId: p.projectId }, headers: { Authorization: authHeader }, withCredentials: true })
+        ]);
+
+        const description = planningRes.data.description?.text || '';
+        const totalTasks = tasksRes.data.length;
+        const completedTasks = tasksRes.data.filter(t => t.status === 'COMPLETED').length;
+        const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+        const createdYear = p.createdAt ? new Date(p.createdAt).getFullYear() : currentYear;
+        years.add(createdYear);
+
+        return { ...p, description, progress, createdYear };
+      } catch (error) {
+        console.error(`Project ID ${p.projectId}의 상세 정보 로딩 실패:`, error);
+        return { ...p, description: '', progress: 0, createdYear: p.createdAt ? new Date(p.createdAt).getFullYear() : currentYear };
+      }
     });
 
-    projects.value = processedProjects;
+    projects.value = await Promise.all(detailedProjectsPromises);
 
     // 3. 연도 목록을 정렬하고 '전체' 옵션을 추가합니다.
     const sortedYears = Array.from(years).sort((a, b) => b - a);

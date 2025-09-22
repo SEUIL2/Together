@@ -1,131 +1,164 @@
 <template>
   <div
     v-if="rel"
-    class="context-menu"
+    class="custom-context-menu"
     :style="{ top: y + 'px', left: x + 'px' }"
     @click.stop
   >
-    <h4>관계선 설정</h4>
-
-    <label>시작 도형</label>
-    <select v-model="localRel.fromType">
-      <option value="none">없음</option>
-      <option value="arrow">화살표</option>
-      <option value="triangle">삼각형</option>
-      <option value="empty_diamond">빈 다이아몬드</option>
-      <option value="filled_diamond">꽉찬 다이아몬드</option>
-    </select>
-
-    <div v-if="localRel.fromType === 'filled_diamond'">
-      <label>시작 도형 채움 여부</label>
-      <select v-model="localRel.fromFilled">
-        <option :value="false">빈</option>
-        <option :value="true">채움</option>
+    <div class="menu-section">
+      <div class="menu-label">시작점</div>
+      <select v-model="localRel.fromType" class="menu-select">
+        <option value="none">없음</option>
+        <option value="arrow">화살표 (의존)</option>
+        <option value="triangle">삼각형 (일반화)</option>
+        <option value="empty_diamond">빈 다이아몬드 (집합)</option>
+        <option value="filled_diamond">채운 다이아몬드 (복합)</option>
       </select>
     </div>
 
-    <label>선 종류</label>
-    <select v-model="localRel.lineStyle">
-      <option value="solid">실선</option>
-      <option value="dashed">점선</option>
-    </select>
-
-    <label>끝 도형</label>
-    <select v-model="localRel.toType">
-      <option value="none">없음</option>
-      <option value="arrow">화살표</option>
-      <option value="triangle">삼각형</option>
-      <option value="empty_diamond">빈 다이아몬드</option>
-      <option value="filled_diamond">꽉찬 다이아몬드</option>
-    </select>
-
-    <div v-if="localRel.toType === 'filled_diamond'">
-      <label>끝 도형 채움 여부</label>
-      <select v-model="localRel.toFilled">
-        <option :value="false">빈</option>
-        <option :value="true">채움</option>
+    <div class="menu-section">
+      <div class="menu-label">선 스타일</div>
+      <select v-model="localRel.lineStyle" class="menu-select">
+        <option value="solid">실선</option>
+        <option value="dashed">점선</option>
       </select>
     </div>
 
-    <button class="delete-btn" @click="$emit('delete')">🗑 삭제</button>
+    <div class="menu-section">
+      <div class="menu-label">끝점</div>
+      <select v-model="localRel.toType" class="menu-select">
+        <option value="none">없음</option>
+        <option value="arrow">화살표 (의존)</option>
+        <option value="triangle">삼각형 (일반화)</option>
+        <option value="empty_diamond">빈 다이아몬드 (집합)</option>
+        <option value="filled_diamond">채운 다이아몬드 (복합)</option>
+      </select>
+    </div>
+
+    <div class="menu-actions">
+      <div class="menu-item danger" @click="$emit('delete')">
+        <span class="icon">🗑️</span> 관계선 삭제
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { reactive, watch, toRefs } from 'vue'
+import { reactive, watch } from 'vue'
 
 const props = defineProps({
-  rel: Object,   // 부모로부터 받은 rel 객체
+  rel: Object,
   x: Number,
   y: Number
 })
 const emit = defineEmits(['update', 'delete'])
 
-// rel에서 필요한 프로퍼티만 뽑아 로컬 복사
 const localRel = reactive({
   fromType: props.rel.fromType,
   toType:   props.rel.toType,
-  fromFilled: props.rel.fromFilled ?? false,
-  toFilled:   props.rel.toFilled   ?? false,
   lineStyle:  props.rel.lineStyle,
   bendStyle:  props.rel.bendStyle  ?? 'one'
 })
 
-// localRel이 변경될 때마다 부모로 전체 rel 업데이트 전송
 watch(localRel, (newVal) => {
   emit('update', {
-    ...props.rel,       // 기존 rel 데이터
+    ...props.rel,
     fromType:   newVal.fromType,
     toType:     newVal.toType,
-    fromFilled: newVal.fromFilled,
-    toFilled:   newVal.toFilled,
     lineStyle:  newVal.lineStyle,
     bendStyle:  newVal.bendStyle
   })
 }, { deep: true })
 
+watch(() => props.rel, (newRel) => {
+  if (newRel) {
+    localRel.fromType = newRel.fromType;
+    localRel.toType = newRel.toType;
+    localRel.lineStyle = newRel.lineStyle;
+    localRel.bendStyle = newRel.bendStyle ?? 'one';
+  }
+}, { deep: true });
 </script>
 
 
 <style scoped>
-.context-menu {
+.custom-context-menu {
   position: absolute;
-  background: #ffffff;
-  border: 1px solid #ccc;
-  padding: 10px;
-  border-radius: 6px;
-  width: 200px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.15);
-  z-index: 999;
+  z-index: 1000;
+  min-width: 220px;
+  background: #fff;
+  border-radius: 11px;
+  box-shadow: 0 4px 24px 0 #2230462a;
+  border: 1.5px solid #e8eaf0;
+  padding: 12px 10px;
+  animation: pop-in 0.12s cubic-bezier(.41,.84,.67,1.2);
+  user-select: none;
+  font-family: 'Pretendard', sans-serif;
+}
+@keyframes pop-in {
+  0% { transform: scale(0.95); opacity: 0.5; }
+  100% { transform: scale(1); opacity: 1; }
 }
 
-.context-menu h4 {
-  margin: 0 0 10px;
-  font-size: 14px;
-  color: #2c3e50;
-}
-
-.context-menu label {
-  font-weight: bold;
-  font-size: 13px;
-  display: block;
-  margin: 6px 0 2px;
-}
-
-.context-menu select {
-  width: 100%;
+.menu-section {
   padding: 4px;
+  margin-bottom: 8px;
+}
+
+.menu-label {
+  font-weight: 600;
+  font-size: 13px;
+  color: #475569;
   margin-bottom: 6px;
+  padding-left: 4px;
+}
+
+.menu-select {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background-color: #fff;
+  font-size: 14px;
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.5rem center;
+  background-repeat: no-repeat;
+  background-size: 1.5em 1.5em;
+}
+
+.menu-actions {
+  margin-top: 8px;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 8px;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  font-size: 15px;
+  border-radius: 7px;
+  padding: 8px 6px 8px 7px;
+  margin-bottom: 2px;
+  color: #2c3e50;
+  cursor: pointer;
+  transition: background 0.15s, color 0.18s;
+}
+.menu-item .icon {
+  font-size: 17px;
+  margin-right: 8px;
+}
+.menu-item.danger {
+  color: #e44e5c;
+  font-weight: 500;
+}
+.menu-item.danger:hover {
+  background: #ffe6e7;
+  color: #d7263d;
 }
 
 .delete-btn {
-  background: #e74c3c;
-  color: white;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 4px;
-  cursor: pointer;
-  width: 100%;
-  margin-top: 6px;
+  z-index: 999;
 }
 </style>

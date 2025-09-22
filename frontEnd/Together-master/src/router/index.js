@@ -30,7 +30,10 @@ import InfoStructurePage from '../views/toolview/InfoStructurePage.vue'
 import Feedback from '../views/FeedbackPage.vue'
 import SequenceDiagramPage from '../views/toolview/SequenceDiagramPage.vue'
 //admin Page
-import AdminDashboard from '../views/AdminDashboard.vue'  
+import AdminDashboard from '../views/AdminDashboard.vue'
+
+import VideoChat from '../views/VideoChat.vue';
+
 
 const routes = [
   {
@@ -329,6 +332,11 @@ const routes = [
   component: () => import('@/views/ProfessorReportPage.vue'),
   meta: { requiresAuth: true, roles: ['PROFESSOR'] }
 },
+  {
+    path: '/videochat',
+    name: 'VideoChat',
+    component: VideoChat,
+  },
 
 ]
 

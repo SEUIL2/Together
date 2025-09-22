@@ -61,6 +61,14 @@ const handleLogin = async () => {
   successMessage.value = ''
   errorMessage.value = ''
 
+  // admin 계정 특별 처리
+  if (userLoginId.value === 'admin' && password.value === 'admin') {
+    successMessage.value = '관리자님 환영합니다!'
+    // admin 전용 대시보드 페이지로 이동
+    router.push('/admin')
+    return;
+  }
+
   const encoded = btoa(`${userLoginId.value}:${password.value}`)
   const authHeader = `Basic ${encoded}`
   localStorage.setItem('authHeader', authHeader)
@@ -86,7 +94,7 @@ const handleLogin = async () => {
     if (isProfessor) {
       router.push('/professor/mainpage')
     } else if (hasProject) {
-      router.push('/Dashboard')
+      router.push('/DashBoard')
     } else {
       router.push('/MainPage2')
     }
@@ -113,7 +121,6 @@ const goFindPw = () => {
   router.push("/reset-password");
 }
 </script>
-
 
 
 <style scoped>

@@ -1,5 +1,6 @@
 package com.together.user.professor.feedback.DTO;
 
+import com.together.user.professor.feedback.FeedbackCategory;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -20,5 +21,6 @@ public class FeedbackDto {
     private String author;
     private LocalDateTime createdAt;
     private Boolean isRead;
+    private FeedbackCategory category; //카테고리 추가
 
 }

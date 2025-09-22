@@ -4,7 +4,7 @@
 
     <div class="year-filter">
       <div class="current-year-display">
-        <span class="current-year-label">{{ selectedYear }}년 프로젝트</span>
+        <span class="current-year-label">{{ displayYearLabel }}</span>
         <button class="dropdown-toggle" @click="toggleYearDropdown">
           연도 선택
           <span class="chevron" :class="{ open: showYearDropdown }">▾</span>
@@ -46,9 +46,17 @@ const selectedYear = ref(currentYear)
 const availableYears = ref([])
 const showYearDropdown = ref(false)
 
-// 선택된 연도에 따라 프로젝트를 필터링합니다.
+// 선택된 연도에 따라 프로젝트를 필터링합니다. '전체'가 선택되면 모든 프로젝트를 반환합니다.
 const filteredProjects = computed(() => {
+  if (selectedYear.value === '전체') {
+    return projects.value;
+  }
   return projects.value.filter(p => p.createdYear === selectedYear.value);
+});
+
+// 연도 레이블을 동적으로 변경합니다.
+const displayYearLabel = computed(() => {
+  return selectedYear.value === '전체' ? '모든 프로젝트' : `${selectedYear.value}년 프로젝트`;
 });
 
 
@@ -86,13 +94,13 @@ onMounted(async () => {
     });
 
     projects.value = processedProjects;
-    availableYears.value = Array.from(years).sort((a, b) => b - a); // 최신 연도 순으로 정렬
 
-    // 만약 프로젝트가 있는 연도 중에 올해가 없다면, 올해를 추가해줍니다.
-    if (!availableYears.value.includes(currentYear)) {
-      availableYears.value.push(currentYear);
-      availableYears.value.sort((a, b) => b - a);
+    // 3. 연도 목록을 정렬하고 '전체' 옵션을 추가합니다.
+    const sortedYears = Array.from(years).sort((a, b) => b - a);
+    if (!sortedYears.includes(currentYear)) {
+      sortedYears.unshift(currentYear);
     }
+    availableYears.value = ['전체', ...sortedYears];
 
   } catch (error) {
     console.error('❌ 교수 프로젝트 목록 조회 실패:', error)

@@ -4,9 +4,7 @@ import com.together.project.ProjectEntity;
 import com.together.project.ProjectRepository;
 import com.together.user.UserEntity;
 import com.together.user.UserRepository;
-import com.together.user.professor.feedback.DTO.CreateFeedbackRequest;
-import com.together.user.professor.feedback.DTO.FeedbackDto;
-import com.together.user.professor.feedback.DTO.FeedbackSummaryDto;
+import com.together.user.professor.feedback.DTO.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,6 +12,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.Optional;
+import java.util.HashSet;
+import java.util.Set;
+
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +25,8 @@ public class FeedbackService {
     private final FeedbackReadRepository feedbackReadRepository;
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
+    private final FeedbackTextHistoryRepository feedbackTextHistoryRepository;
+    private final FeedbackCategoryRepository feedbackCategoryRepository;
 
     //피드백 생성
     public FeedbackEntity createFeedback(CreateFeedbackRequest dto, Long userId) {
@@ -40,8 +44,15 @@ public class FeedbackService {
         feedback.setY(dto.getY());
         feedback.setText(dto.getText());
         feedback.setIsRead(false); //false로 명시
-        feedback.setCategory(dto.getCategory());
+        //feedback.setCategory(dto.getCategory());
         feedback.setCreatedAt(LocalDateTime.now());
+
+        if (dto.getCategoryIds() != null && !dto.getCategoryIds().isEmpty()) {
+            Set<FeedbackCategoryEntity> categories = new HashSet<>(feedbackCategoryRepository.findAllById(dto.getCategoryIds()));
+            feedback.setCategories(categories);
+        }
+
+        saveFeedbackTextHistory(author, dto.getText()); //피드백 내용 히스토리 저장
 
         return feedbackRepository.save(feedback);
     }
@@ -62,8 +73,10 @@ public class FeedbackService {
                             feedback.getText(),
                             feedback.getAuthor().getUserId(),
                             feedback.getIsRead(),
-                            feedback.getCategory()
-                            //readFeedbackIds.contains(feedback.getFeedbackId())
+                            //feedback.getCategory()
+                            feedback.getCategories().stream()
+                                    .map(FeedbackCategoryEntity::getName)
+                                    .collect(Collectors.toSet())
                     ))
                     .collect(Collectors.toList());
         } else if (user.getRole() == UserEntity.UserRole.PROFESSOR) {
@@ -77,7 +90,10 @@ public class FeedbackService {
                             feedback.getText(),
                             feedback.getAuthor().getUserId(),
                             true, // 교수가 작성한 피드백은 본인이므로 항상 읽은 상태(고정값)
-                            feedback.getCategory()
+                            //feedback.getCategory()
+                            feedback.getCategories().stream()
+                                    .map(FeedbackCategoryEntity::getName)
+                                    .collect(Collectors.toSet())
                     ))
                     .collect(Collectors.toList());
         }
@@ -107,7 +123,10 @@ public class FeedbackService {
                         fb.getAuthor().getUserName(),
                         fb.getCreatedAt(),
                         fb.getIsRead(),
-                        fb.getCategory()
+                        //fb.getCategory()
+                        fb.getCategories().stream()
+                                .map(FeedbackCategoryEntity::getName)
+                                .collect(Collectors.toSet())
                 )).toList();
     }
 
@@ -166,4 +185,69 @@ public class FeedbackService {
 
         feedbackRepository.delete(feedback);
     }
+
+    // 피드백 내용 히스토리 저장
+    private void saveFeedbackTextHistory(UserEntity professor, String text) {
+        if (professor.getRole() != UserEntity.UserRole.PROFESSOR) {
+            return;
+        }
+        Optional<FeedbackTextHistoryEntity> existingHistory = feedbackTextHistoryRepository.findByProfessor_UserIdAndText(professor.getUserId(), text);
+        if (existingHistory.isPresent()) {
+            FeedbackTextHistoryEntity history = existingHistory.get();
+            history.setUsedAt(LocalDateTime.now());
+            feedbackTextHistoryRepository.save(history);
+        } else {
+            FeedbackTextHistoryEntity newHistory = new FeedbackTextHistoryEntity();
+            newHistory.setProfessor(professor);
+            newHistory.setText(text);
+            feedbackTextHistoryRepository.save(newHistory);
+        }
+    }
+
+    // 피드백 내용 히스토리 조회
+    public List<FeedbackTextHistoryDto> getFeedbackTextHistory(Long userId) {
+        return feedbackTextHistoryRepository.findByProfessor_UserIdOrderByUsedAtDesc(userId)
+                .stream()
+                .map(history -> new FeedbackTextHistoryDto(history.getId(), history.getText(), history.getUsedAt()))
+                .collect(Collectors.toList());
+    }
+
+    // -- 카테고리 관리 서비스 --
+
+    @Transactional
+    public FeedbackCategoryEntity createCategory(FeedbackCategoryDto dto, UserEntity user) {
+        FeedbackCategoryEntity category = new FeedbackCategoryEntity();
+        category.setName(dto.getName());
+        category.setCreatedBy(user);
+        return feedbackCategoryRepository.save(category);
+    }
+
+    public List<FeedbackCategoryDto> getCategories(UserEntity user) {
+        // 교수는 자신이 생성한 카테고리만, 학생은 모든 교수의 카테고리를 볼 수 있도록 확장 가능 (현재는 교수 본인것만)
+        return feedbackCategoryRepository.findAllByCreatedBy(user).stream()
+                .map(cat -> new FeedbackCategoryDto(cat.getId(), cat.getName()))
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public FeedbackCategoryEntity updateCategory(Long categoryId, FeedbackCategoryDto dto, UserEntity user) {
+        FeedbackCategoryEntity category = feedbackCategoryRepository.findById(categoryId)
+                .orElseThrow(() -> new IllegalArgumentException("카테고리를 찾을 수 없습니다."));
+        if (!category.getCreatedBy().getUserId().equals(user.getUserId())) {
+            throw new SecurityException("자신이 생성한 카테고리만 수정할 수 있습니다.");
+        }
+        category.setName(dto.getName());
+        return feedbackCategoryRepository.save(category);
+    }
+
+    @Transactional
+    public void deleteCategory(Long categoryId, UserEntity user) {
+        FeedbackCategoryEntity category = feedbackCategoryRepository.findById(categoryId)
+                .orElseThrow(() -> new IllegalArgumentException("카테고리를 찾을 수 없습니다."));
+        if (!category.getCreatedBy().getUserId().equals(user.getUserId())) {
+            throw new SecurityException("자신이 생성한 카테고리만 삭제할 수 있습니다.");
+        }
+        feedbackCategoryRepository.delete(category);
+    }
+
 }

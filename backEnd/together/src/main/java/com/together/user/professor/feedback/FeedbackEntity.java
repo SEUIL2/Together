@@ -12,7 +12,9 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @Table(name = "feedback_entity")
@@ -47,7 +49,15 @@ public class FeedbackEntity {
 
     private Boolean isRead = false;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private FeedbackCategory category;
+//    @Enumerated(EnumType.STRING)
+//    @Column(nullable = false)
+//    private FeedbackCategory category;
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "feedback_selected_categories",
+            joinColumns = @JoinColumn(name = "feedback_id"),
+            inverseJoinColumns = @JoinColumn(name = "category_id")
+    )
+    private Set<FeedbackCategoryEntity> categories = new HashSet<>(); // 변경 및 추가
 }

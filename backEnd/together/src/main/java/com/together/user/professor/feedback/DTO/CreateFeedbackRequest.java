@@ -1,7 +1,8 @@
 package com.together.user.professor.feedback.DTO;
 
-import com.together.user.professor.feedback.FeedbackCategory;
 import lombok.Data;
+
+import java.util.List;
 
 @Data
 public class CreateFeedbackRequest {
@@ -11,5 +12,6 @@ public class CreateFeedbackRequest {
     private int y;
     private String text;
     private Boolean isRead;
-    private FeedbackCategory category; //카테고리 추가
+    //private FeedbackCategory category; //삭제
+    private List<Long> categoryIds; // 변경 및 추가
 }

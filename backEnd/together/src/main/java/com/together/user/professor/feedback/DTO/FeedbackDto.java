@@ -1,11 +1,11 @@
 package com.together.user.professor.feedback.DTO;
 
-import com.together.user.professor.feedback.FeedbackCategory;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.Set;
 
 @Data
 @AllArgsConstructor
@@ -21,6 +21,7 @@ public class FeedbackDto {
     private String author;
     private LocalDateTime createdAt;
     private Boolean isRead;
-    private FeedbackCategory category; //카테고리 추가
+    //private FeedbackCategory category; //카테고리 추가
+    private Set<String> categories; // 변경: Set<String>으로 타입 수정
 
 }

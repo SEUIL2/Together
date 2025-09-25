@@ -2,9 +2,7 @@ package com.together.user.professor.feedback;
 
 import com.together.systemConfig.UserDetailsImpl;
 import com.together.user.UserEntity;
-import com.together.user.professor.feedback.DTO.CreateFeedbackRequest;
-import com.together.user.professor.feedback.DTO.FeedbackDto;
-import com.together.user.professor.feedback.DTO.FeedbackSummaryDto;
+import com.together.user.professor.feedback.DTO.*;
 import com.together.util.customAnnotation.CurrentProject;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -16,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/feedbacks")
@@ -24,6 +23,7 @@ public class FeedbackController {
 
     private final FeedbackService feedbackService;
     private final FeedbackRepository feedbackRepository;
+    private final FeedbackCategoryRepository feedbackCategoryRepository;
 
     //피드백 생성
     @PostMapping("/create")
@@ -49,7 +49,10 @@ public class FeedbackController {
                 userDetails.getUsername(), // author
                 feedback.getCreatedAt(),
                 feedback.getIsRead(),
-                feedback.getCategory()
+                //feedback.getCategory()
+                feedback.getCategories().stream()
+                        .map(FeedbackCategoryEntity::getName)
+                        .collect(Collectors.toSet())
         );
         return ResponseEntity.ok(response);
     }
@@ -93,7 +96,10 @@ public class FeedbackController {
                 feedback.getAuthor().getUserName(),
                 feedback.getCreatedAt(),
                 feedback.getIsRead(),
-                feedback.getCategory()
+                //feedback.getCategory()
+                feedback.getCategories().stream()
+                        .map(FeedbackCategoryEntity::getName)
+                        .collect(Collectors.toSet())
         );
         return ResponseEntity.ok(response);
     }
@@ -143,6 +149,64 @@ public class FeedbackController {
 
         feedbackService.deleteFeedback(feedbackId);
         return ResponseEntity.ok().body("피드백이 삭제되었습니다.");
+    }
+
+    // 피드백 내용 히스토리 조회
+    @GetMapping("/history")
+    public ResponseEntity<?> getFeedbackTextHistory(@AuthenticationPrincipal UserDetailsImpl userDetails) {
+        if (userDetails.getUser().getRole() != UserEntity.UserRole.PROFESSOR) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("message", "교수만 접근 가능합니다."));
+        }
+        List<FeedbackTextHistoryDto> history = feedbackService.getFeedbackTextHistory(userDetails.getUser().getUserId());
+        return ResponseEntity.ok(history);
+    }
+
+    // -- 카테고리 관리 API --
+
+    // 카테고리 생성
+    @PostMapping("/categories")
+    public ResponseEntity<?> createCategory(@RequestBody FeedbackCategoryDto dto, @AuthenticationPrincipal UserDetailsImpl userDetails) {
+        if (userDetails.getUser().getRole() != UserEntity.UserRole.PROFESSOR) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("교수만 카테고리를 생성할 수 있습니다.");
+        }
+        FeedbackCategoryEntity category = feedbackService.createCategory(dto, userDetails.getUser());
+        return ResponseEntity.ok(new FeedbackCategoryDto(category.getId(), category.getName()));
+    }
+
+    // 카테고리 조회
+    @GetMapping("/categories")
+    public ResponseEntity<List<FeedbackCategoryDto>> getCategories(@AuthenticationPrincipal UserDetailsImpl userDetails) {
+        List<FeedbackCategoryDto> categories = feedbackService.getCategories(userDetails.getUser());
+        return ResponseEntity.ok(categories);
+    }
+
+    // 카테고리 수정
+    @PutMapping("/categories/{categoryId}")
+    public ResponseEntity<?> updateCategory(@PathVariable Long categoryId, @RequestBody FeedbackCategoryDto dto, @AuthenticationPrincipal UserDetailsImpl userDetails) {
+        if (userDetails.getUser().getRole() != UserEntity.UserRole.PROFESSOR) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("교수만 카테고리를 수정할 수 있습니다.");
+        }
+        try {
+            FeedbackCategoryEntity updatedCategory = feedbackService.updateCategory(categoryId, dto, userDetails.getUser());
+            return ResponseEntity.ok(new FeedbackCategoryDto(updatedCategory.getId(), updatedCategory.getName()));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+        }
+    }
+
+    // 카테고리 삭제
+    @DeleteMapping("/categories/{categoryId}")
+    public ResponseEntity<?> deleteCategory(@PathVariable Long categoryId, @AuthenticationPrincipal UserDetailsImpl userDetails) {
+        if (userDetails.getUser().getRole() != UserEntity.UserRole.PROFESSOR) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("교수만 카테고리를 삭제할 수 있습니다.");
+        }
+        try {
+            feedbackService.deleteCategory(categoryId, userDetails.getUser());
+            return ResponseEntity.ok().body("카테고리가 삭제되었습니다.");
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+        }
     }
 
 }

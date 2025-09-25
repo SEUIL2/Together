@@ -7,6 +7,7 @@
           <th style="width: 20%">기능 이름</th>
           <th style="width: 12%">중요도</th>
           <th>기능 설명</th>
+          <th style="width: 10%">작성자</th>
           <th style="width: 8%">완료</th>
           <th style="width: 5%"></th>
         </tr>
@@ -21,6 +22,7 @@
             </select>
           </td>
           <td><input type="text" v-model="row.featureDescription" @blur="updateDevOrderItem(row)" /></td>
+          <td class="text-center">{{ row.authorName }}</td>
           <td class="text-center">
             <input type="checkbox" v-model="row.completed" @change="toggleDevOrderItemStatus(row)" />
           </td>
@@ -55,7 +57,13 @@ async function fetchDevOrderItems() {
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true,
     });
-    rows.value = data.sort((a, b) => a.devOrder - b.devOrder);
+    // 서버에서 받은 데이터를 프론트엔드 모델에 맞게 매핑합니다.
+    rows.value = data.map(item => ({
+      ...item,
+      devOrder: item.featureOrder,
+      featureDescription: item.description,
+    })).sort((a, b) => a.devOrder - b.devOrder);
+
   } catch (err) {
     console.error('기능 순서 목록 로딩 실패:', err);
   }

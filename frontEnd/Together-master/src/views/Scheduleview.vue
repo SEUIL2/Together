@@ -18,6 +18,12 @@
           @click="setFilter('mine')"
         >내 작업</button>
       </div>
+      <div class="category-filter-wrapper">
+        <label for="category-filter-gantt"></label>
+        <select id="category-filter-gantt" v-model="selectedCategory" @change="onSearch" class="category-filter">
+          <option v-for="(label, key) in categories" :key="key" :value="key">{{ label }}</option>
+        </select>
+      </div>
     </div>
 
     <!-- Gantt 컨테이너 -->
@@ -87,6 +93,14 @@ const rawTeamMembers = ref([])
 const teamMembers = ref([])
 const searchTerm = ref('')
 const filterMode = ref('all')
+const selectedCategory = ref('ALL');
+const categories = {
+  ALL: '전체',
+  PLANNING: '기획',
+  DESIGN: '설계',
+  DEVELOPMENT: '개발',
+  TEST: '테스트',
+};
 let allRows = []
 
 const ganttEventIds = [] // 이벤트 핸들러 ID 저장용 배열
@@ -143,7 +157,8 @@ function flattenTask(task, parent = null) {
     assignee: task.assignedUserName,
     color: member?.userColor || null,
     parent,
-    status: task.status // status 필드 추가
+    status: task.status, // status 필드 추가
+    category: task.category // category 필드 추가
   }]
   if (task.childTasks) task.childTasks.forEach(c => row.push(...flattenTask(c, task.id)))
   return row
@@ -194,6 +209,7 @@ function onSearch() {
   const q = searchTerm.value.trim().toLowerCase()
   if (q) rows = rows.filter(r => r.text.toLowerCase().includes(q))
   if (filterMode.value === 'mine') rows = rows.filter(r => r.assignee?.trim() === currentUser.value)
+  if (selectedCategory.value !== 'ALL') rows = rows.filter(r => r.category === selectedCategory.value);
   renderGantt(rows)
 }
 
@@ -210,6 +226,7 @@ function setupGantt() {
   gantt.locale.labels.section_time        = '기간'
   gantt.locale.labels.section_assignee    = '담당자'
   gantt.locale.labels.section_status      = '상태' // 상태 섹션 라벨 추가
+  gantt.locale.labels.section_category    = '분류' // 카테고리 섹션 라벨 추가
   gantt.locale.labels.button_save         = '저장'
   gantt.locale.labels.button_cancel       = '취소'
   gantt.locale.labels.button_delete       = '삭제'
@@ -229,6 +246,7 @@ function setupGantt() {
 
   gantt.config.columns = [
     { name:'text',       label:'작업',   tree:true, width:130, align:'center', resize:true },
+    { name:'category',   label:'카테고리', width:70, align:'center', template: (task) => categories[task.category] || '' },
     { name:'start_date', label:'시작일', width:100, align:'center', resize:true },
     { name:'duration',   label:'기간(일)', width:60,  align:'center' },
     { name:'assignee',   label:'담당자', width:70,  align:'center', editor:'select', options:teamMembers.value },
@@ -238,6 +256,12 @@ function setupGantt() {
   gantt.config.lightbox.sections = [
     { name:'description', map_to:'text', type:'textarea', label:'작업 이름' },
     { name:'time',        map_to:'auto', type:'duration', label:'기간' },
+    { name:'category',    map_to:'category', type:'select', options: [
+        { key: 'PLANNING',    label: '기획' },
+        { key: 'DESIGN',      label: '설계' },
+        { key: 'DEVELOPMENT', label: '개발' },
+        { key: 'TEST',        label: '테스트' }
+    ], label:'카테고리' },
     // 상태 선택 드롭다운 추가
     { name:'status',      map_to:'status', type:'select', options: [
         { key: 'PENDING',     label: '작업 목록' },
@@ -280,7 +304,7 @@ async function loadAndInitializeGantt() {
       const endStr   = gantt.date.date_to_str("%Y-%m-%d")(gantt.calculateEndDate({ start_date: task.start_date, duration: task.duration }))
       const sel      = rawTeamMembers.value.find(u => u.userName === task.assignee)
       if (sel?.userColor) task.color = sel.userColor
-      const payload  = { title: task.text, startDate: startStr, endDate: endStr, assignedUserId: sel?.userId ?? null, status: 'PENDING', parentTaskId: task.parent || null }
+      const payload  = { title: task.text, startDate: startStr, endDate: endStr, assignedUserId: sel?.userId ?? null, status: 'PENDING', parentTaskId: task.parent || null, category: task.category }
       axios.post('/work-tasks', payload)
           .then(({ data }) => gantt.changeTaskId(tempId, data.id))
           .catch(err => { console.error('작업 생성 실패', err); gantt.deleteTask(tempId) })
@@ -291,7 +315,7 @@ async function loadAndInitializeGantt() {
       const task = gantt.getTask(id)
       const payload = {
         startDate: gantt.date.date_to_str("%Y-%m-%d")(task.start_date),
-        endDate: gantt.date.date_to_str("%Y-%m-%d")(gantt.calculateEndDate({ start_date: task.start_date, duration: task.duration }))
+        endDate: gantt.date.date_to_str("%Y-%m-%d")(gantt.calculateEndDate({ start_date: task.start_date, duration: task.duration, task: task }))
       }
       axios.patch(`/work-tasks/${id}/schedule`, payload).catch(err => console.error('일정 업데이트 실패', err))
     }));
@@ -306,7 +330,8 @@ async function loadAndInitializeGantt() {
         endDate: endStr,
         assignedUserId: sel?.userId ?? null,
         status: task.status,
-        parentTaskId: task.parent || null
+        parentTaskId: task.parent || null,
+        category: task.category
       }
       axios.patch(`/work-tasks/${id}`, dto)
           .catch(err => console.error('작업 업데이트 실패', err))
@@ -325,6 +350,12 @@ async function loadAndInitializeGantt() {
     await loadFeedbacks() // 피드백 로드 추가
     if (isReadOnly.value) {
       ganttContainer.value.addEventListener('contextmenu', onRightClick)
+    }
+
+    // URL 쿼리에서 카테고리 필터링
+    if (route.query.category) {
+      selectedCategory.value = route.query.category;
+      onSearch();
     }
   }
 }
@@ -399,6 +430,17 @@ onDeactivated(cleanupGantt);
   border-color: #3f8efc;
 }
 
+.category-filter-wrapper {
+  margin-left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.category-filter {
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #dee2e6;
+}
 /* 간트 차트 컨테이너 디자인 */
 .gantt-container {
   width: 100%;

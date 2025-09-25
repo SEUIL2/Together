@@ -8,6 +8,11 @@
           <button :class="{ active: filterMode === 'all' }" @click="setFilter('all')">모든 작업</button>
           <button :class="{ active: filterMode === 'mine' }" @click="setFilter('mine')">내 작업</button>
         </div>
+        <div class="category-filter-wrapper">
+          <select v-model="selectedCategory" @change="onSearch" class="category-filter">
+            <option v-for="(label, key) in categories" :key="key" :value="key">{{ label }}</option>
+          </select>
+        </div>
       </div>
 
       <!-- 프로젝트 진행률 바 -->
@@ -49,8 +54,11 @@
                 </div>
               </div>
               <div class="card-footer">
-                <span class="card-assignee">{{ task.assignedUserName || '미지정' }}</span>
-                <img :src="getAssigneeDetails(task.assignedUserName)?.profileImageUrl || defaultAvatar" class="assignee-avatar" :alt="task.assignedUserName" />
+                <div class="assignee-info">
+                  <span class="card-assignee">{{ task.assignedUserName || '미지정' }}</span>
+                  <img :src="getAssigneeDetails(task.assignedUserName)?.profileImageUrl || defaultAvatar" class="assignee-avatar" :alt="task.assignedUserName" />
+                </div>
+                <span v-if="task.category" class="category-badge" :class="`category-${task.category}`">{{ categories[task.category] }}</span>
               </div>
             </div>
           </template>
@@ -112,12 +120,20 @@ const isReadOnly = computed(() => route.query.readonly === 'true')
 const ganttHidden = ref(null)
 
 const searchTerm = ref('')
+const selectedCategory = ref('ALL');
 const filterMode = ref('all')
 const currentUser = ref('')
 const workTasks = ref([])
 const rawTeamMembers = ref([])
 const teamMembers = ref([])
 const defaultAvatar = new URL('@/assets/defaultimage.png', import.meta.url).href
+const categories = {
+  ALL: '전체',
+  PLANNING: '기획',
+  DESIGN: '설계',
+  DEVELOPMENT: '개발',
+  TEST: '테스트',
+};
 const columnTitles = { PENDING: '작업 목록', IN_PROGRESS: '진행 중', COMPLETED: '완료' }
 const taskColumns = ref({ PENDING: [], IN_PROGRESS: [], COMPLETED: [] })
 
@@ -225,6 +241,9 @@ function onSearch() {
   if (filterMode.value === 'mine') {
     filtered = filtered.filter(t => t.assignedUserName?.trim() === currentUser.value.trim())
   }
+  if (selectedCategory.value !== 'ALL') {
+    filtered = filtered.filter(t => t.category === selectedCategory.value);
+  }
   splitByStatus(filtered)
 }
 
@@ -237,7 +256,7 @@ function flattenTask(t, parent = null) {
   const start = new Date(t.startDate)
   const end = new Date(t.endDate)
   const dur = Math.ceil((end - start) / (1000 * 60 * 60 * 24))
-  const row = [{ id: t.id, text: t.title, start_date: t.startDate, duration: dur, assignee: t.assignedUserName, parent }]
+  const row = [{ id: t.id, text: t.title, start_date: t.startDate, duration: dur, assignee: t.assignedUserName, parent, category: t.category }]
   if (t.childTasks) t.childTasks.forEach(c => row.push(...flattenTask(c, t.id)))
   return row
 }
@@ -258,7 +277,8 @@ async function onTaskDrop(evt, newStatus) {
     endDate: task.endDate,
     assignedUserId: task.assignedUserId,
     status: newStatus,
-    parentTaskId: task.parentTaskId
+    parentTaskId: task.parentTaskId,
+    category: task.category
   }
   try {
     await axios.patch(`/work-tasks/${task.id}`, payload)
@@ -292,12 +312,19 @@ async function loadAndInitialize() {
   gantt.locale.labels.section_description = '작업 이름'
   gantt.locale.labels.section_time = '기간'
   gantt.locale.labels.section_assignee = '담당자'
+  gantt.locale.labels.section_category = '분류'
   gantt.locale.labels.button_save = '저장'
   gantt.locale.labels.button_cancel = '취소'
   gantt.locale.labels.button_delete = '삭제'
 
   gantt.config.lightbox.sections = [
     { name:'description', map_to:'text', type:'textarea', label:'작업 이름' },
+    { name:'category', map_to:'category', type:'select', options: [
+        { key: 'PLANNING', label: '기획' },
+        { key: 'DESIGN', label: '설계' },
+        { key: 'DEVELOPMENT', label: '개발' },
+        { key: 'TEST', label: '테스트' }
+    ], label:'카테고리' },
     { name:'time', map_to:'auto', type:'duration', label:'기간' },
     { name:'assignee', map_to:'assignee', type:'select', options: teamMembers.value, label:'담당자' }
   ]
@@ -311,7 +338,7 @@ async function loadAndInitialize() {
       const startStr = gantt.date.date_to_str("%Y-%m-%d")(task.start_date)
       const endStr = gantt.date.date_to_str("%Y-%m-%d")(gantt.calculateEndDate({ start_date: task.start_date, duration: task.duration }))
       const sel = rawTeamMembers.value.find(u => u.userName === task.assignee)
-      const payload = { title: task.text, description: task.text, startDate: startStr, endDate: endStr, assignedUserId: sel?.userId ?? null, status: 'PENDING', parentTaskId: task.parent || null }
+      const payload = { title: task.text, description: task.text, startDate: startStr, endDate: endStr, assignedUserId: sel?.userId ?? null, status: 'PENDING', parentTaskId: task.parent || null, category: task.category }
       try {
         const { data } = await axios.post('/work-tasks', payload)
         gantt.changeTaskId(tempId, data.id)
@@ -335,7 +362,8 @@ async function loadAndInitialize() {
         endDate: endStr,
         assignedUserId: sel?.userId ?? null,
         status: task.status,
-        parentTaskId: task.parent || null
+        parentTaskId: task.parent || null,
+        category: task.category
       }
       try {
         await axios.patch(`/work-tasks/${id}`, dto)
@@ -421,6 +449,11 @@ onDeactivated(cleanup);
   align-items: center;
 }
 
+.category-filter-wrapper {
+  margin-left: 12px;
+}
+
+
 .search-bar input {
   width: 220px;
   padding: 8px 12px;
@@ -454,6 +487,13 @@ onDeactivated(cleanup);
   background: #3f8efc;
   color: #fff;
   border-color: #3f8efc;
+}
+
+.category-filter {
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #dee2e6;
+  font-size: 14px;
 }
 
 .progress-container {
@@ -588,6 +628,26 @@ onDeactivated(cleanup);
 .card-content {
   margin-bottom: 12px;
 }
+.category-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 10px;
+  color: white;
+}
+.category-PLANNING {
+  background-color: #ffaeae;
+}
+.category-DESIGN {
+  background-color: #f39c12;
+}
+.category-DEVELOPMENT {
+  background-color: #2ecc71;
+}
+.category-TEST {
+  background-color: #9b59b6;
+}
 .card-title {
   font-size: 1rem;
   margin-bottom: 4px;
@@ -600,7 +660,11 @@ onDeactivated(cleanup);
 }
 .card-footer {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
+}
+.assignee-info {
+  display: flex;
   align-items: center;
   gap: 8px;
 }

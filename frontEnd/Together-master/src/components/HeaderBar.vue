@@ -132,7 +132,6 @@ const designItems = [
   { name: "ERD", type: "erd" },
   { name: "테이블 명세", type: "table" },
   { name: "시스템 아키텍쳐", type: "architecture" },
-  { name: "프로젝트 일정", type: "schedule" }
 ];
 
 const developItems = [

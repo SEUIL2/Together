@@ -1,5 +1,6 @@
 <template>
   <div class="feedback-page-container">
+
     <header class="page-header">
       <h1>📝 작성한 피드백 내역</h1>
       <p>프로젝트를 선택하여 작성한 피드백을 확인하고 관리할 수 있습니다.</p>
@@ -15,14 +16,16 @@
           </option>
         </select>
       </div>
+      <div class="header-actions">
+        <button class="manage-category-btn" @click="showCategoryManager = true">카테고리 관리</button>
+      </div>
       <div class="category-filter">
         <label for="category-filter">카테고리 필터:</label>
         <select id="category-filter" v-model="selectedCategory">
           <option value="ALL">전체 보기</option>
-          <option value="IMPROVEMENT">개선 제안</option>
-          <option value="IDEA">아이디어</option>
-          <option value="COMPLIMENT">칭찬</option>
-          <option value="QUESTION">질문</option>
+          <option v-for="cat in feedbackCategories" :key="cat.id" :value="cat.name">
+            {{ getCategoryDisplayName(cat.name) }}
+          </option>
         </select>
       </div>
     </div>
@@ -39,7 +42,9 @@
       <div v-for="fb in filteredFeedbacks" :key="fb.feedbackId" class="feedback-card" :class="{ 'is-read': fb.isRead }">
         <div class="card-header">
           <div>
-            <span class="feedback-category" :class="fb.category">{{ getCategoryDisplayName(fb.category) }}</span>
+            <span v-if="fb.categories && fb.categories.length > 0" class="feedback-category">
+              {{ getCategoryDisplayName(fb.categories[0].name) }}
+            </span>
             <span class="feedback-page">{{ getPageDisplayName(fb.page) }}</span>
           </div>
           <span class="feedback-date">{{ formatDate(fb.createdAt) }}</span>
@@ -51,22 +56,31 @@
         </div>
       </div>
     </div>
+
+    <FeedbackCategoryManager
+      v-if="showCategoryManager"
+      @close="() => { showCategoryManager = false; fetchFeedbackCategories(); }"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import axios from 'axios';
+import FeedbackCategoryManager from '@/components/feedback/FeedbackCategoryManager.vue';
 
 const loading = ref(true);
 const feedbacks = ref([]);
 const projects = ref([]);
 const selectedProjectId = ref(null);
 const selectedCategory = ref('ALL');
+const feedbackCategories = ref([]);
 
+const showCategoryManager = ref(false);
 onMounted(async () => {
   try {
     await fetchProfessorProjects(); // 프로젝트 목록을 먼저 가져옵니다.
+    await fetchFeedbackCategories();
   } catch (error) {
     console.error("페이지 로딩 중 오류 발생:", error);
   } finally {
@@ -78,7 +92,9 @@ const filteredFeedbacks = computed(() => {
   if (selectedCategory.value === 'ALL') {
     return feedbacks.value;
   }
-  return feedbacks.value.filter(fb => fb.category === selectedCategory.value);
+  return feedbacks.value.filter(fb =>
+    fb.categories && fb.categories.some(cat => cat.name === selectedCategory.value)
+  );
 });
 const fetchProfessorProjects = async () => {
   try {
@@ -98,6 +114,17 @@ const fetchProfessorProjects = async () => {
   }
 };
 
+const fetchFeedbackCategories = async () => {
+  try {
+    const { data } = await axios.get('/feedbacks/categories', {
+      headers: { Authorization: localStorage.getItem('authHeader') },
+      withCredentials: true,
+    });
+    feedbackCategories.value = data;
+  } catch (error) {
+    console.error('피드백 카테고리 로딩 실패:', error);
+  }
+};
 const fetchFeedbacks = async () => {
   if (!selectedProjectId.value) {
     feedbacks.value = [];
@@ -170,13 +197,7 @@ const getPageDisplayName = (pageSlug) => {
 };
 
 const getCategoryDisplayName = (category) => {
-  const categoryNames = {
-    IMPROVEMENT: '개선 제안',
-    IDEA: '아이디어',
-    COMPLIMENT: '칭찬',
-    QUESTION: '질문'
-  };
-  return categoryNames[category] || '피드백';
+  return category;
 };
 
 
@@ -211,12 +232,28 @@ const formatDate = (dateStr) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 1rem;
+}
+.header-actions {
+  margin-left: auto;
+}
+.manage-category-btn {
   margin-bottom: 24px;
 }
 .project-selector {
   display: flex;
   align-items: center;
   gap: 12px;
+}
+.manage-category-btn {
+  padding: 8px 16px;
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.2s;
 }
 .category-filter {
   display: flex;
@@ -283,18 +320,7 @@ const formatDate = (dateStr) => {
   font-size: 13px;
   color: white;
 }
-.feedback-category.IMPROVEMENT {
-  background-color: #3498db;
-}
-.feedback-category.IDEA {
-  background-color: #f1c40f;
-}
-.feedback-category.COMPLIMENT {
-  background-color: #2ecc71;
-}
-.feedback-category.QUESTION {
-  background-color: #9b59b6;
-}
+.feedback-category { background-color: #6c757d; }
 .feedback-date { font-size: 12px; color: #868e96; }
 .feedback-text { flex-grow: 1; font-size: 14px; color: #495057; line-height: 1.7; white-space: pre-wrap; max-height: 120px; overflow-y: auto; padding-right: 8px; }
 .card-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding-top: 12px; border-top: 1px solid #f1f3f5; }

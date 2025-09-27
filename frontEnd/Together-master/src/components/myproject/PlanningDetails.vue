@@ -1,6 +1,7 @@
 <template>
   <section class="planning-details">
     <div class="section-header">
+      
       <!-- 상단 버튼 네비게이션 -->
       <div class="nav-buttons">
         <button 
@@ -142,6 +143,16 @@
       @submitted="() => { showFeedbackInput = false; loadFeedbacks(`planning-${activeItem.type}`) }"
     />
 
+    <!-- 컨텍스트 메뉴 (교수 전용) -->
+    <ContextMenu
+      v-if="showContextMenu"
+      :x="feedbackPosition.x"
+      :y="feedbackPosition.y"
+      :visible="showContextMenu"
+      @select="handleMenuSelect"
+      @close="showContextMenu = false"
+    />
+
     <!-- 카테고리별 일정 모달 -->
     <CategoryScheduleModal
       v-if="showScheduleModal"
@@ -157,6 +168,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import axios from 'axios'
 import FeedbackInput from '@/components/feedback/FeedbackInput.vue'
+import ContextMenu from '@/components/feedback/ContextMenu.vue'
 import FeedbackPopup from '@/components/feedback/FeedbackPopup.vue'
 import CategoryScheduleModal from './CategoryScheduleModal.vue'
 import { useFeedback } from '@/composables/useFeedback.js'
@@ -196,6 +208,7 @@ const emit = defineEmits(['updateStepProgress'])
 const feedbacks = ref<Feedback[]>([])
 const showFeedbackInput = ref(false)
 const feedbackPosition = ref({ x: 0, y: 0 })
+const showContextMenu = ref(false)
 const selectedFeedback = ref<Feedback | null>(null)
 const { markFeedbackAsRead } = useFeedback()
 
@@ -233,6 +246,7 @@ function isValidFigmaLink(content: string): boolean {
 }
 
 function handleRightClick(e: MouseEvent) {
+  if (!props.readonly) return
   const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft
   const scrollTop = window.pageYOffset || document.documentElement.scrollTop
 
@@ -240,8 +254,13 @@ function handleRightClick(e: MouseEvent) {
     x: e.clientX + scrollLeft,
     y: e.clientY + scrollTop
   }
+  showContextMenu.value = true
+}
 
-  showFeedbackInput.value = true
+function handleMenuSelect(action: string) {
+  if (action === 'add-feedback') {
+    showFeedbackInput.value = true
+  }
 }
 
 

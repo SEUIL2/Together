@@ -89,7 +89,18 @@
       @close="showScheduleModal = false"
     />
 
+    <!-- 컨텍스트 메뉴 (교수 전용) -->
+    <ContextMenu
+      v-if="showContextMenu"
+      :x="feedbackPosition.x"
+      :y="feedbackPosition.y"
+      :visible="showContextMenu"
+      @select="handleMenuSelect"
+      @close="showContextMenu = false"
+    />
+
     <!-- 피드백 관련 컴포넌트들 -->
+    
     <div v-for="fb in feedbacks" :key="fb.feedbackId" class="feedback-marker" :style="{ top: fb.y + 'px', left: fb.x + 'px', position: 'absolute' }" @click="selectedFeedback = fb">
       📌
     </div>
@@ -105,6 +116,7 @@ import CategoryScheduleModal from './CategoryScheduleModal.vue'
 import DevOrderTable from './DevOrderTable.vue'
 import axios from 'axios'
 import { useRoute } from 'vue-router'
+import ContextMenu from '@/components/feedback/ContextMenu.vue'
 import FeedbackInput from '@/components/feedback/FeedbackInput.vue'
 import FeedbackPopup from '@/components/feedback/FeedbackPopup.vue'
 import { useFeedback } from '@/composables/useFeedback.js'
@@ -115,15 +127,23 @@ const originalFiles = ref([]);
 
 const feedbacks = ref([])
 const showFeedbackInput = ref(false)
+const showContextMenu = ref(false)
 const feedbackPosition = ref({ x: 0, y: 0 })
 const selectedFeedback = ref(null)
 const { markFeedbackAsRead } = useFeedback()
 
 function handleRightClick(e) {
+  if (!props.readonly) return
   const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft
   const scrollTop = window.pageYOffset || document.documentElement.scrollTop
   feedbackPosition.value = { x: e.clientX + scrollLeft, y: e.clientY + scrollTop }
-  showFeedbackInput.value = true
+  showContextMenu.value = true
+}
+
+function handleMenuSelect(action) {
+  if (action === 'add-feedback') {
+    showFeedbackInput.value = true
+  }
 }
 
 const fileInputRef = ref(null)

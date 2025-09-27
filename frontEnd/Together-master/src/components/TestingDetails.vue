@@ -151,6 +151,16 @@
         @close="showFeedbackInput = false"
         @submitted="() => { showFeedbackInput = false; loadFeedbacks() }"
     />
+
+    <ContextMenu
+      v-if="showContextMenu"
+      :x="feedbackPosition.x"
+      :y="feedbackPosition.y"
+      :visible="showContextMenu"
+      @select="handleMenuSelect"
+      @close="showContextMenu = false"
+    />
+
   </div>
 </template>
 
@@ -159,6 +169,7 @@ import { ref, reactive, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import axios from '@/utils/axiosInstance'
 import FeedbackPopup from '@/components/feedback/FeedbackPopup.vue'
+import ContextMenu from '@/components/feedback/ContextMenu.vue'
 import FeedbackInput from '@/components/feedback/FeedbackInput.vue'
 import { useFeedback } from '@/composables/useFeedback'
 
@@ -275,6 +286,7 @@ const columnCount = computed(() => currentConfig.value.fields.length + 1)
 const feedbacks = ref([])
 const selectedFeedback = ref(null)
 const showFeedbackInput = ref(false)
+const showContextMenu = ref(false)
 const feedbackPosition = ref({ x: 0, y: 0 })
 const { markFeedbackAsRead } = useFeedback()
 
@@ -284,7 +296,14 @@ function handleRightClick(e) {
     x: e.clientX - rect.left + e.currentTarget.scrollLeft,
     y: e.clientY - rect.top + e.currentTarget.scrollTop,
   }
-  showFeedbackInput.value = true
+  showContextMenu.value = true
+}
+
+function handleMenuSelect(action) {
+  if (action === 'add-feedback') {
+    showFeedbackInput.value = true
+  }
+  showContextMenu.value = false
 }
 
 function handleReadFeedback(id) {

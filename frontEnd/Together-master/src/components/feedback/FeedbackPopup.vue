@@ -3,14 +3,14 @@
     <div
       v-show="visible"
       class="feedback-popup"
-      :style="{ top: fb.y + 28 + 'px', left: fb.x + 28 + 'px' }"
+      :style="{ top: (fb.y || 0) + 28 + 'px', left: (fb.x || 0) + 28 + 'px' }"
     >
       <div class="popup-content">
         <!-- 상단: 작성자 + 닫기 -->
         <div class="top-bar">
           <div class="author-info">
-            <span class="category-badge" :class="fb.category">
-              {{ categoryMap[fb.category]?.icon }} {{ categoryMap[fb.category]?.label }}
+           <span v-if="categoryName" class="category-badge">
+              📌 {{ categoryName }}
             </span>
             <span class="author">👤 {{ fb.author }}</span>
           </div>
@@ -32,28 +32,21 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
-
-type Category = 'IMPROVEMENT' | 'IDEA' | 'COMPLIMENT' | 'QUESTION';
+import { onMounted, ref, computed } from 'vue'
 
 interface Feedback {
   feedbackId: number;
   author: string;
-  category: Category;
+  categories: { id: number; name: string }[];
   text: string;
   x: number;
   y: number;
 }
 
-const categoryMap: Record<Category, { label: string; icon: string }> = {
-  IMPROVEMENT: { label: '개선 제안', icon: '💡' },
-  IDEA: { label: '아이디어', icon: '✨' },
-  COMPLIMENT: { label: '칭찬', icon: '👍' },
-  QUESTION: { label: '질문', icon: '❓' }
-};
-
 const props = defineProps<{ fb: Feedback }>()
 defineEmits(['close', 'read'])
+
+const categoryName = computed(() => props.fb?.categories?.[0]?.name || '');
 
 const visible = ref(false)
 onMounted(() => setTimeout(() => (visible.value = true), 0))
@@ -110,21 +103,8 @@ onMounted(() => setTimeout(() => (visible.value = true), 0))
   font-size: 12px;
   font-weight: 600;
   color: #fff;
+  background-color: #6c757d; /* 기본 회색 배경 */
 }
-.category-badge.IMPROVEMENT {
-  background-color: #3498db;
-}
-.category-badge.IDEA {
-  background-color: #f1c40f;
-  color: #333;
-}
-.category-badge.COMPLIMENT {
-  background-color: #2ecc71;
-}
-.category-badge.QUESTION {
-  background-color: #9b59b6;
-}
-
 
 .author {
   font-size: 14px;

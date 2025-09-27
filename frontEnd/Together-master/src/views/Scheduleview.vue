@@ -68,6 +68,16 @@
       @close="showFeedbackInput = false"
       @submitted="() => { showFeedbackInput = false; loadFeedbacks(); }"
     />
+
+    <!-- 컨텍스트 메뉴 (교수 전용) -->
+    <ContextMenu
+      v-if="showContextMenu"
+      :x="feedbackX"
+      :y="feedbackY"
+      :visible="showContextMenu"
+      @select="handleMenuSelect"
+      @close="showContextMenu = false"
+    />
   </div>
 </template>
 
@@ -78,6 +88,7 @@ import axios from 'axios'
 import 'dhtmlx-gantt/codebase/dhtmlxgantt.css'
 import gantt from 'dhtmlx-gantt'
 
+import ContextMenu from '@/components/feedback/ContextMenu.vue'
 import FeedbackInput from '@/components/feedback/FeedbackInput.vue'
 import FeedbackLayer from '@/components/feedback/FeedbackLayer.vue'
 import FeedbackPopup from '@/components/feedback/FeedbackPopup.vue'
@@ -107,6 +118,7 @@ const ganttEventIds = [] // 이벤트 핸들러 ID 저장용 배열
 
 // 피드백 상태
 const showFeedbackInput = ref(false)
+const showContextMenu = ref(false)
 const feedbackX = ref(0)
 const feedbackY = ref(0)
 const feedbacks = ref([])
@@ -277,7 +289,14 @@ function onRightClick(event) {
   event.preventDefault()
   feedbackX.value = event.clientX
   feedbackY.value = event.clientY
-  showFeedbackInput.value = true
+  showContextMenu.value = true
+}
+
+function handleMenuSelect(action) {
+  if (action === 'add-feedback') {
+    showFeedbackInput.value = true
+  }
+  showContextMenu.value = false
 }
 
 async function loadAndInitializeGantt() {

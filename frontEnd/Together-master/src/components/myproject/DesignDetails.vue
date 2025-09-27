@@ -148,6 +148,16 @@
       @submitted="() => { showFeedbackInput = false; loadFeedbacks(`design-${activeItem.type}`) }"
     />
 
+    <!-- 컨텍스트 메뉴 (교수 전용) -->
+    <ContextMenu
+      v-if="showContextMenu"
+      :x="feedbackPosition.x"
+      :y="feedbackPosition.y"
+      :visible="showContextMenu"
+      @select="handleMenuSelect"
+      @close="showContextMenu = false"
+    />
+
     <!-- 카테고리별 일정 모달 -->
     <CategoryScheduleModal
       v-if="showScheduleModal"
@@ -164,6 +174,7 @@ import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import axios from 'axios'
 import FeedbackInput from '@/components/feedback/FeedbackInput.vue'
+import ContextMenu from '@/components/feedback/ContextMenu.vue'
 import FeedbackPopup from '@/components/feedback/FeedbackPopup.vue'
 import CategoryScheduleModal from './CategoryScheduleModal.vue'
 import { useFeedback } from '@/composables/useFeedback.js'
@@ -177,6 +188,7 @@ const emit = defineEmits(['updateStepProgress'])
 const feedbacks = ref([])
 const showFeedbackInput = ref(false)
 const feedbackPosition = ref({ x: 0, y: 0 })
+const showContextMenu = ref(false)
 const selectedFeedback = ref(null)
 const showScheduleModal = ref(false);
 const { markFeedbackAsRead } = useFeedback()
@@ -218,10 +230,16 @@ function handleRightClick(e) {
   feedbackPosition.value = {
     x: e.clientX + scrollLeft,
     y: e.clientY + scrollTop
-  }
-
-  showFeedbackInput.value = true
+  };
+  showContextMenu.value = true;
 }
+
+function handleMenuSelect(action) {
+  if (action === 'add-feedback') {
+    showFeedbackInput.value = true;
+  }
+}
+
 
 function handleReadFeedback(id) {
   markFeedbackAsRead(id)

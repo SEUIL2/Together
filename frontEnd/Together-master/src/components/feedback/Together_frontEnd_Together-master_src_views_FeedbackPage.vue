@@ -1,4 +1,4 @@
-<template>
+<!-- <template>
   <div class="feedback-page-container">
     <header class="page-header">
       <h1>피드백 내역</h1>
@@ -208,4 +208,4 @@ const getCategoryDisplayName = (category) => {
 .delete-btn:hover {
   color: #e53935;
 }
-</style>
+</style> -->

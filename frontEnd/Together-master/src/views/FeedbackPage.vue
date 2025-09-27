@@ -10,10 +10,9 @@
         <label for="category-filter">카테고리 필터:</label>
         <select id="category-filter" v-model="selectedCategory">
           <option value="ALL">전체 보기</option>
-          <option value="IMPROVEMENT">개선 제안</option>
-          <option value="IDEA">아이디어</option>
-          <option value="COMPLIMENT">칭찬</option>
-          <option value="QUESTION">질문</option>
+          <option v-for="cat in feedbackCategories" :key="cat.id" :value="cat.name">
+            {{ getCategoryDisplayName(cat.name) }}
+          </option>
         </select>
       </div>
     </div>
@@ -28,7 +27,12 @@
     <div v-else class="feedback-grid">
       <div v-for="fb in filteredFeedbacks" :key="fb.feedbackId" class="feedback-card" :class="{ 'is-read': fb.isRead }">
           <div class="card-header">
-            <span class="feedback-page">{{ fb.page }}</span>
+            <div>
+              <span v-if="fb.categories && fb.categories.length > 0" class="feedback-category">
+                {{ getCategoryDisplayName(fb.categories[0].name) }}
+              </span>
+              <span class="feedback-page">{{ getPageDisplayName(fb.page) }}</span>
+            </div>
             <span class="feedback-date">{{ formatDate(fb.createdAt) }}</span>
           </div>
           <p class="feedback-text">"{{ fb.text }}"</p>
@@ -53,10 +57,12 @@ const loading = ref(true);
 // 학생용 데이터
 const feedbacks = ref([]);
 const selectedCategory = ref('ALL');
+const feedbackCategories = ref([]);
 
 onMounted(async () => {
   loading.value = true;
   try {
+    await fetchFeedbackCategories();
     await fetchFeedbacks();
   } catch (error) {
     console.error("페이지 로딩 중 오류 발생:", error);
@@ -69,8 +75,23 @@ const filteredFeedbacks = computed(() => {
   if (selectedCategory.value === 'ALL') {
     return feedbacks.value;
   }
-  return feedbacks.value.filter(fb => fb.category === selectedCategory.value);
+  // 카테고리 필터링 로직을 새로운 데이터 구조에 맞게 수정
+  return feedbacks.value.filter(fb => 
+    fb.categories && fb.categories.some(cat => cat.name === selectedCategory.value)
+  );
 });
+
+const fetchFeedbackCategories = async () => {
+  try {
+    const { data } = await axios.get('/feedbacks/categories', {
+      headers: { Authorization: localStorage.getItem('authHeader') },
+      withCredentials: true,
+    });
+    feedbackCategories.value = data;
+  } catch (error) {
+    console.error('피드백 카테고리 로딩 실패:', error);
+  }
+};
 
 const fetchFeedbacks = async () => {
   try {
@@ -103,6 +124,30 @@ const deleteFeedback = async (feedbackId) => {
   }
 };
 
+const getPageDisplayName = (pageSlug) => {
+  if (!pageSlug) return '기타';
+  const pageNames = {
+    'planning-motivation': '기획-동기',
+    'planning-goal': '기획-목표',
+    'planning-requirement': '기획-요구사항',
+    'planning-infostructure': '기획-정보구조도',
+    'planning-storyboard': '기획-스토리보드',
+    'design-sequence': '설계-시퀀스',
+    'design-ui': '설계-UI',
+    'design-table': '설계-테이블명세',
+    'design-architecture': '설계-아키텍처',
+    'test-unit': '단위 테스트',
+    'test-integration': '통합 테스트',
+    'task-board': '작업 보드',
+    'schedule-view': '일정관리',
+  };
+  return pageNames[pageSlug] || pageSlug;
+};
+
+const getCategoryDisplayName = (category) => {
+  return category;
+};
+
 const formatDate = (dateStr) => {
   if (!dateStr) return '';
   const d = new Date(dateStr);
@@ -112,7 +157,7 @@ const formatDate = (dateStr) => {
 
 <style scoped>
 .feedback-page-container { padding: 30px 40px; background-color: #f7f8fc; min-height: calc(100vh - 61px); }
-.page-header { margin-bottom: 24px; text-align: left; }
+.page-header { margin-bottom: 24px; text-align: left; padding-bottom: 16px; border-bottom: 1px solid #e9ecef;}
 .page-header h1 { font-size: 28px; font-weight: 800; color: #2c3e50; }
 .page-header p { font-size: 16px; color: #7f8c8d; }
 
@@ -181,7 +226,20 @@ const formatDate = (dateStr) => {
   transform: translateY(-4px);
   box-shadow: 0 8px 16px rgba(0,0,0,0.08);
 }
-.card-header { display: flex; justify-content: space-between; align-items: center; }
+.card-header { display: flex; justify-content: space-between; align-items: flex-start; }
+.card-header > div {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.feedback-category {
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 13px;
+  color: white;
+}
+.feedback-category { background-color: #6c757d; }
 .feedback-page {
   font-weight: 600;
   color: #3f8efc;
@@ -191,7 +249,7 @@ const formatDate = (dateStr) => {
   font-size: 13px;
 }
 .feedback-date { font-size: 12px; color: #868e96; }
-.feedback-text { flex-grow: 1; font-size: 14px; color: #495057; line-height: 1.7; white-space: pre-wrap; max-height: 120px; overflow-y: auto; padding-right: 8px; }
+.feedback-text { flex-grow: 1; font-size: 올px; color: #495057; line-height: 1.7; white-space: pre-wrap; max-height: 120px; overflow-y: auto; padding-right: 8px; }
 .card-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding-top: 12px; border-top: 1px solid #f1f3f5; }
 .status-badge {
   padding: 3px 8px;

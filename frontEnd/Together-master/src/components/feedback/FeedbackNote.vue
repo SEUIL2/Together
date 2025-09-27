@@ -28,23 +28,11 @@ const handleClick = () => {
 }
 
 const categoryIcon = computed(() => {
-  switch (props.category) {
-    case 'IMPROVEMENT': return '💡';
-    case 'IDEA': return '✨';
-    case 'COMPLIMENT': return '👍';
-    case 'QUESTION': return '❓';
-    default: return '📌';
-  }
+  return '📌';
 });
 
 const categoryColor = computed(() => {
-  switch (props.category) {
-    case 'IMPROVEMENT': return '#3498db';
-    case 'IDEA': return '#f1c40f';
-    case 'COMPLIMENT': return '#2ecc71';
-    case 'QUESTION': return '#9b59b6';
-    default: return '#e53935'; // 기본 핀 색상
-  }
+  return '#e53935'; // 기본 핀 색상
 });
 </script>
 

@@ -2,6 +2,9 @@ package com.together.systemConfig;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -9,6 +12,25 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class CorsConfig {
 
     @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+
+        // 특정 패턴의 출처를 허용합니다.
+        configuration.addAllowedOriginPattern("http://localhost:5173");
+        configuration.addAllowedOriginPattern("http://3.38.204.194");
+        // 만약 https를 사용한다면 https 패턴도 추가
+        // configuration.addAllowedOriginPattern("https://3.38.204.194");
+
+        configuration.addAllowedMethod("*"); // 모든 HTTP 메서드 허용
+        configuration.addAllowedHeader("*"); // 모든 헤더 허용
+        configuration.setAllowCredentials(true); // 쿠키 및 자격 증명 허용
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration); // 모든 경로에 대해 위 설정 적용
+        return source;
+    }
+
+    /*@Bean
     public WebMvcConfigurer corsConfigurer() { //무영 수정 : PATCH , OPTIONS 추가
         return new WebMvcConfigurer() {
             @Override
@@ -20,6 +42,6 @@ public class CorsConfig {
                         .allowCredentials(true);
             }
         };
-    }
+    }*/
 
 }

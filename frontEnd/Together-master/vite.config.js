@@ -4,7 +4,7 @@ import vue from '@vitejs/plugin-vue'
 
 const BASE_URL = 'http://localhost:8081'  // 백엔드 주소
 // const BASE_URL = 'http://25.12.59.4:3000/' //건우 주소
-// const BASE_URL = 'http://15.165.234.3/' //서버 주소
+// const BASE_URL = '/' //서버 주소
 
 export default defineConfig({
   plugins: [vue()],

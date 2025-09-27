@@ -4,3 +4,4 @@ frontEnd/.idea/frontEnd.iml
 frontEnd/.idea/misc.xml
 frontEnd/.idea/modules.xml
 frontEnd/.idea/vcs.xml
+backEnd/together/src/test/resources/google-drive-credentials.json

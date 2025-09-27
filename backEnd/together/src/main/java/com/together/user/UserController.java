@@ -138,8 +138,18 @@ public class UserController {
             userInfo.put("projectId", projectList);
         } else if(userDetails.getUser() instanceof StudentEntity student){
             ProjectEntity project = student.getMainProject();
-            Long projectInfo = project.getProjectId();
-            userInfo.put("projectId", projectInfo);
+
+            // 💡 [수정된 부분] project 객체가 null이 아닌지 확인합니다.
+            if (project != null) {
+                Long projectInfo = project.getProjectId();
+                userInfo.put("projectId", projectInfo);
+            } else {
+                // 학생이 프로젝트에 소속되지 않았을 경우, projectId를 null 또는 빈 값으로 설정합니다.
+                userInfo.put("projectId", null);
+            }
+
+            /*Long projectInfo = project.getProjectId();
+            userInfo.put("projectId", projectInfo);*/
         }
         return ResponseEntity.ok(userInfo);
     }

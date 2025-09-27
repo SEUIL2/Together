@@ -92,6 +92,7 @@ const fileInput = ref(null)
 
 const axiosInstance = axios.create({
   baseURL: 'http://localhost:8081',
+  //baseURL: 'http://15.165.234.3',
   headers: {
     'Authorization': localStorage.getItem('authHeader') || ''
   },

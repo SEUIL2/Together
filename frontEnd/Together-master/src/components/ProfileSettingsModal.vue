@@ -68,6 +68,7 @@ import {ref, watch, onMounted} from 'vue'
 import axios from 'axios'
 import {useRouter} from 'vue-router'
 import defaultImage from '@/assets/defaultimage.png'
+import { API_BASE_URL } from '@/config'
 
 // Props
 const props = defineProps({
@@ -91,8 +92,7 @@ const theme = ref('LIGHT')
 const fileInput = ref(null)
 
 const axiosInstance = axios.create({
-  baseURL: 'http://localhost:8081',
-  //baseURL: 'http://15.165.234.3',
+  baseURL: API_BASE_URL,
   headers: {
     'Authorization': localStorage.getItem('authHeader') || ''
   },

@@ -1,10 +1,9 @@
 // src/api/index.js
 import axios from 'axios';
+import { API_BASE_URL } from './config';
 
 const api = axios.create({
-    baseURL: 'http://localhost:8081',  // 백엔드 주소
-    // baseURL: 'http://25.12.59.4:3000/',  // 건우 주소
-    // baseURL: 'http://15.165.234.3/', // 서버 주소
+    baseURL: API_BASE_URL,
     withCredentials: true,             // 쿠키 전송 허용
     // 헤더는 form-data 요청 시 자동 지정 안 하는 게 안전합니다
 }); // ← 꼭 세미콜론!

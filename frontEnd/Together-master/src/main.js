@@ -2,6 +2,7 @@ import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router'
 import { createPinia } from 'pinia' // ✅ Pinia import
+import { API_BASE_URL } from './config'
 
 
 // ✅ 인증 쿠키 포함 설정
@@ -18,9 +19,7 @@ if (savedAuth) {
 async function fetchCsrfToken() {
     try {
         // 이 GET 호출이 CsrfFilter를 타며 Set-Cookie 헤더를 내려줍니다
-        await axios.get('http://localhost:8081/csrf') //백엔드 주소
-        // await axios.get('http://25.12.59.4:3000/csrf') //건우 주소
-        // await axios.get('http://15.165.234.3/csrf') //서버 주소
+        await axios.get(`${API_BASE_URL}/csrf`)
     } catch (e) {
         console.error('CSRF 토큰 받아오기 실패', e)
     }
@@ -61,4 +60,3 @@ app.use(VMdEditor)
 
 app.use(router)
 app.mount('#app')
-

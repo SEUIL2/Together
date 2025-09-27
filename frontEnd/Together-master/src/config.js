@@ -1,0 +1,5 @@
+// src/config.js
+
+export const API_BASE_URL = 'http://localhost:8081'; // 기본 백엔드 주소
+// export const API_BASE_URL = 'http://25.12.59.4:3000'; // 건우 주소
+// export const API_BASE_URL = 'http://15.165.234.3'; // 서버 주소

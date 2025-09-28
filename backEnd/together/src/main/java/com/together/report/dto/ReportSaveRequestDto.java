@@ -2,6 +2,7 @@ package com.together.report.dto;
 
 import com.together.report.ReportCategory;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
@@ -9,6 +10,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
+@NoArgsConstructor
 public class ReportSaveRequestDto {
 
     // 보고서 제목
@@ -28,4 +30,7 @@ public class ReportSaveRequestDto {
 
     // 향후 계획
     private String futurePlans;
+
+    //교수 피드백
+    private String feedback;
 }

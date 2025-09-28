@@ -82,6 +82,33 @@ public class ReportService {
         return ReportResponseDto.fromEntity(report); // 더티 체킹으로 자동 업데이트
     }
 
+    // 교수 피드백 추가/수정 (교수용)
+    @Transactional
+    public ReportResponseDto addFeedbackToReport(Long reportId, ReportSaveRequestDto requestDto) {
+        // 1. reportId를 사용하여 보고서 엔티티를 조회합니다.
+        ReportEntity report = reportRepository.findById(reportId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 보고서를 찾을 수 없습니다. ID: " + reportId));
+
+        // 2. 요청 DTO에서 피드백 내용만 가져와서 엔티티의 feedback 필드를 업데이트합니다.
+        report.setFeedback(requestDto.getFeedback());
+
+        // 3. 변경된 내용이 적용된 엔티티를 DTO로 변환하여 반환합니다. (JPA의 변경 감지 기능으로 자동 저장됩니다)
+        return ReportResponseDto.fromEntity(report);
+    }
+
+    // 교수 피드백 삭제 (교수용)
+    @Transactional
+    public void deleteFeedback(Long reportId) {
+        // 1. reportId로 해당 보고서 엔티티를 찾습니다.
+        ReportEntity report = reportRepository.findById(reportId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 보고서를 찾을 수 없습니다. ID: " + reportId));
+
+        // 2. 해당 보고서의 feedback 필드를 null로 설정하여 피드백을 삭제합니다.
+        report.setFeedback(null);
+
+        // 3. 변경된 내용은 트랜잭션이 끝날 때 자동으로 데이터베이스에 반영됩니다.
+    }
+
     // 보고서 삭제
     @Transactional
     public void deleteReport(Long reportId) {
@@ -90,4 +117,6 @@ public class ReportService {
         }
         reportRepository.deleteById(reportId);
     }
+
+
 }

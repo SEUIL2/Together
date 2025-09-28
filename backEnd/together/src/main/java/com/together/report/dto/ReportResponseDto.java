@@ -35,6 +35,9 @@ public class ReportResponseDto {
     // 향후 계획
     private String futurePlans;
 
+    //교수 피드백
+    private String feedback;
+
     // 작성자 이름
     private String authorName;
 
@@ -56,6 +59,7 @@ public class ReportResponseDto {
         dto.setProblemsAndSolutions(reportEntity.getProblemsAndSolutions());
         dto.setFuturePlans(reportEntity.getFuturePlans());
         dto.setAuthorName(reportEntity.getAuthor().getUserName()); // 작성자 이름 추가
+        dto.setFeedback(reportEntity.getFeedback());
         dto.setCreatedAt(reportEntity.getCreatedAt());
         dto.setUpdatedAt(reportEntity.getUpdatedAt());
         return dto;

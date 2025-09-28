@@ -63,4 +63,29 @@ public class ReportController {
         reportService.deleteReport(reportId);
         return ResponseEntity.noContent().build();
     }
+
+    /**
+     * 특정 보고서에 교수 피드백을 추가하거나 수정합니다.
+     * @param reportId 피드백을 추가할 보고서의 ID
+     * @param requestDto 피드백 내용이 담긴 DTO
+     * @return 수정된 보고서 정보
+     */
+    @PostMapping("/{reportId}/feedback")
+    public ResponseEntity<ReportResponseDto> addFeedbackToReport(
+            @PathVariable Long reportId,
+            @RequestBody ReportSaveRequestDto requestDto) {
+        ReportResponseDto updatedReport = reportService.addFeedbackToReport(reportId, requestDto);
+        return ResponseEntity.ok(updatedReport);
+    }
+
+    /**
+     * 특정 보고서의 교수 피드백을 삭제합니다.
+     * @param reportId 피드백을 삭제할 보고서의 ID
+     * @return 성공 시 noContent 응답
+     */
+    @DeleteMapping("/{reportId}/feedback")
+    public ResponseEntity<Void> deleteFeedback(@PathVariable Long reportId) {
+        reportService.deleteFeedback(reportId);
+        return ResponseEntity.noContent().build();
+    }
 }

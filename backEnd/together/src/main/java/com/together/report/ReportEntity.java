@@ -49,6 +49,10 @@ public class ReportEntity {
     @Column(columnDefinition = "TEXT", nullable = true)
     private String futurePlans;
 
+    // 교수 피드백 (길이 제한 없음)
+    @Column(columnDefinition = "TEXT", nullable = true)
+    private String feedback;
+
     // 보고서를 작성한 사용자
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)

@@ -18,7 +18,7 @@
         </div>
         <ul v-else class="notification-list">
           <li v-for="invite in invitations" :key="`invite-${invite.invitationId}`" class="notification-item">
-            <img :src="invite.senderProfileImageUrl || '@/assets/defaultimage.png'" alt="profile" class="profile-img"/>
+            <img src="@/assets/invite.png" class="item-icon" alt="초대 아이콘"/>
             <div class="notification-content">
               <p class="message">
                 <strong>{{ invite.projectTitle }}</strong> 프로젝트에 초대되었습니다.
@@ -32,19 +32,11 @@
           </li>
 
           <li v-for="noti in notifications" :key="`noti-${noti.id}`" class="notification-item" @click="confirm(noti)">
-            <img :src="noti.senderProfileImageUrl || '@/assets/defaultimage.png'" alt="profile" class="profile-img"/>
+            <img :src="getNotificationIconPath(noti)" class="item-icon" alt="알림 아이콘"/>
             <div class="notification-content">
               <p class="message">
-                <strong>{{ noti.senderName }}</strong>님이 {{ noti.message }}
+                {{ noti.message }}
               </p>
-              <div v-if="noti.type === 'NEW_NOTICE'" class="preview-content">
-                <p class="preview-header">📢 새로운 공지사항</p>
-                <p class="preview-title">{{ noti.previewTitle }}</p>
-              </div>
-              <div v-else-if="noti.type === 'NEW_VOTE'" class="preview-content">
-                <p class="preview-header">🗳️ 새로운 투표</p>
-                <p class="preview-title">{{ noti.previewTitle }}</p>
-              </div>
               <span class="time">{{ formatTime(noti.createdAt) }}</span>
             </div>
             <div class="actions">
@@ -61,6 +53,11 @@
 import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
+import noticeIcon from '@/assets/notice.png'
+import voteIcon from '@/assets/vote.png'
+import todoIcon from '@/assets/todo.png'
+import defaultIcon from '@/assets/bell.png'
+import inviteIcon from '@/assets/invite.png'
 
 const showNotifications = ref(false)
 const invitations = ref([])
@@ -68,6 +65,19 @@ const notifications = ref([])
 const wrapperRef = ref(null)
 const router = useRouter()
 let pollingTimer = null
+
+// 알림 메시지 내용에 따라 아이콘 경로를 반환하는 함수 (가장 확실한 방법)
+function getNotificationIconPath(notification) {
+  const message = notification.message || '';
+  if (message.includes('공지사항')) {
+    return noticeIcon;
+  } else if (message.includes('투표')) {
+    return voteIcon;
+  } else if (message.includes('작업')) {
+    return todoIcon;
+  }
+  return defaultIcon; // 기본 아이콘
+}
 
 async function fetchAllNotifications() {
   await fetchInvitations();
@@ -127,12 +137,6 @@ async function confirm(noti) {
 
     if (noti.linkUrl) {
       router.push(noti.linkUrl);
-    } else if (noti.type === 'NEW_NOTICE') {
-      router.push(`/notice/${noti.relatedId}`);
-    } else if (noti.type === 'NEW_VOTE') {
-      router.push(`/vote/${noti.relatedId}`);
-    } else {
-      router.push('/dashboard');
     }
   } catch (e) {
     console.error('알림 확인 실패', e);
@@ -229,13 +233,12 @@ const unreadCount = computed(() => invitations.value.length + notifications.valu
 }
 .notification-item {
   display: grid;
-  grid-template-columns: 40px 1fr auto; /* actions 컬럼 추가 */
-  grid-template-rows: auto;
-  grid-template-areas: "avatar content actions";
-  column-gap: 16px;
+  grid-template-columns: 40px 1fr auto;
+  grid-template-areas: "icon content actions";
+  gap: 16px; /* 아이콘과 내용 사이 간격 */
   padding: 16px 20px;
   border-bottom: 1px solid #f0f0f0;
-  align-items: center; /* 세로 중앙 정렬 */
+  align-items: center;
 }
 .notification-item:last-child {
   border-bottom: none;
@@ -243,12 +246,15 @@ const unreadCount = computed(() => invitations.value.length + notifications.valu
 .notification-item:hover {
   background-color: #f9f9f9;
 }
-.profile-img {
-  grid-area: avatar;
+
+.item-icon {
+  grid-area: icon;
   width: 40px;
   height: 40px;
   border-radius: 50%;
+  object-fit: cover; /* 이미지가 원에 맞게 잘 표시되도록 */
 }
+
 .notification-content {
   grid-area: content;
   display: flex;
@@ -281,7 +287,7 @@ const unreadCount = computed(() => invitations.value.length + notifications.valu
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.2s;
-  white-space: nowrap; /* 버튼 내 텍스트 줄바꿈 방지 */
+  white-space: nowrap;
 }
 .accept-btn { background-color: #5a76f3; color: white; }
 .accept-btn:hover { background-color: #4862d1; }
@@ -300,22 +306,5 @@ const unreadCount = computed(() => invitations.value.length + notifications.valu
 .popup-fade-enter-from, .popup-fade-leave-to {
   opacity: 0;
   transform: translateY(-5px);
-}
-.preview-content {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.preview-header {
-  font-size: 12px;
-  font-weight: 500;
-  color: #888;
-  margin: 0;
-}
-.preview-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: #333;
-  margin: 0;
 }
 </style>

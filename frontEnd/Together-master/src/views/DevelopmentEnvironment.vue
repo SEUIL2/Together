@@ -1,14 +1,22 @@
 <template>
   <div class="dashboard-container">
-    <div class="card environment-setup-card">
+    <div class="environment-setup-card">
       <div class="card-header">
         <div class="card-title-wrapper">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 11v8M12 3v4M4.5 8.5l3-3M16.5 18.5l3-3M21.5 15.5l-3 3M4.5 15.5l3 3M8.5 4.5l-3 3M18.5 4.5l-3 3"/>
-            <circle cx="12" cy="12" r="2"/>
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-sliders">
+            <line x1="4" y1="21" x2="4" y2="14"></line>
+            <line x1="4" y1="10" x2="4" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12" y2="3"></line>
+            <line x1="20" y1="21" x2="20" y2="16"></line>
+            <line x1="20" y1="12" x2="20" y2="3"></line>
+            <line x1="1" y1="14" x2="7" y2="14"></line>
+            <line x1="9" y1="8" x2="15" y2="8"></line>
+            <line x1="17" y1="16" x2="23" y2="16"></line>
           </svg>
-          <h3 class="board-title">프로젝트 개발 환경</h3>
+          <h3 class="board-title">프로젝트 개발 환경 설정</h3>
         </div>
+        <p class="card-subtitle">프로젝트의 기술 스택과 개발 환경을 설정해주세요.</p>
       </div>
       <div class="card-body">
         <form @submit.prevent="saveEnvironment" class="environment-form">
@@ -47,7 +55,14 @@
             <textarea id="etc" v-model="environment.etc" placeholder="기타 필요한 라이브러리, 도구 등"></textarea>
           </div>
           <div class="form-actions">
-            <button type="submit" class="save-btn">저장</button>
+            <button type="submit" class="save-btn">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-save">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                <polyline points="7 3 7 8 15 8"></polyline>
+              </svg>
+              <span>저장하기</span>
+            </button>
           </div>
         </form>
       </div>
@@ -130,99 +145,135 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
+
 .dashboard-container {
   padding: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
   background-color: #f7f8fc;
+  font-family: 'Noto Sans KR', sans-serif;
 }
-.card {
-  background: #fff;
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+
+.environment-setup-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  /* 마우스 호버 시의 전환 효과를 제거했습니다. */
 }
+
 .card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-  margin-top: -10px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid #e9ecef;
+  padding-bottom: 24px;
 }
+
 .card-title-wrapper {
   display: flex;
   align-items: center;
-  gap: 8px;
-  color: #333;
+  gap: 12px;
+  color: #2c3e50;
 }
+
+.card-title-wrapper svg {
+  color: #3498db;
+}
+
 .board-title {
-  font-size: 20px;
-  cursor: default;
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0;
 }
-.card-body {
-  flex-grow: 1;
-  overflow-y: auto;
+
+.card-subtitle {
+  font-size: 16px;
+  color: #7f8c8d;
+  margin-top: 8px;
 }
+
 .environment-form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 24px;
 }
+
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 24px;
+  gap: 32px;
 }
+
 .form-group {
   display: flex;
   flex-direction: column;
 }
+
 .form-group.full-width {
   grid-column: 1 / -1;
 }
+
 .form-group label {
-  margin-bottom: 8px;
-  font-size: 14px;
+  margin-bottom: 10px;
+  font-size: 15px;
   font-weight: 600;
-  color: #343a40;
+  color: #34495e;
 }
+
 .form-group input,
 .form-group textarea {
-  padding: 12px;
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
-  font-size: 15px;
-  background-color: #f8f9fa;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  padding: 14px 18px;
+  border: 1px solid #dcdfe6;
+  border-radius: 10px;
+  font-size: 16px;
+  background-color: #fdfdfe;
+  transition: all 0.3s ease;
+  color: #333;
 }
+
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+  color: #adb5bd;
+}
+
 .form-group input:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: #3f8efc;
-  box-shadow: 0 0 0 2px rgba(63, 142, 252, 0.2);
+  border-color: #3498db;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+  background-color: #fff;
 }
+
 .form-group textarea {
-  min-height: 100px;
+  min-height: 120px;
   resize: vertical;
 }
+
 .form-actions {
   display: flex;
   justify-content: flex-end;
-  margin-top: 16px;
+  margin-top: 24px;
 }
+
 .save-btn {
-  padding: 10px 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 28px;
   border: none;
-  border-radius: 8px;
-  background-color: #3f8efc;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #3498db, #2980b9);
   color: white;
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-  transition: background-color 0.2s;
+  box-shadow: 0 4px 15px rgba(52, 152, 219, 0.4);
+  /* 마우스 호버 시의 전환 효과를 제거했습니다. */
+  transition: background-color 0.2s; /* 클릭 효과를 위한 부드러운 전환은 유지 */
 }
-.save-btn:hover {
-  background-color: #2a7de9;
+
+/* 마우스 호버 시의 스타일 변경을 제거했습니다. */
+
+.save-btn:active {
+  transform: translateY(1px); /* 클릭 시 살짝 눌리는 효과 */
+  box-shadow: 0 2px 10px rgba(52, 152, 219, 0.3);
 }
 </style>

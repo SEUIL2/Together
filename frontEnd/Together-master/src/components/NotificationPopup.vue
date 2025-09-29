@@ -18,7 +18,7 @@
         </div>
         <ul v-else class="notification-list">
           <li v-for="invite in invitations" :key="`invite-${invite.invitationId}`" class="notification-item">
-            <img src="@/assets/defaultimage.png" alt="profile" class="profile-img"/>
+            <img :src="invite.senderProfileImageUrl || '@/assets/defaultimage.png'" alt="profile" class="profile-img"/>
             <div class="notification-content">
               <p class="message">
                 <strong>{{ invite.projectTitle }}</strong> 프로젝트에 초대되었습니다.
@@ -31,9 +31,12 @@
             </div>
           </li>
 
-          <li v-for="noti in notifications" :key="`noti-${noti.id}`" class="notification-item">
-            <img src="@/assets/defaultimage.png" alt="profile" class="profile-img"/>
+          <li v-for="noti in notifications" :key="`noti-${noti.id}`" class="notification-item" @click="confirm(noti)">
+            <img :src="noti.senderProfileImageUrl || '@/assets/defaultimage.png'" alt="profile" class="profile-img"/>
             <div class="notification-content">
+              <p class="message">
+                <strong>{{ noti.senderName }}</strong>님이 {{ noti.message }}
+              </p>
               <div v-if="noti.type === 'NEW_NOTICE'" class="preview-content">
                 <p class="preview-header">📢 새로운 공지사항</p>
                 <p class="preview-title">{{ noti.previewTitle }}</p>
@@ -41,9 +44,6 @@
               <div v-else-if="noti.type === 'NEW_VOTE'" class="preview-content">
                 <p class="preview-header">🗳️ 새로운 투표</p>
                 <p class="preview-title">{{ noti.previewTitle }}</p>
-              </div>
-              <div v-else>
-                <p class="message">{{ noti.message }}</p>
               </div>
               <span class="time">{{ formatTime(noti.createdAt) }}</span>
             </div>
@@ -58,7 +58,6 @@
 </template>
 
 <script setup>
-// script 부분은 confirm 함수만 수정되었습니다.
 import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
@@ -121,21 +120,18 @@ async function reject(invitationId) {
   } catch (e) { console.error('초대 거절 실패', e); }
 }
 
-// ===== '확인' 버튼 클릭 시 라우팅 로직 수정 =====
 async function confirm(noti) {
   try {
     await axios.post(`/notifications/${noti.id}/read`, null, { withCredentials: true });
     notifications.value = notifications.value.filter(n => n.id !== noti.id);
 
-    // 알림 타입에 따라 다른 경로로 이동
-    if (noti.type === 'NEW_NOTICE') {
-      // relatedId를 사용하여 공지사항 상세 페이지로 이동
+    if (noti.linkUrl) {
+      router.push(noti.linkUrl);
+    } else if (noti.type === 'NEW_NOTICE') {
       router.push(`/notice/${noti.relatedId}`);
     } else if (noti.type === 'NEW_VOTE') {
-      // relatedId를 사용하여 투표 상세 페이지로 이동
       router.push(`/vote/${noti.relatedId}`);
     } else {
-      // 기본 경로는 대시보드
       router.push('/dashboard');
     }
   } catch (e) {
@@ -233,14 +229,13 @@ const unreadCount = computed(() => invitations.value.length + notifications.valu
 }
 .notification-item {
   display: grid;
-  grid-template-columns: 40px 1fr;
-  grid-template-rows: auto auto;
-  grid-template-areas:
-    "avatar content"
-    "avatar actions";
+  grid-template-columns: 40px 1fr auto; /* actions 컬럼 추가 */
+  grid-template-rows: auto;
+  grid-template-areas: "avatar content actions";
   column-gap: 16px;
   padding: 16px 20px;
   border-bottom: 1px solid #f0f0f0;
+  align-items: center; /* 세로 중앙 정렬 */
 }
 .notification-item:last-child {
   border-bottom: none;
@@ -263,7 +258,6 @@ const unreadCount = computed(() => invitations.value.length + notifications.valu
   grid-area: actions;
   display: flex;
   gap: 10px;
-  margin-top: 12px;
 }
 .message {
   font-size: 14px;
@@ -280,21 +274,21 @@ const unreadCount = computed(() => invitations.value.length + notifications.valu
   color: #888;
 }
 .accept-btn, .reject-btn, .confirm-btn {
-  flex: 1;
   border: none;
-  padding: 9px 12px;
+  padding: 8px 12px;
   border-radius: 8px;
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.2s;
+  white-space: nowrap; /* 버튼 내 텍스트 줄바꿈 방지 */
 }
 .accept-btn { background-color: #5a76f3; color: white; }
 .accept-btn:hover { background-color: #4862d1; }
 .reject-btn { background-color: #f1f1f1; color: #555; }
 .reject-btn:hover { background-color: #e0e0e0; }
-.confirm-btn { background-color: #5a76f3; color: white; }
-.confirm-btn:hover { background-color: #4862d1; }
+.confirm-btn { background-color: #e9ecf3; color: #5a76f3; }
+.confirm-btn:hover { background-color: #d8dbe5; }
 .no-notifications {
   text-align: center;
   padding: 40px 20px;
@@ -307,12 +301,10 @@ const unreadCount = computed(() => invitations.value.length + notifications.valu
   opacity: 0;
   transform: translateY(-5px);
 }
-
-/* ===== 미리보기 UI 스타일 추가 ===== */
 .preview-content {
   display: flex;
   flex-direction: column;
-  gap: 4px; /* 간격 */
+  gap: 4px;
 }
 .preview-header {
   font-size: 12px;
@@ -326,5 +318,4 @@ const unreadCount = computed(() => invitations.value.length + notifications.valu
   color: #333;
   margin: 0;
 }
-/* ===== 미리보기 UI 스타일 끝 ===== */
 </style>

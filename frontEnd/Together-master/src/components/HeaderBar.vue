@@ -230,6 +230,13 @@ const goToStep = (stepName) => {
 }
 
 const goToSubStep = (step, subStepType) => {
+  // '개발 환경 설정' 클릭 시 전용 라우트로 이동
+  if (step === '개발' && subStepType === 'environment') {
+    router.push('/development-environment');
+    showAllSubmenus.value = false;
+    return;
+  }
+
   // 교수의 읽기 전용 모드일 경우, 현재 경로와 쿼리를 유지하며 이동
   if (isProfessorReadOnly.value && projectId.value) {
     router.push({

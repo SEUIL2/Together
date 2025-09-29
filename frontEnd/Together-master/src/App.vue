@@ -1,6 +1,9 @@
 <!-- App.vue -->
 <template>
   <div id="app" :class="{ 'has-sidebar': showLayout, 'sidebar-collapsed': isSidebarCollapsed }">
+    <transition name="toast-slide">
+      <div v-if="toastIsVisible" class="global-toast">{{ toastMessage }}</div>
+    </transition>
     <!-- 교수 전용 페이지 사이드바 -->
     <ProfessorSidebar
       v-if="showLayout && isProfessorGlobalView"
@@ -22,11 +25,14 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, readonly } from 'vue';
 import { useRoute } from 'vue-router';
 import HeaderBar from '@/components/HeaderBar.vue';
 import SideBar from '@/components/SideBar.vue';
 import ProfessorSidebar from '@/components/ProfessorSidebar.vue';
+import { useGlobalToast } from '@/composables/useGlobalToast';
+
+const { isVisible: toastIsVisible, message: toastMessage } = useGlobalToast();
 
 
 const route = useRoute();
@@ -100,4 +106,42 @@ body,
   transition: padding-left 0.3s ease-in-out;
 }
 
+.global-toast {
+  position: fixed;
+  top: 80px; /* 헤더 높이(60px) + 여백 */
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(0, 0, 0, 0.75);
+  color: white;
+  padding: 16px 24px;
+  border-radius: 12px;
+  z-index: 9999;
+  font-size: 16px;
+  font-weight: 600;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  transition: opacity 0.3s ease, transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+/* Transition enter (나타날 때) */
+.toast-slide-enter-from {
+  opacity: 0;
+  transform: translate(-50%, -20px);
+}
+.toast-slide-enter-to {
+  opacity: 1;
+  transform: translateX(-50%);
+}
+.toast-slide-enter-active {
+  transition: opacity 0.3s ease, transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+/* Transition leave (사라질 때) */
+.toast-slide-leave-from {
+  opacity: 1;
+  transform: translateX(-50%);
+}
+.toast-slide-leave-to {
+  opacity: 0;
+  transform: translate(-50%, -20px);
+}
 </style>

@@ -101,9 +101,16 @@
 
     <!-- 피드백 관련 컴포넌트들 -->
     
-    <div v-for="fb in feedbacks" :key="fb.feedbackId" class="feedback-marker" :style="{ top: fb.y + 'px', left: fb.x + 'px', position: 'absolute' }" @click="selectedFeedback = fb">
-      📌
-    </div>
+    <FeedbackNote
+      v-for="fb in feedbacks"
+      :key="fb.feedbackId"
+      :x="fb.x"
+      :y="fb.y"
+      :feedbackId="fb.feedbackId"
+      :readonly="true"
+      :category="fb.categories?.[0]?.name || ''"
+      @click="selectedFeedback = fb"
+    />
     <FeedbackPopup v-if="selectedFeedback" :fb="selectedFeedback" :readonly="true" @read="handleReadFeedback" @close="selectedFeedback = null" />
     <FeedbackInput v-if="showFeedbackInput" :x="feedbackPosition.x" :y="feedbackPosition.y" :page="`develop-${activeItem.type}`" :readonly="true" :projectId="props.projectId" @close="showFeedbackInput = false" @submitted="() => { showFeedbackInput = false; loadFeedbacks() }" />
   </section>
@@ -119,6 +126,7 @@ import { useRoute } from 'vue-router'
 import ContextMenu from '@/components/feedback/ContextMenu.vue'
 import FeedbackInput from '@/components/feedback/FeedbackInput.vue'
 import FeedbackPopup from '@/components/feedback/FeedbackPopup.vue'
+import FeedbackNote from '@/components/feedback/FeedbackNote.vue'
 import { useFeedback } from '@/composables/useFeedback.js'
 
 const isEditing = ref(false);

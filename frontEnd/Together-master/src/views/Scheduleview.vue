@@ -37,16 +37,17 @@
     />
 
     <!-- 피드백 마커 (교수 전용 표시) -->
-    <div
+    <FeedbackNote
       v-if="isReadOnly"
       v-for="fb in feedbacks"
       :key="fb.feedbackId"
-      class="feedback-marker"
-      :style="{ top: fb.y + 'px', left: fb.x + 'px', position: 'absolute' }"
+      :x="fb.x"
+      :y="fb.y"
+      :feedbackId="fb.feedbackId"
+      :readonly="true"
+      :category="fb.categories?.[0]?.name || ''"
       @click="selectedFeedback = fb"
-    >
-      📌
-    </div>
+    />
 
     <!-- 피드백 팝업 -->
     <FeedbackPopup
@@ -92,6 +93,7 @@ import ContextMenu from '@/components/feedback/ContextMenu.vue'
 import FeedbackInput from '@/components/feedback/FeedbackInput.vue'
 import FeedbackLayer from '@/components/feedback/FeedbackLayer.vue'
 import FeedbackPopup from '@/components/feedback/FeedbackPopup.vue'
+import FeedbackNote from '@/components/feedback/FeedbackNote.vue'
 
 const route = useRoute()
 const isReadOnly = computed(() => route.query.readonly === 'true')
@@ -287,8 +289,10 @@ function setupGantt() {
 function onRightClick(event) {
   if (!isReadOnly.value) return
   event.preventDefault()
-  feedbackX.value = event.clientX
-  feedbackY.value = event.clientY
+  const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+  const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+  feedbackX.value = event.clientX + scrollLeft;
+  feedbackY.value = event.clientY + scrollTop;
   showContextMenu.value = true
 }
 
@@ -472,12 +476,6 @@ onDeactivated(cleanupGantt);
   border: 1px solid #e9ecef;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-}
-
-.feedback-marker {
-  font-size: 18px;
-  cursor: pointer;
-  position: absolute;
 }
 
 /* dhtmlx-gantt 내부 요소 디자인 오버라이드 */

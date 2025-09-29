@@ -48,7 +48,7 @@ VMdEditor.use(vuepressTheme, { Prism })
 
 const app = createApp(App)
 const pinia = createPinia()        // ✅ Pinia 인스턴스 생성
-app.use(pinia)    
+app.use(pinia)
 
 app.component('gc-spread-sheets', GcSpreadSheets)
 app.component('gc-worksheet', GcWorksheet)

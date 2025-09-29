@@ -65,16 +65,17 @@
         </draggable>
       </div>
 
-      <!-- 📌 피드백 마커 -->
-      <div
-        v-for="(fb, index) in feedbacks"
-        :key="index"
-        class="feedback-marker"
-        :style="{ top: fb.y + 'px', left: fb.x + 'px', position: 'absolute', zIndex: 10 }"
+      <!-- 피드백 마커 -->
+      <FeedbackNote
+        v-for="fb in feedbacks"
+        :key="fb.feedbackId"
+        :x="fb.x"
+        :y="fb.y"
+        :feedbackId="fb.feedbackId"
+        :readonly="true"
+        :category="fb.categories?.[0]?.name || ''"
         @click="selectedFeedback = fb"
-      >
-        📌
-      </div>
+      />
 
       <!-- 피드백 팝업 -->
       <div style="position: absolute; z-index: 20">
@@ -98,6 +99,16 @@
         @close="showFeedbackInput = false"
         @submitted="() => { showFeedbackInput = false; loadFeedbacks() }"
       />
+
+      <!-- 컨텍스트 메뉴 (교수 전용) -->
+      <ContextMenu
+        v-if="showContextMenu"
+        :x="feedbackPosition.x"
+        :y="feedbackPosition.y"
+        :visible="showContextMenu"
+        @select="handleMenuSelect"
+        @close="showContextMenu = false"
+      />
     </div>
 
     <div ref="ganttHidden" style="width:0;height:0;overflow:hidden;"></div>
@@ -113,6 +124,8 @@ import gantt from 'dhtmlx-gantt'
 import 'dhtmlx-gantt/codebase/dhtmlxgantt.css'
 import FeedbackInput from '@/components/feedback/FeedbackInput.vue'
 import FeedbackPopup from '@/components/feedback/FeedbackPopup.vue'
+import ContextMenu from '@/components/feedback/ContextMenu.vue'
+import FeedbackNote from '@/components/feedback/FeedbackNote.vue'
 import { useFeedback } from '@/composables/useFeedback'
 
 const route = useRoute()
@@ -139,6 +152,7 @@ const taskColumns = ref({ PENDING: [], IN_PROGRESS: [], COMPLETED: [] })
 
 const feedbacks = ref([])
 const showFeedbackInput = ref(false)
+const showContextMenu = ref(false)
 const feedbackPosition = ref({ x: 0, y: 0 })
 const selectedFeedback = ref(null)
 const { markFeedbackAsRead } = useFeedback()
@@ -154,12 +168,20 @@ const progress = computed(() => {
 
 function handleRightClick(e) {
   if (!isReadOnly.value) return
-  const sectionRect = e.currentTarget.getBoundingClientRect()
+  const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+  const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+
   feedbackPosition.value = {
-    x: e.clientX - sectionRect.left + e.currentTarget.scrollLeft,
-    y: e.clientY - sectionRect.top + e.currentTarget.scrollTop
+    x: e.clientX + scrollLeft,
+    y: e.clientY + scrollTop
   }
-  showFeedbackInput.value = true
+  showContextMenu.value = true
+}
+
+function handleMenuSelect(action) {
+  if (action === 'add-feedback') {
+    showFeedbackInput.value = true;
+  }
 }
 
 async function loadFeedbacks() {
@@ -677,12 +699,6 @@ onDeactivated(cleanup);
   height: 24px;
   border-radius: 50%;
   object-fit: cover;
-}
-
-.feedback-marker {
-  font-size: 18px;
-  cursor: pointer;
-  position: absolute;
 }
 
 .popup-container {

@@ -28,6 +28,7 @@
           :key="project.projectId"
           :project="project"
           @viewProject="handleViewProject"
+          @createFeedback="handleCreateFeedback"
       />
     </div>
   </div>
@@ -38,9 +39,11 @@ import { ref, onMounted, computed } from 'vue'
 import axios from 'axios'
 import TeamCard from '@/components/professor/TeamCard.vue'
 import { useRouter } from 'vue-router'
+import { useGlobalToast } from '@/composables/useGlobalToast';
 
 const router = useRouter()
 const projects = ref([])
+const { showToast } = useGlobalToast();
 const currentYear = new Date().getFullYear()
 const selectedYear = ref(currentYear)
 const availableYears = ref([])
@@ -125,15 +128,26 @@ onMounted(async () => {
 function handleViewProject(projectId) {
   const selectedProject = projects.value.find(p => p.projectId === projectId)
   const projectTitle = selectedProject?.title || '프로젝트'
+  showToast('💡 우클릭으로 피드백을 남길 수 있습니다.');
   router.push(`/professor/project/${projectId}?readonly=true&projectTitle=${encodeURIComponent(projectTitle)}`)
+}
+
+function handleCreateFeedback(projectId) {
+  const selectedProject = projects.value.find(p => p.projectId === projectId)
+  const projectTitle = selectedProject?.title || '프로젝트'
+  showToast('💡 우클릭으로 피드백을 남길 수 있습니다.');
+  // 'step' 쿼리 파라미터를 추가하여 피드백 탭으로 바로 이동
+  router.push(`/professor/project/${projectId}?readonly=true&projectTitle=${encodeURIComponent(projectTitle)}&step=피드백`)
 }
 </script>
 
 <style scoped>
 .professor-mainpage {
   padding: 30px;
-  max-width: 1200px;
+  max-width: 100%;
   margin: 0 auto;
+  background-color: #f7f8fc;
+  min-height: 100vh;
 }
 .page-title {
   font-size: 20px;

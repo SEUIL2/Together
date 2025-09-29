@@ -112,15 +112,16 @@
     </div>
 
     <!-- 피드백 마커 -->
-    <div
+    <FeedbackNote
       v-for="fb in feedbacks"
       :key="fb.feedbackId"
-      class="feedback-marker"
-      :style="{ top: fb.y + 'px', left: fb.x + 'px', position: 'absolute' }"
+      :x="fb.x"
+      :y="fb.y"
+      :feedbackId="fb.feedbackId"
+      :readonly="true"
+      :category="fb.categories?.[0]?.name || ''"
       @click="selectedFeedback = fb"
-    >
-      📌
-    </div>
+    />
 
     <!-- 피드백 팝업 -->
     <FeedbackPopup
@@ -171,6 +172,7 @@ import FeedbackInput from '@/components/feedback/FeedbackInput.vue'
 import ContextMenu from '@/components/feedback/ContextMenu.vue'
 import FeedbackPopup from '@/components/feedback/FeedbackPopup.vue'
 import CategoryScheduleModal from './CategoryScheduleModal.vue'
+import FeedbackNote from '@/components/feedback/FeedbackNote.vue'
 import { useFeedback } from '@/composables/useFeedback.js'
 import { useRouter, useRoute } from 'vue-router'
 

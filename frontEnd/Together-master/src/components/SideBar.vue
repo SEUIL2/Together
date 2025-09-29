@@ -42,7 +42,7 @@
         <li v-if="!isProfessorReadOnly && isLoggedIn">
           <button :class="{ active: $route.path.startsWith('/Feedback') || $route.path.includes('/professor/project') && $route.query.step === '피드백' }" @click="goFeedback" :title="isCollapsed ? '피드백' : null">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-            <span v-if="!isCollapsed">피드백</span>
+            <span v-if="!isCollapsed">피드백 내역</span>
           </button>
         </li>
 
@@ -58,7 +58,7 @@
         <li v-if="!isProfessorReadOnly && isLoggedIn">
           <button :class="{ active: $route.path.startsWith('/MeetingPage') }" @click="goMeeting" :title="isCollapsed ? '회의' : null">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-            <span v-if="!isCollapsed">회의</span>
+            <span v-if="!isCollapsed">회의록</span>
           </button>
         </li>
 
@@ -76,9 +76,9 @@
 
         <!-- PDF 문서 추출 -->
         <li v-if="!isProfessorReadOnly && projectDetails.projectId">
-          <button @click="downloadPdf" :title="isCollapsed ? 'PDF 문서 추출' : null">
+          <button @click="goToPdfExportPage" :class="{ active: $route.path.startsWith('/pdf-export') }" :title="isCollapsed ? 'PDF 문서 추출' : null">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-            <span v-if="!isCollapsed">PDF 문서 추출</span>
+            <span v-if="!isCollapsed">문서화</span>
           </button>
         </li>
 
@@ -165,30 +165,9 @@ if (authHeader) {
   axios.defaults.headers.common['Authorization'] = authHeader
 }
 
-async function downloadPdf() {
+const goToPdfExportPage = () => {
   if (!projectDetails.projectId) return;
-  try {
-    const response = await axios.get(
-      `/export/pdf`,
-      {
-        params: { projectId: projectDetails.projectId },
-        headers: { Authorization: localStorage.getItem('authHeader') },
-        withCredentials: true,
-        responseType: 'blob',
-      }
-    );
-    const url = window.URL.createObjectURL(new Blob([response.data]));
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `project_${projectDetails.projectId}.pdf`);
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(url);
-  } catch (err) {
-    alert('PDF 추출에 실패했습니다.');
-    console.error(err);
-  }
+  router.push(`/pdf-export/${projectDetails.projectId}`);
 }
 
 async function leaveProject() {

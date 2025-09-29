@@ -27,6 +27,7 @@ export default defineConfig({
       '/memos':       { target: API_BASE_URL, changeOrigin: true, secure: false },
       '/reports':       { target: API_BASE_URL, changeOrigin: true, secure: false },
       '/export':      { target: API_BASE_URL, changeOrigin: true, secure: false },
+      '/new-export':  { target: API_BASE_URL, changeOrigin: true, secure: false },
       '/users':       { target: API_BASE_URL, changeOrigin: true, secure: false },
       '/api':         { target: API_BASE_URL, changeOrigin: true, secure: false },
     }

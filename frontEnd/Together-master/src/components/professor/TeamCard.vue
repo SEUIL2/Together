@@ -7,7 +7,9 @@
         <p class="project-desc">{{ project.description || '프로젝트 소개가 없습니다.' }}</p>
       </div>
       <button class="view-button" @click="$emit('viewProject', project.projectId)">
-        <i class="arrow">➤</i>
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
       </button>
     </div>
 
@@ -40,7 +42,7 @@
       <button class="action-btn" @click="showNoticeModal = true">📢 공지사항</button>
       <button class="action-btn" @click="showVoteModal = true">🗳 투표</button>
 
-      <button class="action-btn" @click="showFeedbackModal = true">📝 피드백 내역</button>
+      <button class="action-btn" @click="$emit('createFeedback', project.projectId)">📝 피드백 생성</button>
       <button class="action-btn" @click="showMemoModal = true">🧾 메모</button>
     </div>
 
@@ -49,13 +51,6 @@
         v-if="showNoticeModal"
         :projectId="project.projectId"
         @close="showNoticeModal = false"
-    />
-
-    <!-- 피드백 모달 -->
-    <FeedbackHistoryModal
-        v-if="showFeedbackModal"
-        :projectId="project.projectId"
-        @close="showFeedbackModal = false"
     />
 
     <ProjectMemoModal
@@ -84,7 +79,6 @@ import ProjectMemoModal from '@/components/professor/ProjectMemoModal.vue'
 const props = defineProps({ project: Object })
 
 const showNoticeModal = ref(false)
-const showFeedbackModal = ref(false)
 const showVoteModal = ref(false)
 const showMemoModal = ref(false)
 
@@ -103,24 +97,25 @@ const studentMembers = computed(() => {
 
 <style scoped>
 .team-card {
-  width: 550px;
+  width: 100%;
+  max-width: 550px;
   background-color: #ffffff;
   border-radius: 20px;
   padding: 24px;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  transition: box-shadow 0.3s ease;
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
 }
 .team-card:hover {
   box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+  transform: translateY(-5px);
 }
 
 .card-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
 }
 
 .project-info {
@@ -129,29 +124,39 @@ const studentMembers = computed(() => {
 
 .project-title {
   font-size: 22px;
-  font-weight: 700;
+  font-weight: 800;
   margin-bottom: 6px;
-  color: #1e1e1e;
+  color: #2c3e50;
 }
 
 .project-desc {
   font-size: 14px;
-  color: #555;
+  color: #64748b;
   line-height: 1.4;
   overflow-wrap: break-word;
+  /* 긴 설명은 2줄로 제한하고 말줄임표 표시 */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .view-button {
-  background-color: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background-color: #f1f5f9;
   border: none;
-  font-size: 20px;
+  border-radius: 50%;
   cursor: pointer;
-  color: #888;
-  transition: transform 0.2s ease;
+  color: #64748b;
+  transition: all 0.2s ease;
 }
 .view-button:hover {
-  transform: translateX(3px);
-  color: #111;
+  background-color: #e2e8f0;
+  color: #2c3e50;
 }
 
 .progress-wrapper {
@@ -161,7 +166,7 @@ const studentMembers = computed(() => {
 .progress-label-text {
   font-size: 14px;
   font-weight: 500;
-  color: #444;
+  color: #475569;
   margin-bottom: 6px;
 }
 
@@ -174,7 +179,7 @@ const studentMembers = computed(() => {
 }
 .progress-fill {
   height: 100%;
-  background-color: #4a90e2;
+  background: linear-gradient(90deg, #60a5fa, #3b82f6);
   border-radius: 6px;
   transition: width 0.4s ease;
 }
@@ -183,26 +188,25 @@ const studentMembers = computed(() => {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-  margin: 12px 0 18px;
+  margin: 16px 0 24px;
 }
 .avatar {
   display: flex;
   align-items: center;
   gap: 6px;
-  background-color: #f9f9f9;
-  border: 1px solid #ddd;
-  border-radius: 18px;
-  padding: 5px 12px;
 }
 .avatar-img img {
   width: 24px;
   height: 24px;
   border-radius: 50%;
   object-fit: cover;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px #e2e8f0;
 }
 .member-name {
   font-size: 13px;
-  color: #333;
+  color: #475569;
+  font-weight: 500;
 }
 
 .action-buttons {
@@ -213,16 +217,17 @@ const studentMembers = computed(() => {
 }
 .action-btn {
   flex: 1 1 45%;
-  background-color: #4a4a4a;
-  color: #fff;
+  background-color: #f1f5f9;
+  color: #475569;
   padding: 10px 14px;
   font-size: 13px;
-  border-radius: 14px;
+  font-weight: 600;
+  border-radius: 10px;
   border: none;
   cursor: pointer;
   transition: background-color 0.25s ease;
 }
 .action-btn:hover {
-  background-color: #222;
+  background-color: #e2e8f0;
 }
 </style>

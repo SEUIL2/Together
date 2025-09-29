@@ -16,8 +16,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue'
 
+// props 정의
 const props = defineProps({
   x: Number,
   y: Number,
@@ -58,6 +59,7 @@ onUnmounted(() => {
   z-index: 1000;
   padding: 6px;
   min-width: 180px;
+  transform: translate(-150%, -150%);
 }
 ul {
   list-style: none;

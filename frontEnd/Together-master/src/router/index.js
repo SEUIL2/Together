@@ -33,6 +33,7 @@ import SequenceDiagramPage from '../views/toolview/SequenceDiagramPage.vue'
 import AdminDashboard from '../views/AdminDashboard.vue'
 
 import VideoChat from '../views/VideoChat.vue';
+import PdfExportPage from '@/views/PdfExportPage.vue';
 
 
 const routes = [
@@ -337,7 +338,12 @@ const routes = [
     name: 'VideoChat',
     component: VideoChat,
   },
-
+{
+    path: '/pdf-export/:projectId',
+    name: 'PdfExportPage',
+    component: PdfExportPage,
+    meta: { requiresAuth: true }
+  },
 ]
 
 const router = createRouter({

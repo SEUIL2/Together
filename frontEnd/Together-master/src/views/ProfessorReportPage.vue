@@ -90,6 +90,7 @@
         <ReportFeedback
           :report-id="selectedReport.id"
           :is-professor="true"
+          @feedback-updated="onFeedbackUpdated"
           class="feedback-wrapper"
         />
       </div>
@@ -183,6 +184,11 @@ onMounted(fetchProjects);
 const onProjectChange = () => {
   reports.value = [];
   selectedIndex.value = null;
+  fetchReports();
+};
+
+const onFeedbackUpdated = () => {
+  // 피드백이 업데이트되면 보고서 목록을 다시 불러와서 화면을 갱신합니다.
   fetchReports();
 };
 

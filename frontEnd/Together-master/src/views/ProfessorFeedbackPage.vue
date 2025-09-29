@@ -8,16 +8,13 @@
 
     <div class="controls-wrapper card">
       <div class="project-selector">
-        <label for="project-select">프로젝트 선택:</label>
+        <label for="project-select"><strong>프로젝트 선택</strong></label>
         <select id="project-select" v-model="selectedProjectId" @change="fetchFeedbacks">
           <option :value="null" disabled>-- 프로젝트를 선택하세요 --</option>
           <option v-for="project in projects" :key="project.projectId" :value="project.projectId">
             {{ project.title }}
           </option>
         </select>
-      </div>
-      <div class="header-actions">
-        <button class="manage-category-btn" @click="showCategoryManager = true">카테고리 관리</button>
       </div>
       <div class="category-filter">
         <label for="category-filter">카테고리 필터:</label>
@@ -27,6 +24,9 @@
             {{ getCategoryDisplayName(cat.name) }}
           </option>
         </select>
+        <button class="manage-category-btn" @click="showCategoryManager = true" title="카테고리 관리">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+        </button>
       </div>
     </div>
 
@@ -42,7 +42,7 @@
       <div v-for="fb in filteredFeedbacks" :key="fb.feedbackId" class="feedback-card" :class="{ 'is-read': fb.isRead }">
         <div class="card-header">
           <div>
-            <span v-if="fb.categories && fb.categories.length > 0" class="feedback-category">
+<span v-if="fb.categories && fb.categories.length > 0" class="feedback-category">
               {{ getCategoryDisplayName(fb.categories[0].name) }}
             </span>
             <span class="feedback-page">{{ getPageDisplayName(fb.page) }}</span>
@@ -52,7 +52,9 @@
         <p class="feedback-text">{{ fb.text || fb.content }}</p>
         <div class="card-footer">
           <span class="status-badge" :class="{ read: fb.isRead, unread: !fb.isRead }">{{ fb.isRead ? '읽음' : '안읽음' }}</span>
-          <button class="delete-btn" @click="deleteFeedback(fb.feedbackId)">삭제</button>
+          <button class="delete-btn" @click="deleteFeedback(fb.feedbackId)" title="피드백 삭제">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+          </button>
         </div>
       </div>
     </div>
@@ -98,15 +100,12 @@ const filteredFeedbacks = computed(() => {
 });
 const fetchProfessorProjects = async () => {
   try {
-    const { data: meData } = await axios.get('/auth/me');
-    console.log('[1] 교수 정보 및 프로젝트 목록:', meData); // 디버깅 로그
-
-    // meData 자체가 프로젝트 배열일 경우를 대비한 방어 코드 추가
-    if (Array.isArray(meData)) {
-      projects.value = meData;
-      return;
-    }
-    projects.value = meData.projectId || [];
+    const { data } = await axios.get('/projects/my-projects/sorted-by-created', {
+      headers: { Authorization: localStorage.getItem('authHeader') },
+      withCredentials: true,
+    });
+    projects.value = data || [];
+    console.log('[1] 교수 프로젝트 목록:', projects.value); // 디버깅 로그
   } catch (error) {
     console.error('❌ [1-ERROR] 교수 프로젝트 목록 로딩 실패:', error.response || error);
     console.error('교수 프로젝트 목록 로딩 실패:', error);
@@ -142,7 +141,12 @@ const fetchFeedbacks = async () => {
 
     // API 응답이 배열인 경우에만 sort를 실행하여 오류를 방지합니다.
     if (Array.isArray(data)) {
-      feedbacks.value = data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      // 백엔드에서 받은 Set<String> 형태의 카테고리를 프론트엔드에서 사용할 객체 배열 형태로 변환합니다.
+      const processedData = data.map(fb => ({
+        ...fb,
+        categories: Array.isArray(fb.categories) ? fb.categories.map(catName => ({ name: catName })) : []
+      }));
+      feedbacks.value = processedData.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     } else {
       console.warn('[3-WARN] API 응답이 배열이 아닙니다. 빈 배열로 처리합니다.'); // 디버깅 로그
       feedbacks.value = []; // 배열이 아니면 빈 배열로 초기화합니다.
@@ -229,16 +233,11 @@ const formatDate = (dateStr) => {
   box-shadow: 0 4px 12px rgba(0,0,0,0.05);
 }
 .controls-wrapper {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 1fr auto;
   align-items: center;
-  gap: 1rem;
-}
-.header-actions {
-  margin-left: auto;
-}
-.manage-category-btn {
-  margin-bottom: 24px;
+  gap: 24px;
+  margin-bottom: 5px;
 }
 .project-selector {
   display: flex;
@@ -246,15 +245,18 @@ const formatDate = (dateStr) => {
   gap: 12px;
 }
 .manage-category-btn {
-  padding: 8px 16px;
-  background-color: #6c757d;
-  color: white;
-  border: none;
+  padding: 8px;
+  background-color: #f8f9fa;
+  color: #495057;
+  border: 1px solid #dee2e6;
   border-radius: 8px;
   cursor: pointer;
-  font-weight: 600;
-  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
 }
+.manage-category-btn:hover { background-color: #f1f3f5; border-color: #ced4da; }
 .category-filter {
   display: flex;
   align-items: center;
@@ -292,6 +294,16 @@ const formatDate = (dateStr) => {
   border: 1px solid #e9ecef;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
+.feedback-card:not(.is-read) {
+  border-left: 4px solid #3f8efc;
+}
+.feedback-card:not(.is-read)::after {
+  content: '';
+  position: absolute;
+  top: 10px; right: 10px;
+  width: 10px; height: 10px;
+  background-color: #3f8efc; border-radius: 50%;
+}
 .feedback-card.is-read {
   background-color: #f8f9fa;
 }
@@ -302,8 +314,9 @@ const formatDate = (dateStr) => {
 .card-header { display: flex; justify-content: space-between; align-items: flex-start; }
 .card-header > div {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 8px;
+  align-items: center;
 }
 .feedback-page {
   font-weight: 600;
@@ -331,18 +344,21 @@ const formatDate = (dateStr) => {
   font-weight: 600;
 }
 .status-badge.read { background-color: #f1f3f5; color: #868e96; }
-.status-badge.unread { background-color: #ffe2e2; color: #d94848; }
+.status-badge.unread { background-color: #eef6ff; color: #3f8efc; }
 
 .delete-btn {
   background: none;
   border: none;
   color: #adb5bd;
   cursor: pointer;
-  font-size: 12px;
-  font-weight: 500;
-  padding: 4px 6px;
+  padding: 6px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
 }
 .delete-btn:hover {
-  color: #e53935;
+  background-color: #f8f9fa; color: #e53935;
 }
 </style>

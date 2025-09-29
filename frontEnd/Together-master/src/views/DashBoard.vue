@@ -1,6 +1,5 @@
 <template>
   <div class="dashboard-container">
-    <!-- 작업 진행률 바 -->
     <div class="card progress-card">
       <div class="progress-header">
         <span class="progress-title">프로젝트 진행률</span>
@@ -11,9 +10,7 @@
       </div>
     </div>
 
-    <!-- 작업 현황 카드 -->
     <div class="stats-row">
-      <!-- 전체 작업 -->
       <div class="card stat-card">
         <div class="stat-icon-wrapper" style="background-color: #eef6ff;">
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3f8efc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
@@ -23,7 +20,6 @@
           <div class="stat-count">{{ tasks.length }}개</div>
         </div>
       </div>
-      <!-- 진행중 -->
       <div class="card stat-card">
         <div class="stat-icon-wrapper" style="background-color: #fffbeb;">
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
@@ -33,7 +29,6 @@
           <div class="stat-count">{{ inProgressTasksCount }}개</div>
         </div>
       </div>
-      <!-- 완료 -->
       <div class="card stat-card">
         <div class="stat-icon-wrapper" style="background-color: #f0fdf4;">
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
@@ -43,7 +38,6 @@
           <div class="stat-count">{{ completedTasksCount }}개</div>
         </div>
       </div>
-      <!-- 팀원별 작업 분배율 -->
       <div class="card stat-card distribution-card" @mouseenter="tooltip.show = true" @mouseleave="tooltip.show = false" @mousemove="updateTooltipPosition">
         <div class="donut-chart-wrapper">
           <div class="donut-chart" :style="donutChartStyle"></div>
@@ -53,20 +47,18 @@
           <div class="stat-count-small">현황 보기</div>
         </div>
       </div>
-      <!-- 다음 회의 일정 -->
       <div class="card stat-card meeting-card" @click="handleMeetingCardClick">
-          <div class="stat-icon-wrapper" :style="{ backgroundColor: nextMeeting ? '#e0f2fe' : '#f3e8ff' }">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" :stroke="nextMeeting ? '#0ea5e9' : '#8b5cf6'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-          </div>
-          <div class="stat-info">
-            <div class="stat-title">다음 회의 일정</div>
-            <div v-if="nextMeeting" class="stat-count-small next-meeting-date">{{ formatMeetingDate(nextMeeting.scheduleDate) }}</div>
-            <div v-else class="stat-count-small">일정 잡기</div>
-          </div>
+        <div class="stat-icon-wrapper" :style="{ backgroundColor: nextMeeting ? '#e0f2fe' : '#f3e8ff' }">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" :stroke="nextMeeting ? '#0ea5e9' : '#8b5cf6'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+        </div>
+        <div class="stat-info">
+          <div class="stat-title">다음 회의 일정</div>
+          <div v-if="nextMeeting" class="stat-count-small next-meeting-date">{{ formatMeetingDate(nextMeeting.scheduleDate) }}</div>
+          <div v-else class="stat-count-small">일정 잡기</div>
+        </div>
       </div>
     </div>
 
-    <!-- 모든 작업 / 내 작업 -->
     <div class="tasks-row">
       <div class="card card-flex">
         <div class="card-header">
@@ -88,7 +80,6 @@
       </div>
     </div>
 
-    <!-- 공지사항 / 투표 -->
     <div class="boards-row">
       <div class="card card-flex">
         <div class="card-header">
@@ -112,22 +103,19 @@
       </div>
     </div>
 
-    <!-- 공지 생성 모달 -->
     <NoticeCreateModal
-      v-if="showCreateModal"
-      :writerName="currentUserName"
-      @create="handleCreateNotice"
-      @close="showCreateModal = false"
+        v-if="showCreateModal"
+        :writerName="currentUserName"
+        @create="handleCreateNotice"
+        @close="showCreateModal = false"
     />
 
-    <!-- 팀 투표 생성 모달 -->
     <VoteCreateModal
-      v-if="showVoteCreateModal"
-      @close="showVoteCreateModal = false"
-      @created="onVoteCreated"
+        v-if="showVoteCreateModal"
+        @close="showVoteCreateModal = false"
+        @created="onVoteCreated"
     />
 
-    <!-- 전체 공지사항 모달 -->
     <div v-if="showAllModal" class="modal-overlay">
       <div class="modal-content notice-modal">
         <div class="modal-header">
@@ -138,32 +126,29 @@
       </div>
     </div>
 
-    <!-- 전체 팀 투표 모달 -->
     <div v-if="showVotingListModal" class="modal-overlay">
       <div class="modal-content voting-modal">
         <div class="modal-header">
           <h4>전체 팀 투표</h4>
           <button class="close-btn" @click="showVotingListModal = false">×</button>
         </div>
-        <VotingList 
-          @created="onVoteCreated"
-          ref="votingListRef"
-          :project-id="projectId"
-          @close="showVotingListModal = false"
+        <VotingList
+            @created="onVoteCreated"
+            ref="votingListRef"
+            :project-id="projectId"
+            @close="showVotingListModal = false"
         />
       </div>
     </div>
 
-    <!-- 공지 상세 모달 -->
     <NoticeDetailModal
-      v-if="showNoticeModal"
-      :notice="selectedNotice"
-      @close="showNoticeModal = false"
-      @update="handleUpdateNotice"
-      @delete="handleDeleteNotice"
+        v-if="showNoticeModal"
+        :notice="selectedNotice"
+        @close="showNoticeModal = false"
+        @update="handleUpdateNotice"
+        @delete="handleDeleteNotice"
     />
 
-    <!-- 도넛 차트 툴팁 -->
     <div v-if="tooltip.show" class="chart-tooltip" :style="{ top: tooltip.y + 'px', left: tooltip.x + 'px' }">
       <div class="tooltip-title">작업 분배 현황</div>
       <ul>
@@ -176,14 +161,13 @@
     </div>
   </div>
 
-  <!-- 회의 생성 모달 -->
   <NewMeetingModal
-    v-if="showMeetingModal"
-    :initial-data="meetingToEdit"
-    @close="showMeetingModal = false"
-    @create="handleCreateMeeting"
-    @update="handleUpdateMeeting"
-    @delete="handleDeleteMeeting"
+      v-if="showMeetingModal"
+      :initial-data="meetingToEdit"
+      @close="showMeetingModal = false"
+      @create="handleCreateMeeting"
+      @update="handleUpdateMeeting"
+      @delete="handleDeleteMeeting"
   />
 </template>
 
@@ -211,7 +195,7 @@ const nextMeeting = ref(null)
 const votingListRef = ref(null)
 const route = useRoute()
 const router = useRouter()
-const projectId = ref(route.params.projectId || null)
+const projectId = ref(null)
 
 const currentUserName = ref('')
 const tasks = ref([])
@@ -252,8 +236,8 @@ const workDistribution = computed(() => {
 
   // 팀원 목록을 기반으로 초기화
   teamMembers.value.forEach((member, index) => {
-    distributionMap.set(member.userName, { 
-      name: member.userName, 
+    distributionMap.set(member.userName, {
+      name: member.userName,
       count: 0,
       color: member.userColor || COLORS[index % COLORS.length]
     });
@@ -263,8 +247,8 @@ const workDistribution = computed(() => {
   tasks.value.forEach(task => {
     const assignee = task.assignedUserName || '미지정';
     if (!distributionMap.has(assignee)) {
-      distributionMap.set(assignee, { 
-        name: assignee, 
+      distributionMap.set(assignee, {
+        name: assignee,
         count: 0,
         color: '#B8B8B8' // 미지정 색상
       });
@@ -273,9 +257,9 @@ const workDistribution = computed(() => {
   });
 
   return Array.from(distributionMap.values())
-    .filter(item => item.count > 0)
-    .map(item => ({ ...item, percentage: tasks.value.length > 0 ? (item.count / tasks.value.length) * 100 : 0 }))
-    .sort((a, b) => b.count - a.count);
+      .filter(item => item.count > 0)
+      .map(item => ({ ...item, percentage: tasks.value.length > 0 ? (item.count / tasks.value.length) * 100 : 0 }))
+      .sort((a, b) => b.count - a.count);
 });
 
 function handleMeetingCardClick() {
@@ -290,13 +274,14 @@ function handleMeetingCardClick() {
 }
 
 async function handleCreateMeeting(meetingData) {
+  if (!projectId.value) return;
   const scheduleDto = {
     title: meetingData.title,
     description: meetingData.description,
     scheduleDate: meetingData.meetingDate,
   };
   try {
-    await axios.post('/api/meeting/schedules', scheduleDto, {
+    await axios.post(`/api/meeting/schedules?projectId=${projectId.value}`, scheduleDto, {
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true,
     });
@@ -374,7 +359,9 @@ function updateTooltipPosition(event) {
 
 
 async function fetchTasks() {
+  if (!projectId.value) return;
   const taskRes = await axios.get('/work-tasks/project', {
+    params: { projectId: projectId.value },
     headers: { Authorization: localStorage.getItem('authHeader') },
     withCredentials: true
   })
@@ -397,32 +384,36 @@ async function fetchTeamMembers() {
 
 // 공지사항 목록 불러오기
 async function fetchNotices() {
+  if (!projectId.value) return;
   try {
     const res = await axios.get('/notices/all-notice', {
+      params: { projectId: projectId.value },
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true
     })
 
     notices.value = res.data
-      .sort((a, b) => new Date(b.createdDate) - new Date(a.createdDate))
-      .map(n => ({
-        ...n,
-        writerName: n.writerName || n.authorName || n.userName || currentUserName.value
-      }))
+        .sort((a, b) => new Date(b.createdDate) - new Date(a.createdDate))
+        .map(n => ({
+          ...n,
+          writerName: n.writerName || n.authorName || n.userName || currentUserName.value
+        }))
   } catch (e) {
     console.error('공지사항 불러오기 실패:', e)
-}
+  }
 }
 
 async function fetchMeetingSchedules() {
+  if (!projectId.value) return;
   try {
     const { data } = await axios.get('/api/meeting/schedules', {
+      params: { projectId: projectId.value },
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true,
     });
     const upcoming = data
-      .filter(schedule => new Date(schedule.scheduleDate) > new Date())
-      .sort((a, b) => new Date(a.scheduleDate) - new Date(b.scheduleDate));
+        .filter(schedule => new Date(schedule.scheduleDate) > new Date())
+        .sort((a, b) => new Date(a.scheduleDate) - new Date(b.scheduleDate));
 
     nextMeeting.value = upcoming.length > 0 ? upcoming[0] : null;
   } catch (err) {
@@ -432,8 +423,9 @@ async function fetchMeetingSchedules() {
 
 // 공지 생성
 async function handleCreateNotice(newNotice) {
+  if (!projectId.value) return;
   try {
-    await axios.post('/notices/create', newNotice, {
+    await axios.post(`/notices/create?projectId=${projectId.value}`, newNotice, {
       headers: {
         Authorization: localStorage.getItem('authHeader'),
         'Content-Type': 'application/json'
@@ -467,22 +459,33 @@ async function handleUpdateNotice(updated) {
 
 onMounted(async () => {
   try {
-    const { data: me } = await axios.get('/auth/me', { withCredentials: true })
-    currentUserName.value = me.userName
-    projectId.value = me.projectId
-    await fetchTeamMembers()
-    await fetchTasks()
-    await fetchNotices()
-    await fetchMeetingSchedules()
-    refreshTimer = setInterval(async () => {
-      await fetchTasks()
-      await fetchNotices()
-      await fetchMeetingSchedules()
-    }, 10000)
+    const routeProjectId = route.params.projectId;
+    const { data: me } = await axios.get('/auth/me', { withCredentials: true });
+    currentUserName.value = me.userName;
+
+    // 뷰를 보고 있는 프로젝트 ID를 설정합니다.
+    // 교수 또는 학생이 자신의 프로젝트를 볼 때는 me.projectId를,
+    // 교수가 특정 학생 프로젝트를 볼 때는 route.params.projectId를 사용합니다.
+    projectId.value = routeProjectId || me.projectId;
+
+    // projectId가 유효한 경우에만 데이터를 가져옵니다.
+    if (projectId.value) {
+      await fetchTeamMembers();
+      await fetchTasks();
+      await fetchNotices();
+      await fetchMeetingSchedules();
+
+      // 주기적으로 데이터를 새로고침하는 타이머를 설정합니다.
+      refreshTimer = setInterval(async () => {
+        await fetchTasks();
+        await fetchNotices();
+        await fetchMeetingSchedules();
+      }, 10000);
+    }
   } catch (e) {
-    console.error('❌ 데이터 로드 실패:', e)
+    console.error('❌ 데이터 로드 실패:', e);
   }
-})
+});
 
 onBeforeUnmount(() => clearInterval(refreshTimer))
 
@@ -686,7 +689,7 @@ function onVoteCreated() {
 }
 .board-title {
   font-size: 20px;
-  cursor: pointer; 
+  cursor: pointer;
 }
 .create-btn {
   background: none;

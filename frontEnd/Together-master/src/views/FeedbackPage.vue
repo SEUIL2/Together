@@ -28,7 +28,7 @@
       <div v-for="fb in filteredFeedbacks" :key="fb.feedbackId" class="feedback-card" :class="{ 'is-read': fb.isRead }">
           <div class="card-header">
             <div>
-              <span v-if="fb.categories && fb.categories.length > 0" class="feedback-category">
+<span v-if="fb.categories && fb.categories.length > 0" class="feedback-category" :class="`category-${fb.categories[0].name}`">
                 {{ getCategoryDisplayName(fb.categories[0].name) }}
               </span>
               <span class="feedback-page">{{ getPageDisplayName(fb.page) }}</span>
@@ -40,7 +40,9 @@
             <span class="status-badge" :class="{ read: fb.isRead, unread: !fb.isRead }">{{ fb.isRead ? '읽음' : '안읽음' }}</span>
             <div class="footer-buttons">
               <button v-if="!fb.isRead" class="read-btn" @click="markAsRead(fb.feedbackId)">읽음</button>
-              <button class="delete-btn" @click="deleteFeedback(fb.feedbackId)">삭제</button>
+              <button class="delete-btn" @click="deleteFeedback(fb.feedbackId)" title="피드백 삭제">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+              </button>
             </div>
           </div>
         </div>
@@ -75,28 +77,32 @@ const filteredFeedbacks = computed(() => {
   if (selectedCategory.value === 'ALL') {
     return feedbacks.value;
   }
-  // 카테고리 필터링 로직을 새로운 데이터 구조에 맞게 수정
+  // ✅ 수정된 로직: Set.has()를 사용하여 필터링
   return feedbacks.value.filter(fb => 
     fb.categories && fb.categories.some(cat => cat.name === selectedCategory.value)
   );
 });
 
-const fetchFeedbackCategories = async () => {
-  try {
-    const { data } = await axios.get('/feedbacks/categories', {
-      headers: { Authorization: localStorage.getItem('authHeader') },
-      withCredentials: true,
-    });
-    feedbackCategories.value = data;
-  } catch (error) {
-    console.error('피드백 카테고리 로딩 실패:', error);
-  }
-};
+const fetchFeedbackCategories = async () => {};
 
 const fetchFeedbacks = async () => {
   try {
     const { data } = await axios.get('/feedbacks/my');
-    feedbacks.value = data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    // 백엔드에서 받은 Set<String> 형태의 카테고리를 프론트엔드에서 사용할 객체 배열 형태로 변환합니다.
+    const processedData = data.map(fb => ({
+      ...fb,
+      // fb.categories가 ["카테고리1", "카테고리2"] 형태일 것이므로, [{name: "카테고리1"}, {name: "카테고리2"}] 형태로 변환
+      categories: Array.isArray(fb.categories) ? fb.categories.map(catName => ({ name: catName })) : []
+    }));
+    
+    // 모든 피드백에서 카테고리 목록을 동적으로 생성합니다.
+    const allCategories = new Set();
+    processedData.forEach(fb => {
+      fb.categories.forEach(cat => allCategories.add(cat.name));
+    });
+    feedbackCategories.value = Array.from(allCategories).map((name, index) => ({ id: index, name }));
+
+    feedbacks.value = processedData.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   } catch (err) {
     console.error('학생 피드백 불러오기 실패:', err);
     feedbacks.value = [];
@@ -229,8 +235,9 @@ const formatDate = (dateStr) => {
 .card-header { display: flex; justify-content: space-between; align-items: flex-start; }
 .card-header > div {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 8px;
+  align-items: center;
 }
 .feedback-category {
   font-weight: 700;
@@ -239,6 +246,10 @@ const formatDate = (dateStr) => {
   font-size: 13px;
   color: white;
 }
+.feedback-category.개선 { background-color: #3498db; }
+.feedback-category.아이디어 { background-color: #f1c40f; color: #333; }
+.feedback-category.칭찬 { background-color: #2ecc71; }
+.feedback-category.질문 { background-color: #9b59b6; }
 .feedback-category { background-color: #6c757d; }
 .feedback-page {
   font-weight: 600;
@@ -271,11 +282,14 @@ const formatDate = (dateStr) => {
   border: none;
   color: #adb5bd;
   cursor: pointer;
-  font-size: 12px;
-  font-weight: 500;
-  padding: 4px 6px;
+  padding: 6px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
 }
 .delete-btn:hover {
-  color: #e53935;
+  background-color: #f8f9fa; color: #e53935;
 }
 </style>

@@ -134,7 +134,7 @@ await axios.post('/feedbacks/create', {
   y: props.y,
   text: text.value,
   categoryIds: [selectedCategoryId.value], // 카테고리 ID를 배열 형태로 전송
-  projectId: props.projectId  // ✅ 여기!!
+  projectId: props.projectId
 }, {
   headers: {
     Authorization: localStorage.getItem('authHeader')

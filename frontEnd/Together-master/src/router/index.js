@@ -34,6 +34,7 @@ import AdminDashboard from '../views/AdminDashboard.vue'
 
 import VideoChat from '../views/VideoChat.vue';
 import PdfExportPage from '@/views/PdfExportPage.vue';
+import DevelopmentEnvironment from '../views/DevelopmentEnvironment.vue';
 
 
 const routes = [
@@ -327,6 +328,11 @@ const routes = [
   component: () => import('@/views/ProfessorFeedbackPage.vue'),
   meta: { requiresAuth: true, roles: ['PROFESSOR'] }
 },
+  {
+    path: '/development-environment',
+    name: 'DevelopmentEnvironment',
+    component: DevelopmentEnvironment,
+  },
 {
   path: '/professor/report',
   name: 'ProfessorReportPage',

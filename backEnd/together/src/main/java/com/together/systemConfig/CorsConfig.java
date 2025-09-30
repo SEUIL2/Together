@@ -17,7 +17,7 @@ public class CorsConfig {
 
         // 특정 패턴의 출처를 허용합니다.
         configuration.addAllowedOriginPattern("http://localhost:5173");
-        configuration.addAllowedOriginPattern("http://3.38.204.194");
+        configuration.addAllowedOriginPattern("http://52.79.180.110:5173");
         // 만약 https를 사용한다면 https 패턴도 추가
         // configuration.addAllowedOriginPattern("https://3.38.204.194");
 

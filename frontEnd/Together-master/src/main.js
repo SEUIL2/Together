@@ -8,7 +8,7 @@ import { API_BASE_URL } from './config'
 // ✅ 인증 쿠키 포함 설정
 import axios from 'axios'
 axios.defaults.withCredentials = true
-axios.defaults.baseURL = '/api' // ✅ 모든 요청에 /api 접두사 추가
+//axios.defaults.baseURL = '/api'// 서버 설정
 
 // 로그인 정보가 남아있다면 Authorization 헤더를 복원
 const savedAuth = localStorage.getItem('authHeader')

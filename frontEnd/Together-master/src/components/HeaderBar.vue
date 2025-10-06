@@ -1,14 +1,11 @@
 <template>
   <div class="header-wrapper">
-    <!-- 헤더 바 -->
     <header class="header-bar" @mouseleave="showAllSubmenus = false">
-      <!-- 로고 영역 -->
       <div class="logo" @click="goMyDashBoard">
         <img src="@/assets/togetherlogo.png" alt="Together Logo" class="logo-img" />
         <span class="logo-text">TOGETHER</span>
       </div>
 
-      <!-- 메뉴 영역: 여기에 마우스를 올리면 드롭다운 표시 -->
       <nav v-if="!isProfessor || isProfessorReadOnly" class="main-nav" @mouseenter="showAllSubmenus = true">
         <ul>
           <li><button :class="{ active: $route.query.step === '기획' }" @click="goToStep('기획')">기획</button></li>
@@ -18,9 +15,7 @@
         </ul>
       </nav>
 
-      <!-- 알림 + 설정 아이콘 영역 -->
       <div class="settings-icon">
-        <NotificationPopup />
         <div ref="settingsRef">
           <button class="icon-button" @click="toggleMenu">
             <img src="@/assets/settings.png" alt="Settings" class="settings-img" />
@@ -35,39 +30,69 @@
       </div>
     </header>
 
-    <!-- 프로필 설정 모달 -->
     <ProfileSettingsModal
-      :visible="showProfileModal"
-      @close="showProfileModal = false"
-      @updated="onProfileUpdated"
+        :visible="showProfileModal"
+        @close="showProfileModal = false"
+        @updated="onProfileUpdated"
     />
 
-    <!-- 메가 메뉴 드롭다운 -->
     <div v-if="!isProfessor || isProfessorReadOnly" class="mega-menu-container" :class="{ open: showAllSubmenus }" @mouseenter="showAllSubmenus = true" @mouseleave="showAllSubmenus = false">
       <div class="mega-menu-content">
-        <!-- 기획 컬럼 -->
         <div class="mega-menu-column">
           <button v-for="item in planningItems" :key="item.type" class="inline-item" @click="goToSubStep('기획', item.type)">
             {{ item.name }}
           </button>
         </div>
-        <!-- 설계 컬럼 -->
         <div class="mega-menu-column">
           <button v-for="item in designItems" :key="item.type" class="inline-item" @click="goToSubStep('설계', item.type)">
             {{ item.name }}
           </button>
         </div>
-        <!-- 개발 컬럼 -->
         <div class="mega-menu-column">
           <button v-for="item in developItems" :key="item.type" class="inline-item" @click="goToSubStep('개발', item.type)">
             {{ item.name }}
           </button>
         </div>
-        <!-- 테스트 컬럼 -->
         <div class="mega-menu-column">
           <button v-for="item in testItems" :key="item.type" class="inline-item" @click="goToSubStep('테스트', item.type)">
             {{ item.name }}
           </button>
+        </div>
+        <div class="mega-menu-column notification-section">
+          <div class="popup-header">
+            <h3>알림</h3>
+            <span v-if="unreadCount > 0" class="unread-dot"></span>
+          </div>
+          <div v-if="invitations.length === 0 && notifications.length === 0" class="no-notifications">
+            <p>새로운 알림이 없습니다.</p>
+          </div>
+          <ul v-else class="notification-list">
+            <li v-for="invite in invitations" :key="`invite-${invite.invitationId}`" class="notification-item">
+              <img src="@/assets/invite.png" class="item-icon" alt="초대 아이콘"/>
+              <div class="notification-content">
+                <p class="message">
+                  <strong>{{ invite.projectTitle }}</strong> 프로젝트에 초대되었습니다.
+                </p>
+                <span class="time">{{ formatTime(invite.createdAt) }}</span>
+              </div>
+              <div class="actions">
+                <button class="accept-btn" @click.stop="accept(invite)">수락</button>
+                <button class="reject-btn" @click.stop="reject(invite.invitationId)">거절</button>
+              </div>
+            </li>
+            <li v-for="noti in notifications" :key="`noti-${noti.id}`" class="notification-item" @click="confirm(noti)">
+              <img :src="getNotificationIconPath(noti)" class="item-icon" alt="알림 아이콘"/>
+              <div class="notification-content">
+                <p class="message">
+                  {{ noti.message }}
+                </p>
+                <span class="time">{{ formatTime(noti.createdAt) }}</span>
+              </div>
+              <div class="actions">
+                <button class="confirm-btn" @click.stop="confirm(noti)">확인</button>
+              </div>
+            </li>
+          </ul>
         </div>
       </div>
     </div>
@@ -75,23 +100,25 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import axios from 'axios'
-import NotificationPopup from '@/components/NotificationPopup.vue'
 import ProfileSettingsModal from '@/components/ProfileSettingsModal.vue'
+import noticeIcon from '@/assets/notice.png'
+import voteIcon from '@/assets/vote.png'
+import todoIcon from '@/assets/todo.png'
+import defaultIcon from '@/assets/bell.png'
 
 const router = useRouter()
 const route = useRoute()
 
 const isLoggedIn = ref(false)
-const userRole = ref('');
+const userRole = ref('')
 const showMenu = ref(false)
 const showProfileModal = ref(false)
 const settingsRef = ref(null)
 
-const isProfessor = computed(() => userRole.value === 'PROFESSOR');
-
+const isProfessor = computed(() => userRole.value === 'PROFESSOR')
 const isProfessorReadOnly = computed(() => route.query.readonly === 'true')
 const projectId = computed(() => {
   const fromParams = route.params.projectId
@@ -103,26 +130,25 @@ const projectId = computed(() => {
 const projectTitle = computed(() => route.query.projectTitle || '')
 
 const goMyDashBoard = () => {
-  // 교수 읽기 전용 모드와 학생 모드를 구분하여 대시보드로 이동
   if (isProfessorReadOnly.value && projectId.value) {
     router.push(
-      `/professor/dashboard/${projectId.value}?readonly=true&projectTitle=${projectTitle.value}`
+        `/professor/dashboard/${projectId.value}?readonly=true&projectTitle=${projectTitle.value}`
     )
   } else if (isProfessor.value) {
-    router.push('/professor/MainPage');
+    router.push('/professor/MainPage')
   } else {
     router.push('/DashBoard')
   }
 }
 
-const showAllSubmenus = ref(false);
+const showAllSubmenus = ref(false)
 const planningItems = [
   { name: '프로젝트 동기', type: 'motivation' },
   { name: '프로젝트 목표', type: 'goal' },
   { name: '요구사항 정의', type: 'requirement' },
   { name: '정보구조도', type: 'infostructure' },
   { name: '스토리보드', type: 'storyboard' }
-];
+]
 
 const designItems = [
   { name: "유스케이스 다이어그램", type: "usecase" },
@@ -132,19 +158,115 @@ const designItems = [
   { name: "ERD", type: "erd" },
   { name: "테이블 명세", type: "table" },
   { name: "시스템 아키텍쳐", type: "architecture" },
-];
+]
 
 const developItems = [
-    { name: '개발 환경 설정', type: 'environment' },
-    { name: '기능별 개발 순서', type: 'devOrder' },
-    { name: '커밋 메시지 규칙', type: 'commitRule' },
-    { name: '폴더 구조 및 파일 규칙', type: 'folder' }
-];
+  { name: '개발 환경 설정', type: 'environment' },
+  { name: '기능별 개발 순서', type: 'devOrder' },
+  { name: '커밋 메시지 규칙', type: 'commitRule' },
+  { name: '폴더 구조 및 파일 규칙', type: 'folder' }
+]
 
 const testItems = [
-    { name: '단위 테스트', type: 'unit' },
-    { name: '통합 테스트', type: 'integration' }
-];
+  { name: '단위 테스트', type: 'unit' },
+  { name: '통합 테스트', type: 'integration' }
+]
+
+// --- Notification Logic Start ---
+const invitations = ref([])
+const notifications = ref([])
+let pollingTimer = null
+
+watch(showAllSubmenus, (newValue) => {
+  if (newValue) {
+    fetchAllNotifications();
+  }
+});
+
+function getNotificationIconPath(notification) {
+  const message = notification.message || '';
+  if (message.includes('공지사항')) return noticeIcon;
+  if (message.includes('투표')) return voteIcon;
+  if (message.includes('작업')) return todoIcon;
+  return defaultIcon;
+}
+
+async function fetchAllNotifications() {
+  await fetchInvitations();
+  await fetchUnreadNotifications();
+}
+
+async function fetchInvitations() {
+  try {
+    const resp = await axios.get('/projects/invitations', { withCredentials: true });
+    invitations.value = (Array.isArray(resp.data) ? resp.data : [])
+        .filter(inv => inv.status === 'PENDING')
+        .map(inv => ({ ...inv, createdAt: inv.createdAt || inv.createdDate }));
+  } catch (e) { console.error('초대 목록 조회 실패', e); }
+}
+
+async function fetchUnreadNotifications() {
+  try {
+    const resp = await axios.get('/notifications/unread', { withCredentials: true });
+    notifications.value = Array.isArray(resp.data) ? resp.data : [];
+  } catch (e) { console.error('일반 알림 조회 실패', e); }
+}
+
+async function accept(invitation) {
+  try {
+    await axios.post(`/projects/invite/${invitation.invitationId}/accept`, null, { withCredentials: true });
+    fetchAllNotifications();
+    const { data: me } = await axios.get('/auth/me', { withCredentials: true });
+    const isProfessor = (me.roles || []).some(r => r.authority === 'ROLE_PROFESSOR');
+    if (isProfessor) {
+      const res = await axios.get('/projects/my-projects/sorted-by-created', { withCredentials: true });
+      const matched = (res.data || []).find(p => p.title === invitation.projectTitle);
+      router.push(matched ? `/professor/project/${matched.projectId}?readonly=true&projectTitle=${encodeURIComponent(matched.title)}` : '/professor/mainpage');
+    } else {
+      router.push('/MyProject');
+    }
+  } catch (e) { console.error('초대 수락 실패', e); }
+}
+
+async function reject(invitationId) {
+  try {
+    await axios.post(`/projects/invitations/${invitationId}/reject`, null, { withCredentials: true });
+    fetchAllNotifications();
+  } catch (e) { console.error('초대 거절 실패', e); }
+}
+
+async function confirm(noti) {
+  try {
+    await axios.post(`/notifications/${noti.id}/read`, null, { withCredentials: true });
+    fetchAllNotifications();
+    if (noti.linkUrl) {
+      router.push(noti.linkUrl);
+    }
+  } catch (e) {
+    console.error('알림 확인 실패', e);
+  }
+}
+
+function formatTime(dateStr) {
+  if (!dateStr) return '';
+  const now = new Date();
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '유효하지 않은 시간';
+  const diffMs = now - d;
+  const diffSecs = Math.round(diffMs / 1000);
+  const diffMins = Math.round(diffSecs / 60);
+  const diffHours = Math.round(diffMins / 60);
+  const diffDays = Math.round(diffHours / 24);
+  if (diffSecs < 60) return '방금 전';
+  if (diffMins < 60) return `${diffMins}분 전`;
+  if (diffHours < 24) return `${diffHours}시간 전`;
+  if (diffDays === 1) return '어제';
+  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+}
+
+const unreadCount = computed(() => invitations.value.length + notifications.value.length);
+// --- Notification Logic End ---
+
 
 const authHeader = localStorage.getItem('authHeader')
 if (authHeader) {
@@ -161,13 +283,13 @@ const checkLoginStatus = async () => {
       headers: { Authorization: authHeader },
       withCredentials: true,
     })
-    isLoggedIn.value = true;
-    const roles = response.data.roles || [];
-    const isProf = roles.some(role => role.authority === 'ROLE_PROFESSOR');
-    userRole.value = isProf ? 'PROFESSOR' : 'STUDENT';
+    isLoggedIn.value = true
+    const roles = response.data.roles || []
+    const isProf = roles.some(role => role.authority === 'ROLE_PROFESSOR')
+    userRole.value = isProf ? 'PROFESSOR' : 'STUDENT'
   } catch {
-    isLoggedIn.value = false;
-    userRole.value = '';
+    isLoggedIn.value = false
+    userRole.value = ''
   }
 }
 
@@ -175,10 +297,14 @@ onMounted(() => {
   checkLoginStatus()
   document.addEventListener('click', handleClickOutside)
   window.addEventListener('login-success', checkLoginStatus)
+  // Start polling for notifications
+  fetchAllNotifications();
+  pollingTimer = setInterval(fetchAllNotifications, 10000);
 })
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleClickOutside)
+  clearInterval(pollingTimer);
 })
 
 const toggleMenu = () => (showMenu.value = !showMenu.value)
@@ -220,24 +346,19 @@ const handleClickOutside = (e) => {
 }
 
 const goToStep = (stepName) => {
-  // 현재 라우트가 MyProject 관련 페이지일 경우, 쿼리만 변경
   if (route.path.includes('/MyProject') || route.path.includes('/professor/project')) {
     router.push({ query: { ...route.query, step: stepName } });
   } else {
-    // 다른 페이지에 있을 경우, MyProject 페이지로 이동하면서 쿼리 추가
     router.push({ path: '/MyProject', query: { step: stepName } });
   }
 }
 
 const goToSubStep = (step, subStepType) => {
-  // '개발 환경 설정' 클릭 시 전용 라우트로 이동
   if (step === '개발' && subStepType === 'environment') {
     router.push('/development-environment');
     showAllSubmenus.value = false;
     return;
   }
-
-  // 교수의 읽기 전용 모드일 경우, 현재 경로와 쿼리를 유지하며 이동
   if (isProfessorReadOnly.value && projectId.value) {
     router.push({
       path: `/professor/project/${projectId.value}`,
@@ -246,17 +367,15 @@ const goToSubStep = (step, subStepType) => {
   } else {
     router.push({ path: '/MyProject', query: { step, substep: subStepType } });
   }
-  // 클릭 후 모든 드롭다운 메뉴 닫기
   showAllSubmenus.value = false;
 };
 </script>
 
-
 <style scoped>
 /* CSS 변수를 컴포넌트의 최상위 래퍼에 정의하여 하위 요소들이 모두 접근할 수 있도록 합니다. */
 .header-wrapper {
-  --menu-start-margin: 4rem; /* 로고와 메뉴 시작점 사이의 간격 */
-  --menu-gap: 3rem;          /* 메뉴 아이템들 사이의 간격 */
+  --menu-start-margin: 4rem;
+  --menu-gap: 3rem;
 }
 /* ===== 헤더 바 기본 ===== */
 .header-bar{
@@ -271,7 +390,7 @@ const goToSubStep = (step, subStepType) => {
 .logo{
   padding-left: 24px;
   display:flex; align-items:center;
-  width: 16%; /* 사이드바 너비와 동일하게 설정 */
+  width: 16%;
   box-sizing: border-box;
   cursor: pointer;
 }
@@ -285,23 +404,21 @@ const goToSubStep = (step, subStepType) => {
 nav ul{display:flex; align-items:center; gap:var(--menu-gap); list-style:none; margin:0; padding:0}
 nav ul li{position:relative}
 nav ul li button{
-  width: 140px; /* 고정 너비로 대칭 맞춤 */
+  width: 140px;
   background:none; border:none; height:60px; padding:0 2px;
   font-size:1rem; cursor:pointer; color:#000; position:relative;
   display:inline-flex; align-items:center; justify-content: center;
-  transition: transform 0.2s ease, color 0.2s ease; /* 애니메이션 효과 추가 */
+  transition: transform 0.2s ease, color 0.2s ease;
 }
 nav ul li button:hover{
-  color: var(--brand); /* 호버 시 브랜드 색상으로 변경 */
-  transform: translateY(-2px); /* 위로 살짝 이동하는 애니메이션 */
+  color: var(--brand);
+  transform: translateY(-2px);
 }
-/* 공통 버튼 활성화 스타일 */
 nav ul li button.active{
   color: var(--brand);
   position: relative;
 }
 
-/* 밑줄 표시 */
 nav ul li button.active::after{
   content:"";
   position:absolute;
@@ -314,7 +431,7 @@ nav ul li button.active::after{
 /* ===== 메가 메뉴 드롭다운 스타일 ===== */
 .mega-menu-container {
   position: absolute;
-  top: 50px; /* 헤더 높이 */
+  top: 60px; /* 헤더 높이 */
   left: 0;
   width: 100%;
   background: #fff;
@@ -322,29 +439,29 @@ nav ul li button.active::after{
   overflow: hidden;
   max-height: 0;
   transition: max-height 0.35s ease-in-out, padding 0.35s ease-in-out, border-color 0.35s ease-in-out;
-  border-bottom: 1px solid transparent; /* 닫혔을 때 테두리 안보이게 */
+  border-bottom: 1px solid transparent;
 }
 
 .mega-menu-container.open {
-  max-height: 400px; /* 충분한 높이 */
+  max-height: 500px;
   padding: 24px 0;
-  border-bottom-color: #e0e0e0; /* 열렸을 때 테두리 색 */
+  border-bottom-color: #e0e0e0;
   box-shadow: 0 8px 16px rgba(0,0,0,0.08);
 }
 
 .mega-menu-content {
   display: flex;
-  gap: var(--menu-gap); /* 헤더 메뉴 간격과 동일하게 설정 */
+  gap: var(--menu-gap);
   width: 100%;
-  margin: 0; /* 중앙 정렬 제거 */
-  padding-left: calc(16% + var(--menu-start-margin)); /* 로고 너비 + 메뉴 시작 위치와 동일하게 설정 */
+  margin: 0;
+  padding-left: calc(16% + var(--menu-start-margin));
 }
 
 .mega-menu-column {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  width: 140px; /* 헤더 메뉴 너비와 동일하게 설정 */
+  width: 140px;
 }
 
 .inline-item {
@@ -357,7 +474,7 @@ nav ul li button.active::after{
   font-size: 0.9rem;
   color: #555;
   cursor: pointer;
-  white-space: nowrap; /* 텍스트 줄바꿈 방지 */
+  white-space: nowrap;
   transition: background-color 0.2s, color 0.2s;
 }
 .inline-item:hover {
@@ -380,5 +497,106 @@ nav ul li button.active::after{
 .popup-btn:hover{color:var(--brand)}
 .icon-button{background:none; border:none; cursor:pointer}
 .icon-button:focus{outline:none}
+
+
+/* --- Notification Styles --- */
+.notification-section {
+  width: 380px;
+  margin-left: auto;
+  padding-right: 2rem;
+}
+.popup-header {
+  display: flex;
+  align-items: center;
+  padding: 0 0 16px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+.popup-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+.unread-dot {
+  margin-left: 8px;
+  width: 9px;
+  height: 9px;
+  background-color: #ff3b30;
+  border-radius: 50%;
+}
+.notification-list {
+  padding: 8px 0;
+  margin: 0;
+  list-style: none;
+  max-height: 350px;
+  overflow-y: auto;
+}
+.notification-item {
+  display: grid;
+  grid-template-columns: 40px 1fr auto;
+  grid-template-areas: "icon content actions";
+  gap: 16px;
+  padding: 16px 5px;
+  border-bottom: 1px solid #f0f0f0;
+  align-items: center;
+}
+.notification-item:last-child {
+  border-bottom: none;
+}
+.notification-item:hover {
+  background-color: #f9f9f9;
+}
+.item-icon {
+  grid-area: icon;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.notification-content {
+  grid-area: content;
+  display: flex;
+  flex-direction: column;
+}
+.actions {
+  grid-area: actions;
+  display: flex;
+  gap: 10px;
+}
+.message {
+  font-size: 14px;
+  color: #333;
+  margin: 0 0 4px 0;
+  line-height: 1.5;
+}
+.message strong {
+  font-weight: 600;
+  color: #5a76f3;
+}
+.time {
+  font-size: 12px;
+  color: #888;
+}
+.accept-btn, .reject-btn, .confirm-btn {
+  border: none;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  white-space: nowrap;
+}
+.accept-btn { background-color: #5a76f3; color: white; }
+.accept-btn:hover { background-color: #4862d1; }
+.reject-btn { background-color: #f1f1f1; color: #555; }
+.reject-btn:hover { background-color: #e0e0e0; }
+.confirm-btn { background-color: #e9ecf3; color: #5a76f3; }
+.confirm-btn:hover { background-color: #d8dbe5; }
+.no-notifications {
+  text-align: center;
+  padding: 40px 20px;
+  color: #999;
+}
 
 </style>

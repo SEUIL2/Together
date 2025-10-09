@@ -412,22 +412,26 @@ public class ProjectController {
 
 
     /**
-     * [최종 수정] 교수가 담당하는 프로젝트를 개발 언어로 검색
+     * [신규] 교수가 담당하는 프로젝트를 여러 개발 환경 기준으로 검색
+     * API 예시: GET /projects/search?devLanguage=Java&database=MySQL
      */
-    @GetMapping("/search/language")
-    public ResponseEntity<List<ProjectResponseDto>> searchMyProjectsByLanguage(
+    @GetMapping("/search/criteria")
+    public ResponseEntity<List<ProjectResponseDto>> searchMyProjectsByCriteria(
             @AuthenticationPrincipal UserDetailsImpl userDetails,
-            @RequestParam("lang") String language) {
+            @RequestParam Map<String, String> searchParams) { // 모든 URL 파라미터를 Map으로 받음
 
         UserEntity currentUser = userDetails.getUser();
 
-        // [수정] Enum 타입을 직접 비교하는 방식으로 변경
         if (currentUser.getRole() != UserEntity.UserRole.PROFESSOR) {
-            return ResponseEntity.status(403).build(); // 403 Forbidden (권한 없음)
+            return ResponseEntity.status(403).build(); // 403 Forbidden
         }
 
         Long professorId = currentUser.getUserId();
-        List<ProjectResponseDto> result = projectService.searchProjectsByLanguage(professorId, language);
+
+        // 서비스의 새로운 검색 메서드 호출
+        List<ProjectResponseDto> result = projectService.searchProjectsByCriteria(professorId, searchParams);
+
         return ResponseEntity.ok(result);
     }
+
 }

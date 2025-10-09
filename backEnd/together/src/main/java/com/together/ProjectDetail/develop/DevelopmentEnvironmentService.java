@@ -20,18 +20,31 @@ public class DevelopmentEnvironmentService {
     private final ProjectRepository projectRepository;
 
     /**
-     * 1. 저장 (Create)
+     * 개발 환경 정보 저장 (기존 데이터 삭제 후 새로 생성)
      */
     @Transactional
     public Long save(Long projectId, DevelopmentEnvironmentRequestDto requestDto) {
+        // 1. 저장하려는 프로젝트를 조회합니다.
         ProjectEntity project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 프로젝트가 존재하지 않습니다. id=" + projectId));
 
-        DevelopmentEnvironmentEntity devEnvEntity = requestDto.toEntity();
-        project.addDevelopmentEnvironmentEntity(devEnvEntity); // 연관관계 설정
+        // 2. 해당 프로젝트에 연결된 '기존의 모든' 개발 환경 데이터를 조회합니다.
+        List<DevelopmentEnvironmentEntity> oldEnvironments = developmentEnvironmentRepository.findAllByProjectEntity_ProjectId(projectId);
 
-        developmentEnvironmentRepository.save(devEnvEntity);
-        return devEnvEntity.getId();
+        // 3. 만약 기존 데이터가 있다면, 전부 삭제합니다.
+        if (!oldEnvironments.isEmpty()) {
+            developmentEnvironmentRepository.deleteAll(oldEnvironments);
+        }
+
+        // 4. 새로운 개발 환경 엔티티를 생성합니다.
+        DevelopmentEnvironmentEntity newEnvironment = requestDto.toEntity();
+
+        // 5. 프로젝트와 연관관계를 설정합니다.
+        project.addDevelopmentEnvironmentEntity(newEnvironment);
+
+        // 6. 새로 생성된 '최신' 데이터만 저장합니다.
+        developmentEnvironmentRepository.save(newEnvironment);
+        return newEnvironment.getId();
     }
 
     /**

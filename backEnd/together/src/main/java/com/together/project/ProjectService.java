@@ -23,10 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -624,18 +621,27 @@ public class ProjectService {
         return members;
     }
 
-    /**
-     * 교수의 프로젝트를 개발 언어로 검색하는 기능
-     */
-    public List<ProjectResponseDto> searchProjectsByLanguage(Long professorId, String language) {
-        List<ProjectEntity> projects = projectRepository.findProjectsByProfessorAndLanguage(professorId, language);
 
+    /**
+     * [신규] 교수의 프로젝트를 여러 개발 환경 기준으로 검색하는 기능
+     * @param professorId 검색을 요청한 교수의 ID
+     * @param criteria 검색 조건들이 담긴 Map (예: {"devLanguage": "Java", "database": "MySQL"})
+     * @return 검색된 프로젝트 목록 DTO
+     */
+    public List<ProjectResponseDto> searchProjectsByCriteria(Long professorId, Map<String, String> criteria) {
+        // Map에 담긴 값 중에서 비어있는 파라미터(예: ?devLanguage=&database=MySQL)가 있다면,
+        // 검색 조건에서 제외하여 모든 프로젝트가 검색되는 것을 방지합니다.
+        criteria.entrySet().removeIf(entry -> entry.getValue() == null || entry.getValue().trim().isEmpty());
+
+        // 레포지토리에 새로 만든 동적 쿼리 메서드를 호출합니다.
+        List<ProjectEntity> projects = projectRepository.findProjectsByCriteria(professorId, criteria);
+
+        // 조회된 ProjectEntity 리스트를 ProjectResponseDto 리스트로 변환하여 반환합니다.
         return projects.stream()
                 .map(project -> new ProjectResponseDto(
                         project.getProjectId(),
                         project.getTitle(),
                         project.getImageUrl()
-                        // createdAt 필드가 DTO에 없으므로 생성자에서 제거
                 ))
                 .collect(Collectors.toList());
     }

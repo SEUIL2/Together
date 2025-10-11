@@ -50,12 +50,12 @@ const routes = [
   },
 
   {
-    path: '/Signup',
+    path: '/signup',
     name: 'Signup',
     component: Signup,
   },
   {
-    path: '/Login',
+    path: '/login',
     name: 'Login',
     component: Login,
   },
@@ -70,17 +70,17 @@ const routes = [
     component: ResetPassword,
   },
   {
-    path: '/CreateProject',
+    path: '/createproject',
     name: 'CreateProject',
     component: CreateProject,
   },
   {
-    path: '/MyProject',
+    path: '/myproject',
     name: 'MyProject',
     component: MyProject,
   },
   {
-    path: '/DashBoard',
+    path: '/dashboard',
     name: 'DashBoard',
     component: DashBoard,
   },
@@ -90,12 +90,12 @@ const routes = [
   //   component: Schedule,
   // },
   {
-    path: '/SignUpForm',
+    path: '/signupform',
     name: 'SignUpForm',
     component: SignUpForm,
   },
   {
-    path: '/Scheduletest',
+    path: '/scheduletest',
     name: 'Scheduletest',
     component: Scheduletest,
   },
@@ -105,22 +105,22 @@ const routes = [
   //   component: DiagramPage,
   // },
   {
-    path: '/MeetingPage',
+    path: '/meetingpage',
     name: 'MeetingPage',
     component: MeetingPage,
   },
   {
-    path: '/TeamManagement',
+    path: '/teammanagement',
     name: 'TeamManagement',
     component: TeamManagement,
   },
   {
-    path: '/EmailVerification',
+    path: '/emailverification',
     name: 'EmailVerification',
     component: EmailVerification,
   },
   {
-    path: '/SignupDetails',
+    path: '/signupdetails',
     name: 'SignupDetails',
     component: SignupDetails,
   },
@@ -130,17 +130,17 @@ const routes = [
   //   component: ErdDiagramPage,
   // },
   {
-    path: '/TaskPage',
+    path: '/taskpage',
     name: 'TaskPage',
     component: TaskPage,
   },
     {
-    path: '/ReportPage',
+    path: '/reportpage',
     name: 'ReportPage',
     component: ReportPage,
   },
       {
-    path: '/Feedback',
+    path: '/feedback',
     name: 'Feedback',
     component: Feedback,
   },
@@ -216,8 +216,8 @@ const routes = [
   meta: { requiresAuth: true, role: 'PROFESSOR' }
 },
   {
-    path: '/HelpPage',
-    name: 'HelpPage',
+    path: '/helppage',
+    name: 'HelpPage', // 이름은 유지하거나 소문자로 변경 가능: 'helpPage'
     component: HelpPage,
   },
   {

@@ -29,7 +29,10 @@ export default defineConfig({
       '/export':      { target: API_BASE_URL, changeOrigin: true, secure: false },
       '/new-export':  { target: API_BASE_URL, changeOrigin: true, secure: false },
       '/users':       { target: API_BASE_URL, changeOrigin: true, secure: false },
-      '/api':         { target: API_BASE_URL, changeOrigin: true, secure: false },
+      '/api':         { target: API_BASE_URL, changeOrigin: true, secure: false }
+      '/compare':         { target: API_BASE_URL, changeOrigin: true, secure: false },
+      '/token':         { target: API_BASE_URL, changeOrigin: true, secure: false },
+
     }
   }
 })

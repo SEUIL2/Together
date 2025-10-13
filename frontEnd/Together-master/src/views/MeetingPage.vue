@@ -1,6 +1,5 @@
 <template>
   <div class="meeting-page">
-    <!-- 왼쪽: 날짜 리스트 -->
     <aside class="sidebar">
       <div class="sidebar-header">
         <h3>회의 목록</h3>
@@ -10,13 +9,14 @@
       </div>
       <div class="add-btn-container">
         <button class="add-btn" @click="addMeeting">회의 생성</button>
+        <button class="add-btn" @click="startVideoConference" style="margin-top: 10px;">화상 회의 시작</button>
       </div>
       <ul>
         <li
-          v-for="(meeting, index) in filteredMeetings"
-          :key="meeting.meetingId"
-          :class="{ active: selectedIndex === index }"
-          @click="selectedIndex = index"
+            v-for="(meeting, index) in filteredMeetings"
+            :key="meeting.meetingId"
+            :class="{ active: selectedIndex === index }"
+            @click="selectedIndex = index"
         >
           <span class="list-item-title">{{ meeting.title }}</span>
           <div class="list-item-meta">
@@ -29,14 +29,13 @@
       </ul>
     </aside>
 
-    <!-- 오른쪽: 회의 상세 -->
     <main class="content" v-if="currentMeeting">
       <div class="header">
         <input
-          v-model="currentMeeting.title"
-          class="title-input"
-          placeholder="제목을 입력하세요"
-          @blur="() => saveMeeting(currentMeeting)"
+            v-model="currentMeeting.title"
+            class="title-input"
+            placeholder="제목을 입력하세요"
+            @blur="() => saveMeeting(currentMeeting)"
         />
         <select v-model="currentMeeting.category" @change="() => saveMeeting(currentMeeting)" class="category-select">
           <option v-for="(label, key) in detailCategories" :key="key" :value="key">{{ label }}</option>
@@ -45,15 +44,13 @@
         <button class="delete-btn" @click="deleteMeeting">삭제</button>
       </div>
 
-      <!-- 마크다운 에디터 -->
       <v-md-editor
-        v-model="currentMeeting.content"
-        height="70vh"
-        @blur="() => saveMeeting(currentMeeting)"
+          v-model="currentMeeting.content"
+          height="70vh"
+          @blur="() => saveMeeting(currentMeeting)"
       />
     </main>
 
-    <!-- 로딩 또는 데이터 없을 때 -->
     <main v-else class="content empty-content">
       <p v-if="meetings.length > 0 && filteredMeetings.length === 0">선택된 카테고리에 회의가 없습니다.</p>
       <p v-else>회의가 없습니다. 왼쪽에서 회의를 추가해주세요!</p>
@@ -62,9 +59,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, computed, nextTick } from 'vue'
+import {ref, onMounted, watch, computed, nextTick} from 'vue'
 import api from '@/api/meetingApi'
+import {useRouter} from 'vue-router'
 
+const router = useRouter()
 const meetings = ref([])
 const selectedIndex = ref(0)
 const selectedFilter = ref('ALL')
@@ -85,7 +84,7 @@ const categoryColors = {
 }
 
 const detailCategories = computed(() => {
-  const { ALL, ...rest } = categories
+  const {ALL, ...rest} = categories
   return rest
 })
 
@@ -122,7 +121,7 @@ async function fetchMeetings() {
     const response = await api.get('/all-author');
     meetings.value = response.data.sort((a, b) => new Date(b.meetingDate) - new Date(a.meetingDate));
     if (meetings.value.length > 0 && selectedIndex.value >= filteredMeetings.value.length) {
-        selectedIndex.value = 0
+      selectedIndex.value = 0
     }
   } catch (err) {
     console.error('회의 목록 불러오기 실패:', err)
@@ -166,7 +165,7 @@ async function deleteMeeting() {
   try {
     await api.delete(`/delete/${meetingToDelete.meetingId}`)
     meetings.value = meetings.value.filter(m => m.meetingId !== meetingToDelete.meetingId)
-    
+
     if (currentIndex >= filteredMeetings.value.length) {
       selectedIndex.value = Math.max(0, filteredMeetings.value.length - 1)
     }
@@ -179,11 +178,48 @@ async function deleteMeeting() {
 async function saveMeeting(meeting) {
   if (!meeting) return
   try {
-    const payload = { ...meeting, updatedAt: new Date().toISOString() }
+    const payload = {...meeting, updatedAt: new Date().toISOString()}
     await api.put(`/update/${meeting.meetingId}`, payload)
     // console.log('저장됨:', meeting)
   } catch (err) {
     console.error('회의 저장 실패:', err)
+  }
+}
+
+// ✅ 화상 회의 시작
+async function startVideoConference() {
+  if (!currentMeeting.value) {
+    alert('참여할 회의를 선택해주세요.');
+    return;
+  }
+
+  try {
+    // projectId를 URL 파라미터에서 가져옵니다.
+    // 현재 라우트 정보를 직접 조회하기 위해 router.currentRoute.value를 사용합니다.
+    const projectId = router.currentRoute.value.query.projectId;
+
+    if (!projectId) {
+      alert('프로젝트 ID를 찾을 수 없습니다.');
+      return;
+    }
+
+    const response = await api.get('/agora/token');
+    const token = response.data.token;
+
+    router.push({
+      name: 'VideoChat',
+      query: {
+        channel: String(projectId),
+        token: token
+      }
+    });
+  } catch (err) {
+    console.error('화상 회의 토큰 발급 실패:', err);
+    if (err.response && err.response.status === 403) {
+      alert('프로젝트에 참여한 사용자만 화상회의를 시작할 수 있습니다.');
+    } else {
+      alert('화상 회의 입장에 실패했습니다. 잠시 후 다시 시도해주세요.');
+    }
   }
 }
 
@@ -192,7 +228,6 @@ onMounted(() => {
   fetchMeetings()
 })
 </script>
-
 
 
 <style scoped>
@@ -263,12 +298,17 @@ onMounted(() => {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
 .list-item-meta {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
-.list-item-date { font-size: 0.8rem; color: #888; }
+
+.list-item-date {
+  font-size: 0.8rem;
+  color: #888;
+}
 
 .category-badge {
   font-size: 0.75rem;
@@ -287,10 +327,11 @@ onMounted(() => {
   background: #a7ccff;
   color: white;
 }
+
 .sidebar li.active:hover {
-    background-color: #97c3ff;
-    transform: translateX(1px);
-  }
+  background-color: #97c3ff;
+  transform: translateX(1px);
+}
 
 .add-btn {
   width: 100%;
@@ -302,10 +343,11 @@ onMounted(() => {
   flex-shrink: 0; /* 버튼 크기가 줄어들지 않도록 고정 */
   cursor: pointer;
 }
-.add-btn:hover {
-    background-color: #3578e5;
 
-  }
+.add-btn:hover {
+  background-color: #3578e5;
+
+}
 
 /* 오른쪽 회의 영역 */
 .content {
@@ -339,9 +381,16 @@ onMounted(() => {
   padding: 4px;
   background: transparent;
 }
-.title-input:focus { outline: none; }
 
-.category-select { padding: 4px 8px; border-radius: 6px; border: 1px solid #ccc; }
+.title-input:focus {
+  outline: none;
+}
+
+.category-select {
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
 
 .date {
   font-size: 0.9rem;
@@ -357,5 +406,8 @@ onMounted(() => {
   cursor: pointer;
   transition: color 0.2s;
 }
-.delete-btn:hover { color: #d32f2f; }
+
+.delete-btn:hover {
+  color: #d32f2f;
+}
 </style>

@@ -47,6 +47,6 @@ public class AgoraController {
         String token = agoraService.generateRtcToken(channelName, userId);
 
         // 생성된 토큰을 DTO에 담아 성공(200 OK) 응답 반환
-        return ResponseEntity.ok(new AgoraTokenResponse(token));
+        return ResponseEntity.ok(new AgoraTokenResponse(token, userId));
     }
 }

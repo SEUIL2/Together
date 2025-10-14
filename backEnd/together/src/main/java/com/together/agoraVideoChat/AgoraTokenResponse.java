@@ -13,4 +13,5 @@ import lombok.Getter;
 public class AgoraTokenResponse {
     // 생성된 토큰 문자열
     private String token;
+    private Integer userId;
 }

@@ -34,7 +34,6 @@ import AdminDashboard from '../views/AdminDashboard.vue'
 
 import VideoChat from '../views/VideoChat.vue';
 import PdfExportPage from '@/views/PdfExportPage.vue';
-import DevelopmentEnvironment from '../views/DevelopmentEnvironment.vue';
 
 
 const routes = [
@@ -134,22 +133,22 @@ const routes = [
     name: 'TaskPage',
     component: TaskPage,
   },
-    {
-    path: '/reportpage',
+  {
+    path: '/ReportPage',
     name: 'ReportPage',
     component: ReportPage,
   },
-      {
-    path: '/feedback',
+  {
+    path: '/Feedback',
     name: 'Feedback',
     component: Feedback,
   },
   {
-  path: '/professor/MainPage',
-  component: ProfessorMainPage,
-  meta: { requiresAuth: true, role: 'PROFESSOR' }
-},
-{
+    path: '/professor/MainPage',
+    component: ProfessorMainPage,
+    meta: { requiresAuth: true, role: 'PROFESSOR' }
+  },
+  {
     path: '/professor/project/:projectId',
     name: 'ProfessorReadOnlyProject',
     component: MyProject,
@@ -172,49 +171,49 @@ const routes = [
     meta: { requiresAuth: true, role: 'PROFESSOR' }
   },
   {
-  path: '/professor/task/:projectId',
-  name: 'ProfessorTaskPage',
-  component: TaskPage,
-  props: route => ({
-    projectId: Number(route.params.projectId),
-    readonly: route.query.readonly === 'true',
-    projectTitle: route.query.projectTitle || ''
-  }),
-  meta: { requiresAuth: true, role: 'PROFESSOR' }
-},
-{
-  path: '/professor/schedule/:projectId',
-  name: 'ProfessorSchedulePage',
-  component: Scheduletest,
-  props: route => ({
-    projectId: Number(route.params.projectId),
-    readonly: route.query.readonly === 'true',
-    projectTitle: route.query.projectTitle || ''
-  }),
-  meta: { requiresAuth: true, role: 'PROFESSOR' }
-},
-{
-  path: '/professor/team/:projectId',
-  name: 'ProfessorTeamManagement',
-  component: TeamManagement,
-  props: route => ({
-    projectId: Number(route.params.projectId),
-    readonly: route.query.readonly === 'true',
-    projectTitle: route.query.projectTitle || ''
-  }),
-  meta: { requiresAuth: true, role: 'PROFESSOR' }
-},
-{
-  path: '/professor/meeting/:projectId',
-  name: 'ProfessorMeetingPage',
-  component: MeetingPage,
-  props: route => ({
-    projectId: Number(route.params.projectId),
-    readonly: route.query.readonly === 'true',
-    projectTitle: route.query.projectTitle || ''
-  }),
-  meta: { requiresAuth: true, role: 'PROFESSOR' }
-},
+    path: '/professor/task/:projectId',
+    name: 'ProfessorTaskPage',
+    component: TaskPage,
+    props: route => ({
+      projectId: Number(route.params.projectId),
+      readonly: route.query.readonly === 'true',
+      projectTitle: route.query.projectTitle || ''
+    }),
+    meta: { requiresAuth: true, role: 'PROFESSOR' }
+  },
+  {
+    path: '/professor/schedule/:projectId',
+    name: 'ProfessorSchedulePage',
+    component: Scheduletest,
+    props: route => ({
+      projectId: Number(route.params.projectId),
+      readonly: route.query.readonly === 'true',
+      projectTitle: route.query.projectTitle || ''
+    }),
+    meta: { requiresAuth: true, role: 'PROFESSOR' }
+  },
+  {
+    path: '/professor/team/:projectId',
+    name: 'ProfessorTeamManagement',
+    component: TeamManagement,
+    props: route => ({
+      projectId: Number(route.params.projectId),
+      readonly: route.query.readonly === 'true',
+      projectTitle: route.query.projectTitle || ''
+    }),
+    meta: { requiresAuth: true, role: 'PROFESSOR' }
+  },
+  {
+    path: '/professor/meeting/:projectId',
+    name: 'ProfessorMeetingPage',
+    component: MeetingPage,
+    props: route => ({
+      projectId: Number(route.params.projectId),
+      readonly: route.query.readonly === 'true',
+      projectTitle: route.query.projectTitle || ''
+    }),
+    meta: { requiresAuth: true, role: 'PROFESSOR' }
+  },
   {
     path: '/helppage',
     name: 'HelpPage', // 이름은 유지하거나 소문자로 변경 가능: 'helpPage'
@@ -232,77 +231,77 @@ const routes = [
     props: route => ({ projectId: route.query.projectId })
   },
   {
-  path: '/class-diagram/:projectId',
-  name: 'ClassDiagram',
-  component: () => import('@/views/toolview/ClassDiagramPage.vue'),
-  props: route => ({
-    projectId: Number(route.params.projectId),
-    readonly: route.query.readonly === 'true',
-    projectTitle: route.query.projectTitle || ''
-  }),
-  meta: { requiresAuth: true }
-},
+    path: '/class-diagram/:projectId',
+    name: 'ClassDiagram',
+    component: () => import('@/views/toolview/ClassDiagramPage.vue'),
+    props: route => ({
+      projectId: Number(route.params.projectId),
+      readonly: route.query.readonly === 'true',
+      projectTitle: route.query.projectTitle || ''
+    }),
+    meta: { requiresAuth: true }
+  },
 
-    {
+  {
     path: '/erd-Diagram',
     name: 'ERDiagramPage ',
-    component: ERDiagramPage 
+    component: ERDiagramPage
   },
   {
-  path: '/erd-diagram/:projectId',
-  name: 'ERDDiagram',
-  component: () => import('@/views/toolview/ErdDiagramPage.vue'),
-  props: route => ({
-    projectId: Number(route.params.projectId),
-    readonly: route.query.readonly === 'true',
-    projectTitle: route.query.projectTitle || ''
-  }),
-  meta: { requiresAuth: true }
-},
+    path: '/erd-diagram/:projectId',
+    name: 'ERDDiagram',
+    component: () => import('@/views/toolview/ErdDiagramPage.vue'),
+    props: route => ({
+      projectId: Number(route.params.projectId),
+      readonly: route.query.readonly === 'true',
+      projectTitle: route.query.projectTitle || ''
+    }),
+    meta: { requiresAuth: true }
+  },
 
-    {
+  {
     path: '/usecase-Diagram',
     name: 'UseCasePage',
-    component: UseCasePage 
+    component: UseCasePage
   },
-{
-  path: '/usecase-diagram/:projectId',
-  name: 'UseCaseDiagram',
-  component: () => import('@/views/toolview/UseCasePage.vue'),
-  props: route => ({
-    projectId: Number(route.params.projectId),
-    readonly: route.query.readonly === 'true',
-    projectTitle: route.query.projectTitle || ''
-  }),
-  meta: { requiresAuth: true }
-},
-      {
+  {
+    path: '/usecase-diagram/:projectId',
+    name: 'UseCaseDiagram',
+    component: () => import('@/views/toolview/UseCasePage.vue'),
+    props: route => ({
+      projectId: Number(route.params.projectId),
+      readonly: route.query.readonly === 'true',
+      projectTitle: route.query.projectTitle || ''
+    }),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/info-structure',
     name: 'InfoStructurePage',
-    component: InfoStructurePage 
+    component: InfoStructurePage
   },
   {
-  path: '/info-structure/:projectId',
-  name: 'InfoStructurePage',
-  component: () => import('@/views/toolview/InfoStructurePage.vue'),
-  props: route => ({
-    projectId: Number(route.params.projectId),
-    readonly: route.query.readonly === 'true',
-    projectTitle: route.query.projectTitle || ''
-  }),
-  meta: { requiresAuth: true }
-},
+    path: '/info-structure/:projectId',
+    name: 'InfoStructurePage',
+    component: () => import('@/views/toolview/InfoStructurePage.vue'),
+    props: route => ({
+      projectId: Number(route.params.projectId),
+      readonly: route.query.readonly === 'true',
+      projectTitle: route.query.projectTitle || ''
+    }),
+    meta: { requiresAuth: true }
+  },
   {
-  path: '/sequence-diagram/:projectId',
-  name: 'SequenceDiagram',
-  component: () => import('@/views/toolview/SequenceDiagramPage.vue'),
-  props: route => ({
-    projectId: Number(route.params.projectId),
-    readonly: route.query.readonly === 'true',
-    projectTitle: route.query.projectTitle || ''
-  }),
-  meta: { requiresAuth: true }
-},
+    path: '/sequence-diagram/:projectId',
+    name: 'SequenceDiagram',
+    component: () => import('@/views/toolview/SequenceDiagramPage.vue'),
+    props: route => ({
+      projectId: Number(route.params.projectId),
+      readonly: route.query.readonly === 'true',
+      projectTitle: route.query.projectTitle || ''
+    }),
+    meta: { requiresAuth: true }
+  },
   {
     path: '/admin',
     name: 'AdminDashboard',
@@ -310,41 +309,36 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
-  path: '/professor/announcements',
-  name: 'ProfessorAnnouncements',
-  component: () => import('@/views/professor/ProfessorAnnouncements.vue'),
-  meta: { requiresAuth: true, roles: ['PROFESSOR'] } // 교수만 접근 가능하도록 설정
-},
-{
-  path: '/professor/votes',
-  name: 'ProfessorVotes',
-  component: () => import('@/views/professor/ProfessorVotes.vue'),
-  meta: { requiresAuth: true, roles: ['PROFESSOR'] } // 교수만 접근 가능하도록 설정
-},
-
-{
-  path: '/professor/feedback',
-  name: 'ProfessorFeedbackPage',
-  component: () => import('@/views/ProfessorFeedbackPage.vue'),
-  meta: { requiresAuth: true, roles: ['PROFESSOR'] }
-},
-  {
-    path: '/development-environment',
-    name: 'DevelopmentEnvironment',
-    component: DevelopmentEnvironment,
+    path: '/professor/announcements',
+    name: 'ProfessorAnnouncements',
+    component: () => import('@/views/professor/ProfessorAnnouncements.vue'),
+    meta: { requiresAuth: true, roles: ['PROFESSOR'] } // 교수만 접근 가능하도록 설정
   },
-{
-  path: '/professor/report',
-  name: 'ProfessorReportPage',
-  component: () => import('@/views/ProfessorReportPage.vue'),
-  meta: { requiresAuth: true, roles: ['PROFESSOR'] }
-},
+  {
+    path: '/professor/votes',
+    name: 'ProfessorVotes',
+    component: () => import('@/views/professor/ProfessorVotes.vue'),
+    meta: { requiresAuth: true, roles: ['PROFESSOR'] } // 교수만 접근 가능하도록 설정
+  },
+
+  {
+    path: '/professor/feedback',
+    name: 'ProfessorFeedbackPage',
+    component: () => import('@/views/ProfessorFeedbackPage.vue'),
+    meta: { requiresAuth: true, roles: ['PROFESSOR'] }
+  },
+  {
+    path: '/professor/report',
+    name: 'ProfessorReportPage',
+    component: () => import('@/views/ProfessorReportPage.vue'),
+    meta: { requiresAuth: true, roles: ['PROFESSOR'] }
+  },
   {
     path: '/videochat',
     name: 'VideoChat',
     component: VideoChat,
   },
-{
+  {
     path: '/pdf-export/:projectId',
     name: 'PdfExportPage',
     component: PdfExportPage,

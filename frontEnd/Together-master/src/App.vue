@@ -1,20 +1,17 @@
-<!-- App.vue -->
 <template>
   <div id="app" :class="{ 'has-sidebar': showLayout, 'sidebar-collapsed': isSidebarCollapsed }">
     <transition name="toast-slide">
       <div v-if="toastIsVisible" class="global-toast">{{ toastMessage }}</div>
     </transition>
-    <!-- 교수 전용 페이지 사이드바 -->
     <ProfessorSidebar
-      v-if="showLayout && isProfessorGlobalView"
-      :is-collapsed="isSidebarCollapsed"
-      @toggle="toggleSidebar"
+        v-if="showLayout && isProfessorGlobalView"
+        :is-collapsed="isSidebarCollapsed"
+        @toggle="toggleSidebar"
     />
-    <!-- 학생 또는 교수 프로젝트 조회용 사이드바 -->
     <SideBar
-      v-else-if="showLayout"
-      :is-collapsed="isSidebarCollapsed"
-      @toggle="toggleSidebar"
+        v-else-if="showLayout"
+        :is-collapsed="isSidebarCollapsed"
+        @toggle="toggleSidebar"
     />
     <HeaderBar v-if="showLayout" />
 
@@ -51,7 +48,7 @@ const isProfessorGlobalView = computed(() => {
 // 레이아웃(헤더, 사이드바)을 표시할지 여부를 결정합니다.
 const showLayout = computed(() => {
   // 로그인, 회원가입, 프로젝트 생성, 랜딩 페이지에서는 숨깁니다.
-  return !['/', '/login', '/Login', '/Signup', '/CreateProject', '/SignupDetails', '/EmailVerification', '/admin'].includes(route.path);
+  return !['/', '/login', '/Login', '/Signup', '/CreateProject', '/SignupDetails', '/EmailVerification', '/admin', '/MainPage2'].includes(route.path);
 });
 
 

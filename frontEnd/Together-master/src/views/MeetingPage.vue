@@ -9,7 +9,6 @@
       </div>
       <div class="add-btn-container">
         <button class="add-btn" @click="addMeeting">회의 생성</button>
-        <button class="add-btn" @click="startVideoConference" style="margin-top: 10px;">화상 회의 시작</button>
       </div>
       <ul>
         <li
@@ -140,8 +139,8 @@ async function addMeeting() {
 
   try {
     const response = await api.post('/create', meetingDto);
-    meetings.value.push(response.data);
-    meetings.value.sort((a, b) => new Date(b.meetingDate) - new Date(a.meetingDate));
+    meetings.value.unshift(response.data); // 새 회의를 배열 맨 앞에 추가
+    // meetings.value.sort((a, b) => new Date(b.meetingDate) - new Date(a.meetingDate)); // unshift를 사용하므로 이 줄은 필요 없어집니다.
     selectedFilter.value = 'ALL';
     await nextTick();
     selectedIndex.value = meetings.value.findIndex(m => m.meetingId === response.data.meetingId);
@@ -183,43 +182,6 @@ async function saveMeeting(meeting) {
     // console.log('저장됨:', meeting)
   } catch (err) {
     console.error('회의 저장 실패:', err)
-  }
-}
-
-// ✅ 화상 회의 시작
-async function startVideoConference() {
-  if (!currentMeeting.value) {
-    alert('참여할 회의를 선택해주세요.');
-    return;
-  }
-
-  try {
-    // projectId를 URL 파라미터에서 가져옵니다.
-    // 현재 라우트 정보를 직접 조회하기 위해 router.currentRoute.value를 사용합니다.
-    const projectId = router.currentRoute.value.query.projectId;
-
-    if (!projectId) {
-      alert('프로젝트 ID를 찾을 수 없습니다.');
-      return;
-    }
-
-    const response = await api.get('/agora/token');
-    const token = response.data.token;
-
-    router.push({
-      name: 'VideoChat',
-      query: {
-        channel: String(projectId),
-        token: token
-      }
-    });
-  } catch (err) {
-    console.error('화상 회의 토큰 발급 실패:', err);
-    if (err.response && err.response.status === 403) {
-      alert('프로젝트에 참여한 사용자만 화상회의를 시작할 수 있습니다.');
-    } else {
-      alert('화상 회의 입장에 실패했습니다. 잠시 후 다시 시도해주세요.');
-    }
   }
 }
 

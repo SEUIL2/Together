@@ -62,6 +62,14 @@
           </button>
         </li>
 
+        <!-- 화상 채팅 -->
+        <li v-if="!isProfessorReadOnly && isLoggedIn && projectDetails.projectId">
+          <button :class="{ active: $route.path.startsWith('/VideoChat') }" @click="startVideoConference" :title="isCollapsed ? '화상 채팅' : null">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
+            <span v-if="!isCollapsed">화상 채팅</span>
+          </button>
+        </li>
+
         <!-- 팀원 관리 -->
         <li v-if="!isProfessorReadOnly && isLoggedIn">
           <button
@@ -265,6 +273,22 @@ const handleProjectUpdate = (updatedData) => {
   projectDetails.projectName = updatedData.title
   projectDetails.projectDescription = updatedData.description
 }
+
+const startVideoConference = async () => {
+  if (!projectDetails.projectId) {
+    alert('화상회의를 시작하려면 먼저 프로젝트에 참여해야 합니다.');
+    return;
+  }
+
+  // VideoChat 페이지로 채널 정보(projectId)만 전달합니다.
+  // 토큰은 VideoChat 컴포넌트에서 직접 요청하도록 합니다.
+  router.push({
+    name: 'VideoChat',
+    query: {
+      channel: String(projectDetails.projectId)
+    }
+  });
+};
 
 /* ====== 읽기 전용/프로젝트 ====== */
 const isProfessorReadOnly = computed(() => route.query.readonly === 'true')

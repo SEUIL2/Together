@@ -34,6 +34,7 @@ import AdminDashboard from '../views/AdminDashboard.vue'
 
 import VideoChat from '../views/VideoChat.vue';
 import PdfExportPage from '@/views/PdfExportPage.vue';
+import ProjectSimilarityCheck from '@/views/professor/ProjectSimilarityCheck.vue';
 
 
 const routes = [
@@ -343,6 +344,12 @@ const routes = [
     name: 'PdfExportPage',
     component: PdfExportPage,
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/professor/plagiarism-check',
+    name: 'ProjectSimilarityCheck',
+    component: ProjectSimilarityCheck,
+    meta: { requiresAuth: true, roles: ['PROFESSOR'] }
   },
 ]
 

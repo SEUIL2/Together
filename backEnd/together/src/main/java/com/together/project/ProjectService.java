@@ -24,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.Comparator;
 import java.util.stream.Collectors;
 
 @Service
@@ -638,6 +639,32 @@ public class ProjectService {
 
         // 조회된 ProjectEntity 리스트를 ProjectResponseDto 리스트로 변환하여 반환합니다.
         return projects.stream()
+                .map(project -> new ProjectResponseDto(
+                        project.getProjectId(),
+                        project.getTitle(),
+                        project.getImageUrl()
+                ))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 현재 로그인한 교수의 프로젝트 목록을 조회
+     * @return 프로젝트 DTO 리스트
+     */
+    @Transactional(readOnly = true)
+    public List<ProjectResponseDto> getProjectsForCurrentProfessor() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String loginId = authentication.getName();
+
+        UserEntity user = userRepository.findByUserLoginId(loginId)
+                .orElseThrow(() -> new RuntimeException("로그인한 사용자를 찾을 수 없습니다."));
+
+        if (!(user instanceof ProfessorEntity professor)) {
+            throw new IllegalStateException("이 기능은 교수만 사용할 수 있습니다.");
+        }
+
+        return professor.getProjects().stream()
+                .sorted(Comparator.comparing(ProjectEntity::getCreatedAt).reversed())
                 .map(project -> new ProjectResponseDto(
                         project.getProjectId(),
                         project.getTitle(),

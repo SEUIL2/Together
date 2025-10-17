@@ -23,7 +23,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
+import org.springframework.web.bind.annotation.GetMapping;
+import java.util.List;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -432,6 +433,22 @@ public class ProjectController {
         List<ProjectResponseDto> result = projectService.searchProjectsByCriteria(professorId, searchParams);
 
         return ResponseEntity.ok(result);
+    }
+
+    /**
+     * 현재 로그인한 교수의 모든 프로젝트 목록을 조회하는 API
+     * @return 프로젝트 응답 DTO 리스트
+     */
+    @GetMapping("/professor/list")
+    public ResponseEntity<List<ProjectResponseDto>> getProfessorProjectsList() {
+        try {
+            List<ProjectResponseDto> projects = projectService.getProjectsForCurrentProfessor();
+            return ResponseEntity.ok(projects);
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
     }
 
 }

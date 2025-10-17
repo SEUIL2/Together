@@ -41,7 +41,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import axios from '@/utils/axiosInstance.js';
+import api from '@/api';
 import VotingList from '@/components/dashboard/VotingList.vue';
 import VoteCreateModal from '@/components/dashboard/VoteCreateModal.vue';
 
@@ -52,7 +52,7 @@ const votingListRef = ref(null);
 
 async function fetchProfessorProjects() {
   try {
-    const { data: meData } = await axios.get('/auth/me');
+    const { data: meData } = await api.get('/auth/me');
     projects.value = meData.projectId || [];
   } catch (error) {
     console.error('교수 프로젝트 목록 로딩 실패:', error);

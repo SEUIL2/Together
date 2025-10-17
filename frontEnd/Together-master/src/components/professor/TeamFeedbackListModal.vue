@@ -23,14 +23,14 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import axios from 'axios'
+import api from '@/api'
 
 const props = defineProps({ projectId: Number })
 const feedbacks = ref([])
 
 onMounted(async () => {
   try {
-    const res = await axios.get('/professor/feedbacks', {
+    const res = await api.get('/professor/feedbacks', {
       params: { projectId: props.projectId }
     })
     // API 응답이 배열인 경우에만 데이터를 할당하고, 최신순으로 정렬합니다.

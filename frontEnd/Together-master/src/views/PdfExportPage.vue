@@ -79,7 +79,7 @@
 <script setup>
 import { ref, reactive, computed } from 'vue';
 import { useRoute } from 'vue-router';
-import axios from 'axios';
+import api from '@/api';
 
 const route = useRoute();
 const isLoading = ref(false);
@@ -96,9 +96,32 @@ const categories = reactive([
       { name: '스토리보드', key: 'storyboard' },
     ],
   },
-  { name: '설계', key: '설계', items: [] },
-  { name: '개발', key: '개발', items: [] },
-  { name: '테스트', key: '테스트', items: [] },
+  {
+    name: '설계',
+    key: '설계',
+    items: [
+      { name: '유스케이스 다이어그램', key: 'usecase' },
+      { name: '클래스 다이어그램', key: 'classDiagram' },
+      { name: '시퀀스 다이어그램', key: 'sequence' },
+      { name: 'UI 디자인', key: 'ui' },
+      { name: 'ERD', key: 'erd' },
+      { name: '테이블 명세', key: 'table' },
+      { name: '시스템 아키텍쳐', key: 'architecture' },
+    ],
+  },
+  {
+    name: '개발',
+    key: '개발',
+    items: [
+      { name: '개발 환경설정', key: 'env' },
+      { name: '기능별 개발 순서', key: 'devOrder' },
+      { name: '커밋 메세지 규칙', key: 'commitRule' },
+      { name: '폴더 구조 및 파일 규칙', key: 'folder' },
+    ],
+  },
+  {
+    name: '테스트', key: '테스트', items: [{ name: '단위테스트', key: 'unit' }, { name: '통합테스트', key: 'integration' }],
+  },
 ]);
 
 const selectedItems = reactive({
@@ -178,7 +201,7 @@ const exportPdf = async () => {
 
   try {
 
-    const response = await axios.post(`/export/pdf`, payload, {
+    const response = await api.post(`/export/pdf`, payload, {
       params: { projectId },
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true,

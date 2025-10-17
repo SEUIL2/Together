@@ -97,7 +97,7 @@
 <script setup>
 import { ref, reactive, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import { useRoute } from 'vue-router';
-import axios from 'axios';
+import api from '@/api';
 import { debounce } from 'lodash';
 
 import ToolBox from '@/components/diagramtool/ToolBox.vue';
@@ -434,7 +434,7 @@ const saveData = debounce(async () => {
     formData.append('projectId', props.projectId);
     formData.append('json', JSON.stringify(diagramData));
 
-    await axios.put('/design/update', formData, {
+    await api.put('/design/update', formData, {
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true,
     });
@@ -454,7 +454,7 @@ onMounted(async () => {
   window.addEventListener('keyup', handleKeyUp);
 
   try {
-    const res = await axios.get('/design/all', {
+    const res = await api.get('/design/all', {
       params: { projectId: props.projectId },
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true,

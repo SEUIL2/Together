@@ -14,7 +14,7 @@
 
 <script setup>
 import { ref } from 'vue'
-import axios from 'axios'
+import api from '@/api'
 
 const props = defineProps({
   member: Object,
@@ -25,7 +25,7 @@ const memo = ref('')
 
 async function submitMemo() {
   try {
-    await axios.post('/professor/evaluation', {
+    await api.post('/professor/evaluation', {
       projectId: props.projectId,
       userId: props.member.userId,
       content: memo.value

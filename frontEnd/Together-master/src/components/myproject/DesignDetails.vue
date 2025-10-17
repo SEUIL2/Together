@@ -173,7 +173,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import axios from 'axios'
+import api from '@/api'
 import FeedbackInput from '@/components/feedback/FeedbackInput.vue'
 import ContextMenu from '@/components/feedback/ContextMenu.vue'
 import FeedbackPopup from '@/components/feedback/FeedbackPopup.vue'
@@ -252,7 +252,7 @@ function handleReadFeedback(id) {
 async function loadFeedbacks(pageIdentifier) {
   if (!pageIdentifier || !props.projectId) return;
   try {
-    const { data } = await axios.get('/feedbacks/project', {
+    const { data } = await api.get('/feedbacks/project', {
       params: { page: pageIdentifier, projectId: props.projectId },
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true
@@ -290,7 +290,7 @@ function isValidFigmaLink(content) {
 function selectTab(idx) {
   const type = designItems[idx].type
   if (['usecase', 'classDiagram', 'erd', 'sequence'].includes(type)) {
-    router.push({
+    router.push({ // 🚀 [수정] 모든 다이어그램 페이지 이동 시 projectId를 포함하도록 수정
       path: `${PAGE_LINKS[type]}/${props.projectId}`,
       query: {
         readonly: props.readonly ?? route.query.readonly === 'true',
@@ -348,7 +348,7 @@ async function saveChanges() {
   form.append('projectId', String(props.projectId));
 
   try {
-    await axios.put('/design/update', form, {
+    await api.put('/design/update', form, {
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true
     });
@@ -383,7 +383,7 @@ function uploadFiles(files) {
   form.append('type', activeItem.value.type)
   form.append('projectId', props.projectId)
   files.forEach(f => form.append('files', f))
-  axios.post('/design/upload', form, {
+  api.post('/design/upload', form, {
     headers: { Authorization: localStorage.getItem('authHeader') },
     withCredentials: true
   }).then(res => {
@@ -399,7 +399,7 @@ async function removeFile(idx) {
   if (!activeItem.value) return
   const file = activeItem.value.files[idx]
   try {
-    await axios.delete('/design/delete-file', {
+    await api.delete('/design/delete-file', {
       params: {
         type: activeItem.value.type,
         fileUrl: file.url,
@@ -418,7 +418,7 @@ async function removeFile(idx) {
 
 onMounted(async () => {
   try {
-    const res = await axios.get('/design/all', {
+    const res = await api.get('/design/all', {
       params: { projectId: props.projectId },
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true

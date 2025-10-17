@@ -102,7 +102,7 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import axios from 'axios'
+import api from '@/api'
 import ProfileSettingsModal from '@/components/ProfileSettingsModal.vue'
 import noticeIcon from '@/assets/notice.png'
 import voteIcon from '@/assets/vote.png'
@@ -198,7 +198,7 @@ async function fetchAllNotifications() {
 
 async function fetchInvitations() {
   try {
-    const resp = await axios.get('/projects/invitations', { withCredentials: true });
+    const resp = await api.get('/projects/invitations', { withCredentials: true });
     invitations.value = (Array.isArray(resp.data) ? resp.data : [])
         .filter(inv => inv.status === 'PENDING')
         .map(inv => ({ ...inv, createdAt: inv.createdAt || inv.createdDate }));
@@ -207,19 +207,19 @@ async function fetchInvitations() {
 
 async function fetchUnreadNotifications() {
   try {
-    const resp = await axios.get('/notifications/unread', { withCredentials: true });
+    const resp = await api.get('/notifications/unread', { withCredentials: true });
     notifications.value = Array.isArray(resp.data) ? resp.data : [];
   } catch (e) { console.error('일반 알림 조회 실패', e); }
 }
 
 async function accept(invitation) {
   try {
-    await axios.post(`/projects/invite/${invitation.invitationId}/accept`, null, { withCredentials: true });
+    await api.post(`/projects/invite/${invitation.invitationId}/accept`, null, { withCredentials: true });
     fetchAllNotifications();
-    const { data: me } = await axios.get('/auth/me', { withCredentials: true });
+    const { data: me } = await api.get('/auth/me', { withCredentials: true });
     const isProfessor = (me.roles || []).some(r => r.authority === 'ROLE_PROFESSOR');
     if (isProfessor) {
-      const res = await axios.get('/projects/my-projects/sorted-by-created', { withCredentials: true });
+      const res = await api.get('/projects/my-projects/sorted-by-created', { withCredentials: true });
       const matched = (res.data || []).find(p => p.title === invitation.projectTitle);
       router.push(matched ? `/professor/project/${matched.projectId}?readonly=true&projectTitle=${encodeURIComponent(matched.title)}` : '/professor/mainpage');
     } else {
@@ -230,14 +230,14 @@ async function accept(invitation) {
 
 async function reject(invitationId) {
   try {
-    await axios.post(`/projects/invitations/${invitationId}/reject`, null, { withCredentials: true });
+    await api.post(`/projects/invitations/${invitationId}/reject`, null, { withCredentials: true });
     fetchAllNotifications();
   } catch (e) { console.error('초대 거절 실패', e); }
 }
 
 async function confirm(noti) {
   try {
-    await axios.post(`/notifications/${noti.id}/read`, null, { withCredentials: true });
+    await api.post(`/notifications/${noti.id}/read`, null, { withCredentials: true });
     fetchAllNotifications();
     if (noti.linkUrl) {
       router.push(noti.linkUrl);
@@ -270,16 +270,16 @@ const unreadCount = computed(() => invitations.value.length + notifications.valu
 
 const authHeader = localStorage.getItem('authHeader')
 if (authHeader) {
-  axios.defaults.headers.common['Authorization'] = authHeader
+  api.defaults.headers.common['Authorization'] = authHeader
 }
 
 const checkLoginStatus = async () => {
   try {
     const authHeader = localStorage.getItem('authHeader')
     if (authHeader) {
-      axios.defaults.headers.common['Authorization'] = authHeader
+      api.defaults.headers.common['Authorization'] = authHeader
     }
-    const response = await axios.get('/auth/me', {
+    const response = await api.get('/auth/me', {
       headers: { Authorization: authHeader },
       withCredentials: true,
     })
@@ -322,11 +322,11 @@ const handleAuth = async () => {
   showMenu.value = false
   if (isLoggedIn.value) {
     try {
-      await axios.post('/auth/logout', null, {
+      await api.post('/auth/logout', null, {
         headers: { Authorization: localStorage.getItem('authHeader') },
       })
       localStorage.removeItem('authHeader')
-      delete axios.defaults.headers.common['Authorization']
+      delete api.defaults.headers.common['Authorization']
       isLoggedIn.value = false
       alert('로그아웃 되었습니다.')
       window.location.href = '/'

@@ -13,7 +13,7 @@
 <script>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import axios from 'axios'
+import api from '@/api'
 
 export default {
   name: 'MainPage',
@@ -23,7 +23,7 @@ export default {
 
     onMounted(async () => {
       try {
-        const response = await axios.get('/auth/me');
+        const response = await api.get('/auth/me');
         currentUser.value = response.data;
         console.log("로그인된 사용자 정보:", response.data);
       } catch (error) {

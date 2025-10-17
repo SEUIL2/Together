@@ -56,7 +56,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import axios from 'axios'
+import api from '@/api'
 import VoteCreateModal from '@/components/dashboard/VoteCreateModal.vue'
 import VotingDetailModal from '@/components/dashboard/VotingDetailModal.vue'
 
@@ -85,7 +85,7 @@ function close() {
 async function fetchVotes() {
   try {
     const idToUse = props.projectId || Number(localStorage.getItem('currentProjectId'))
-    const res = await axios.get('/votes/project', {
+    const res = await api.get('/votes/project', {
       params: { projectId: idToUse },
       headers: { Authorization: localStorage.getItem('authHeader') },
     })

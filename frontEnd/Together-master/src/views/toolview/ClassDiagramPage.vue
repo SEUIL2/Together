@@ -118,7 +118,7 @@
 
 <script setup>
 import { ref, watch, onMounted, onUnmounted, reactive  } from 'vue'
-import axios from 'axios'
+import api from '@/api'
 import { debounce } from 'lodash'
 import { useToolStore } from '@/stores/toolStore'
 import ToolBox from '@/components/diagramtool/ToolBox.vue'
@@ -128,7 +128,7 @@ import RelationshipContextMenu from '@/components/diagramtool/classdiagram/Relat
 
 const token = localStorage.getItem('authHeader')
 if (token) {
-  axios.defaults.headers.common['Authorization'] = token
+  api.defaults.headers.common['Authorization'] = token
 }
 
 const toolStore = useToolStore()
@@ -492,7 +492,7 @@ const saveToServer = async () => {
   }
 
   try {
-    await axios.put('/design/update', formData) // Content-Type은 FormData 사용 시 axios가 자동으로 설정합니다.
+    await api.put('/design/update', formData) // Content-Type은 FormData 사용 시 api가 자동으로 설정합니다.
 
     showSavedMessage.value = true
     saveError.value = false
@@ -515,7 +515,7 @@ watch([classBoxes, relationships], autoSave, { deep: true })
 
 onMounted(async () => {
   try {
-    const res = await axios.get('/design/all', {
+    const res = await api.get('/design/all', {
       params: { projectId: props.projectId },
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true

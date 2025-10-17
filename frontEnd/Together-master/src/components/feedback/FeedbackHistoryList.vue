@@ -16,7 +16,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import axios from 'axios'
+import api from '@/api'
 
 const feedbacks = ref([])
 
@@ -26,7 +26,7 @@ async function fetchFeedbacks() {
   try {
     // 학생 본인의 피드백을 가져오는 것이므로, projectId 없이 호출합니다.
     // 백엔드에서 현재 로그인한 사용자를 기준으로 프로젝트를 식별합니다.
-    const res = await axios.get('/feedbacks/my', {
+    const res = await api.get('/feedbacks/my', {
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true
     });

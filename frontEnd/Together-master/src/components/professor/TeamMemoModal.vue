@@ -14,7 +14,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import axios from 'axios'
+import api from '@/api'
 
 const props = defineProps({
   projectId: Number
@@ -24,7 +24,7 @@ const memo = ref('')
 
 onMounted(async () => {
   try {
-    const res = await axios.get(`/professor/memo`, {
+    const res = await api.get(`/professor/memo`, {
       params: { projectId: props.projectId }
     })
     memo.value = res.data?.content || ''
@@ -35,7 +35,7 @@ onMounted(async () => {
 
 async function submitMemo() {
   try {
-    await axios.post(`/professor/memo`, {
+    await api.post(`/professor/memo`, {
       projectId: props.projectId,
       content: memo.value
     })

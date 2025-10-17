@@ -47,7 +47,7 @@
 
 <script setup>
 import { ref } from 'vue'
-import axios from 'axios'
+import api from '@/api'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
@@ -72,10 +72,10 @@ const handleLogin = async () => {
   const encoded = btoa(`${userLoginId.value}:${password.value}`)
   const authHeader = `Basic ${encoded}`
   localStorage.setItem('authHeader', authHeader)
-  axios.defaults.headers.common['Authorization'] = authHeader
+  api.defaults.headers.common['Authorization'] = authHeader
 
   try {
-    const res = await axios.get('/auth/me', {
+    const res = await api.get('/auth/me', {
       headers: { Authorization: authHeader },
       withCredentials: true
     })

@@ -146,7 +146,7 @@
 
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
-import axios from '@/utils/axiosInstance.js' // Use the configured axios instance
+import api from '@/api' // ✅ 수정: 프로젝트 공용 api 인스턴스 사용
 import ReportFeedback from '@/components/ReportFeedback.vue';
 
 const reports = ref([]);
@@ -205,7 +205,7 @@ const formatDate = (dateStr) => {
 
 const fetchReports = async () => {
   try {
-    const { data } = await axios.get('/reports');
+    const { data } = await api.get('/reports'); // ✅ 수정: api 인스턴스로 호출
     if (Array.isArray(data)) {
       reports.value = data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)); // createdAt이 null일 경우 대비
     } else {
@@ -222,17 +222,17 @@ const fetchReports = async () => {
 
 onMounted(async () => {
   try {
-    const { data: meData } = await axios.get('/auth/me');
+    const { data: meData } = await api.get('/auth/me'); // ✅ 수정
     me.value = meData;
     newReport.value.authorName = meData.userName;
     newReport.value.projectId = meData.projectId;
     
     // projectId가 유효할 때만 프로젝트 관련 정보를 가져옵니다.
     if (me.value.projectId) {
-      const { data: project } = await axios.get(`/projects/${me.value.projectId}`);
+      const { data: project } = await api.get(`/projects/${me.value.projectId}`); // ✅ 수정
       projectName.value = project.title;
 
-      const { data: members } = await axios.get('/projects/members/students', {
+      const { data: members } = await api.get('/projects/members/students', { // ✅ 수정
         params: { projectId: me.value.projectId }
       });
       teamMembers.value = members;
@@ -296,7 +296,7 @@ const submitReport = async () => {
         ...updateData,
         teamInfo: teamMemberNames.value, // 수정 시에도 현재 팀원 정보 포함
       };
-      await axios.put(`/reports/${id}`, reportData);
+      await api.put(`/reports/${id}`, reportData); // ✅ 수정
       alert('보고서가 성공적으로 수정되었습니다.');
     } else {
       // 생성
@@ -305,14 +305,14 @@ const submitReport = async () => {
         ...restOfNewReport,
         teamInfo: teamMemberNames.value,
       };
-      await axios.post('/reports', reportData);
+      await api.post('/reports', reportData); // ✅ 수정
       alert('보고서가 성공적으로 제출되었습니다.');
     }
     isCreatingNew.value = false;
     await fetchReports();
     
     // 생성 또는 수정 후, 해당 보고서를 선택합니다.
-    const newOrUpdatedReportId = newReport.value.id || (await axios.get('/reports')).data[0].id;
+    const newOrUpdatedReportId = newReport.value.id || (await api.get('/reports')).data[0].id; // ✅ 수정
     const newIndex = filteredReports.value.findIndex(r => r.id === newOrUpdatedReportId);
     selectedIndex.value = newIndex !== -1 ? newIndex : 0;
 
@@ -325,7 +325,7 @@ const submitReport = async () => {
 const exportReportAsPdf = async () => {
   if (!selectedReport.value) return;
   try {
-    const response = await axios.get(
+    const response = await api.get( // ✅ 수정
       `/reports/export/${selectedReport.value.id}`,
       {
         responseType: 'blob', // 파일 다운로드를 위해 필수
@@ -351,7 +351,7 @@ const deleteReport = async () => {
   if (!confirm('정말로 이 보고서를 삭제하시겠습니까?')) return;
 
   try {
-    await axios.delete(`/reports/${selectedReport.value.id}`);
+    await api.delete(`/reports/${selectedReport.value.id}`); // ✅ 수정
     alert('보고서가 삭제되었습니다.');
     selectedIndex.value = null; // 선택 해제
     await fetchReports();

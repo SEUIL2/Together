@@ -118,7 +118,7 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, onActivated, onDeactivated } from 'vue'
 import { useRoute } from 'vue-router'
-import axios from 'axios'
+import api from '@/api'
 import draggable from 'vuedraggable'
 import gantt from 'dhtmlx-gantt'
 import 'dhtmlx-gantt/codebase/dhtmlxgantt.css'
@@ -186,7 +186,7 @@ function handleMenuSelect(action) {
 
 async function loadFeedbacks() {
   try {
-    const res = await axios.get('/feedbacks/project', {
+    const res = await api.get('/feedbacks/project', {
       params: {
         page: 'task-board',
         projectId: route.params.projectId
@@ -209,7 +209,7 @@ function handleReadFeedback(id) {
 async function fetchCurrentUser() {
   if (isReadOnly.value) return
   try {
-    const { data } = await axios.get('/auth/me')
+    const { data } = await api.get('/auth/me')
     currentUser.value = data.userName?.trim()
   } catch (e) {
     console.error('사용자 정보 조회 실패:', e)
@@ -218,7 +218,7 @@ async function fetchCurrentUser() {
 
 async function fetchTeamMembers() {
   try {
-    const { data } = await axios.get('/projects/members', {
+    const { data } = await api.get('/projects/members', {
       params: { projectId: route.params.projectId }
     })
     rawTeamMembers.value = data
@@ -236,7 +236,7 @@ async function fetchTeamMembers() {
 
 async function fetchTasks() {
   try {
-    const { data } = await axios.get('/work-tasks/project', {
+    const { data } = await api.get('/work-tasks/project', {
       params: { projectId: route.params.projectId }
     })
     workTasks.value = data
@@ -303,7 +303,7 @@ async function onTaskDrop(evt, newStatus) {
     category: task.category
   }
   try {
-    await axios.patch(`/work-tasks/${task.id}`, payload)
+    await api.patch(`/work-tasks/${task.id}`, payload)
   } catch (e) {
     console.error('작업 상태 변경 실패:', e)
   } finally {
@@ -362,7 +362,7 @@ async function loadAndInitialize() {
       const sel = rawTeamMembers.value.find(u => u.userName === task.assignee)
       const payload = { title: task.text, description: task.text, startDate: startStr, endDate: endStr, assignedUserId: sel?.userId ?? null, status: 'PENDING', parentTaskId: task.parent || null, category: task.category }
       try {
-        const { data } = await axios.post('/work-tasks', payload)
+        const { data } = await api.post('/work-tasks', payload)
         gantt.changeTaskId(tempId, data.id)
       } catch (err) {
         console.error('작업 생성 실패', err);
@@ -388,7 +388,7 @@ async function loadAndInitialize() {
         category: task.category
       }
       try {
-        await axios.patch(`/work-tasks/${id}`, dto)
+        await api.patch(`/work-tasks/${id}`, dto)
       } catch (e) {
         console.error('작업 업데이트 실패:', e)
       } finally {
@@ -399,7 +399,7 @@ async function loadAndInitialize() {
 
     ganttEventIds.push(gantt.attachEvent('onBeforeTaskDelete', async id => {
       try {
-        await axios.delete(`/work-tasks/${id}`)
+        await api.delete(`/work-tasks/${id}`)
       } catch (e) {
         console.error('작업 삭제 실패:', e)
       } finally {

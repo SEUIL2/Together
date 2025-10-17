@@ -29,7 +29,7 @@
 
 <script setup>
 import { ref, onMounted, watch } from 'vue';
-import axios from '@/utils/axiosInstance.js';
+import api from '@/api';
 
 const props = defineProps({
   reportId: {
@@ -49,7 +49,7 @@ const fetchFeedbacks = async () => {
   if (!props.reportId) return;
   try {
     // 보고서 상세 정보를 가져와 feedback 필드를 사용합니다.
-    const { data } = await axios.get(`/reports/${props.reportId}`);
+    const { data } = await api.get(`/reports/${props.reportId}`);
     feedbackContent.value = data.feedback || '';
   } catch (error) {
     console.error('피드백 로딩 실패:', error);
@@ -60,7 +60,7 @@ const fetchFeedbacks = async () => {
 const saveFeedback = async () => {
   if (!props.reportId || !feedbackContent.value.trim()) return;
   try {
-    await axios.post(`/reports/${props.reportId}/feedback`, {
+    await api.post(`/reports/${props.reportId}/feedback`, {
       feedback: feedbackContent.value
     });
     alert('피드백이 저장되었습니다.');
@@ -75,7 +75,7 @@ const deleteFeedback = async () => {
   if (!props.reportId) return;
   if (!confirm('작성한 피드백을 삭제하시겠습니까?')) return;
   try {
-    await axios.delete(`/reports/${props.reportId}/feedback`);
+    await api.delete(`/reports/${props.reportId}/feedback`);
     feedbackContent.value = '';
     alert('피드백이 삭제되었습니다.');
     emit('feedback-updated');

@@ -24,7 +24,7 @@
 
 <script setup>
 import { defineProps } from 'vue'
-import axios from 'axios'
+import api from '@/api'
 const props = defineProps({
   notice: Object
 })
@@ -41,7 +41,7 @@ async function deleteNotice() {
   if (!confirmed) return
 
   try {
-    await axios.delete(`/notices/delete/${props.notice.noticeId}`, {
+    await api.delete(`/notices/delete/${props.notice.noticeId}`, {
       headers: {
         Authorization: localStorage.getItem('authHeader')
       },

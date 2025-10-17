@@ -111,7 +111,7 @@
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
-import axios from 'axios'
+import api from '@/api'
 import { useRoute } from 'vue-router'
 import InviteModal from './InviteModal.vue'
 import ChangeLeaderModal from './ChangeLeaderModal.vue'
@@ -151,7 +151,7 @@ const leaderCandidates = computed(() =>
 // 내 정보 불러오기
 async function fetchCurrentUser() {
   try {
-    const { data } = await axios.get('/users/profile', { withCredentials: true })
+    const { data } = await api.get('/users/profile', { withCredentials: true })
     currentUser.value = data
   } catch (e) {
     console.error('내 정보 조회 실패', e)
@@ -166,7 +166,7 @@ async function fetchTeamMembers() {
     if (!isNaN(projectId)) {
       config.params = { projectId }
     }
-    const { data } = await axios.get(
+    const { data } = await api.get(
         '/projects/members',
         config
     )
@@ -196,7 +196,7 @@ async function fetchTeamMembers() {
 // 개인 메모 조회 (PrivateNote API)
 async function loadNote(targetStudentId, idx) {
   try {
-    const { data } = await axios.get(
+    const { data } = await api.get(
         `/notes/student/${targetStudentId}`,
         { withCredentials: true }
     )
@@ -267,7 +267,7 @@ function onMemoSaved({ content, noteId }) {
 
 async function changeLeader(newLeaderId) {
   try {
-    await axios.put(
+    await api.put(
         '/projects/change-leader',
         { newLeaderId },
         { params: { projectId }, withCredentials: true }

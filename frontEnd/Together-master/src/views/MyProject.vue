@@ -1,8 +1,8 @@
 <template>
   <div class="project-container">
-    <div v-if="saveStatus === 'saving'" class="save-toast saving">저장 중...</div>
+    <!-- <div v-if="saveStatus === 'saving'" class="save-toast saving">저장 중...</div>
     <div v-else-if="saveStatus === 'saved'" class="save-toast saved">💾 저장 완료</div>
-    <div v-else-if="saveStatus === 'error'" class="save-toast error">저장 실패!</div>
+    <div v-else-if="saveStatus === 'error'" class="save-toast error">저장 실패!</div> -->
 
     <main class="detail-panel">
       <component
@@ -21,7 +21,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import axios from 'axios'
+import api from '@/api' // ✅ axios 대신 api 인스턴스 사용
 import { debounce } from 'lodash'
 
 import PlanningDetails from '@/components/myproject/PlanningDetails.vue'
@@ -57,13 +57,7 @@ async function handleImageChange(event) {
     const formData = new FormData()
     formData.append('image', file)
 
-    const { data } = await axios.put('/projects/image', formData, {
-      headers: {
-        Authorization: localStorage.getItem('authHeader'),
-        'Content-Type': 'multipart/form-data',
-      },
-      withCredentials: true,
-    })
+    const { data } = await api.put('/projects/image', formData)
 
     projectImageUrl.value = data
   } catch (err) {
@@ -111,21 +105,14 @@ const autoSaveProjectInfo = debounce(async () => {
   saveStatus.value = 'saving';
 
   try {
-    await axios.put(
+    await api.put(
       `/projects/${projectId.value}/update-title`,
-      { newTitle: projectName.value },
-      { headers: { Authorization: localStorage.getItem('authHeader') }, withCredentials: true }
+      { newTitle: projectName.value }
     )
 
-    const formData = new FormData()
-    formData.append('type', 'description')
-    formData.append('text', projectDescription.value)
-    formData.append('projectId', projectId.value) // projectId 추가
-
-    await axios.put(
-      '/planning/update',
-      formData,
-      { headers: { Authorization: localStorage.getItem('authHeader') }, withCredentials: true }
+    await api.put(
+      '/planning/update', 
+      { type: 'description', text: projectDescription.value, projectId: projectId.value }
     )
     saveStatus.value = 'saved';
     setTimeout(() => saveStatus.value = 'idle', 2000);
@@ -152,15 +139,9 @@ onMounted(async () => {
     // 프로젝트 정보 불러오기
     let projectRes
     if (isReadOnly.value) {
-      projectRes = await axios.get(`/projects/${routeProjectId.value}`, {
-        headers: { Authorization: localStorage.getItem('authHeader') },
-        withCredentials: true
-      })
+      projectRes = await api.get(`/projects/${routeProjectId.value}`)
     } else {
-      projectRes = await axios.get('/projects/my', {
-        headers: { Authorization: localStorage.getItem('authHeader') },
-        withCredentials: true
-      })
+      projectRes = await api.get('/projects/my')
     }
 
     // 📌 콘솔로 응답 객체 전체 확인
@@ -173,10 +154,8 @@ onMounted(async () => {
     projectImageUrl.value = projectRes.data.imageUrl || ''
 
     // 기획 데이터
-    const planningRes = await axios.get('/planning/all', {
-      params: { projectId: projectId.value },
-      headers: { Authorization: localStorage.getItem('authHeader') },
-      withCredentials: true
+    const planningRes = await api.get('/planning/all', {
+      params: { projectId: projectId.value }
     })
     projectDescription.value = planningRes.data.description?.text || ''
 
@@ -188,10 +167,8 @@ onMounted(async () => {
     steps.value.find(s => s.name === '기획').current = planningCount
 
     // 설계 데이터
-    const designRes = await axios.get('/design/all', {
-      params: { projectId: projectId.value },
-      headers: { Authorization: localStorage.getItem('authHeader') },
-      withCredentials: true
+    const designRes = await api.get('/design/all', {
+      params: { projectId: projectId.value }
     })
     const designTypes = ['usecase', 'classDiagram', 'sequence', 'ui', 'erd', 'table', 'architecture', 'schedule']
     const designCount = designTypes.filter(type => {
@@ -204,10 +181,8 @@ onMounted(async () => {
     }).length
     steps.value.find(s => s.name === '설계').current = designCount
 // 개발 데이터
-const developRes = await axios.get('/develop/all', {
-  params: { projectId: projectId.value },
-  headers: { Authorization: localStorage.getItem('authHeader') },
-  withCredentials: true
+const developRes = await api.get('/develop/all', {
+  params: { projectId: projectId.value }
 })
 
 // 백엔드 DevelopAllResponseDto의 키와 동일하게 맞춤
@@ -229,18 +204,14 @@ const developCount = developTypes.filter(type => {
 steps.value.find(s => s.name === '개발').current = developCount
 
     // 작업 항목
-    const taskRes = await axios.get('/work-tasks/project', {
-      params: { projectId: projectId.value },
-      headers: { Authorization: localStorage.getItem('authHeader') },
-      withCredentials: true
+    const taskRes = await api.get('/work-tasks/project', {
+      params: { projectId: projectId.value }
     })
     tasks.value = taskRes.data
 
     // 팀원
-    const memberRes = await axios.get('/projects/members/students', {
-      params: { projectId: projectId.value },
-      headers: { Authorization: localStorage.getItem('authHeader') },
-      withCredentials: true
+    const memberRes = await api.get('/projects/members/students', {
+      params: { projectId: projectId.value }
     })
     teamMembers.value = memberRes.data
         .filter(member => member.role === 'STUDENT')

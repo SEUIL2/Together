@@ -82,7 +82,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import axios from 'axios'
+import api from '@/api'
 
 const notices = ref([])
 const showModal = ref(false)
@@ -98,7 +98,7 @@ onMounted(() => {
 async function fetchNotices() {
   try {
     const authHeader = localStorage.getItem("authHeader")
-    const res = await axios.get('/notices/all-notice', {
+    const res = await api.get('/notices/all-notice', {
       headers: {
         Authorization: authHeader
       },
@@ -116,7 +116,7 @@ async function createNotice() {
   }
   try {
     const authHeader = localStorage.getItem("authHeader")
-    await axios.post('/notices/create', editNotice.value, {
+    await api.post('/notices/create', editNotice.value, {
       headers: {
         Authorization: authHeader,
         'Content-Type': 'application/json'
@@ -133,7 +133,7 @@ async function createNotice() {
 async function updateNotice() {
   try {
     const authHeader = localStorage.getItem("authHeader")
-    await axios.put(`/notices/update/${editNotice.value.noticeId}`, editNotice.value, {
+    await api.put(`/notices/update/${editNotice.value.noticeId}`, editNotice.value, {
       headers: {
         Authorization: authHeader,
         'Content-Type': 'application/json'
@@ -150,7 +150,7 @@ async function updateNotice() {
 async function deleteNotice() {
   try {
     const authHeader = localStorage.getItem("authHeader")
-    await axios.delete(`/notices/delete/${editNotice.value.noticeId}`, {
+    await api.delete(`/notices/delete/${editNotice.value.noticeId}`, {
       headers: {
         Authorization: authHeader
       },

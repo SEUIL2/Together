@@ -64,7 +64,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import axios from 'axios'
+import api from '@/api'
 const props = defineProps({ voteId: Number })
 const emit = defineEmits(['close'])
 
@@ -96,7 +96,7 @@ async function fetchVoteDetail() {
   vote.value = null
   mySelectedId.value = null
   try {
-    const res = await axios.get(`/votes/${props.voteId}/detail`, {
+    const res = await api.get(`/votes/${props.voteId}/detail`, {
       headers: { Authorization: localStorage.getItem('authHeader') },
     })
     vote.value = res.data
@@ -141,7 +141,7 @@ function getPercent(item) {
 async function selectItem(voteItemId) {
   if (hasVoted.value || isDeadlinePassed.value) return
   try {
-    await axios.post(
+    await api.post(
       `/votes/${vote.value.voteId}/response`,
       { voteItemId },
       { headers: { Authorization: localStorage.getItem('authHeader') } }

@@ -167,7 +167,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
-import axios from 'axios'
+import api from '@/api'
 import FeedbackInput from '@/components/feedback/FeedbackInput.vue'
 import ContextMenu from '@/components/feedback/ContextMenu.vue'
 import FeedbackPopup from '@/components/feedback/FeedbackPopup.vue'
@@ -275,7 +275,7 @@ function handleReadFeedback(id: number) {
 async function loadFeedbacks(pageIdentifier: string) {
   if (!pageIdentifier) return;
   try {
-    const { data } = await axios.get('/feedbacks/project', {
+    const { data } = await api.get('/feedbacks/project', {
       params: { page: pageIdentifier, projectId: resolvedProjectId.value },
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true
@@ -360,7 +360,7 @@ async function saveChanges() {
   form.append('projectId', String(props.projectId));
 
   try {
-    await axios.put('/planning/update', form, {
+    await api.put('/planning/update', form, {
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true
     });
@@ -422,7 +422,7 @@ function uploadFiles(files: File[]) {
     form.append('projectId', String(props.projectId ?? ''));
     form.append('files', tempFile.originalFile);
 
-    axios.post('/planning/upload', form, {
+    api.post('/planning/upload', form, {
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true
     })
@@ -448,7 +448,7 @@ function uploadFiles(files: File[]) {
 async function removeFile(idx: number) {
   const file = activeItem.value.files[idx]
   try {
-    await axios.delete('/planning/delete-file', {
+    await api.delete('/planning/delete-file', {
       params: {           // ← 반드시 params!
         type: activeItem.value.type,
         fileUrl: file.url
@@ -468,7 +468,7 @@ async function removeFile(idx: number) {
 onMounted(async () => {
   try {
     // 기존 planning 데이터 불러오기
-    const res = await axios.get('/planning/all', {
+    const res = await api.get('/planning/all', {
       params: { projectId: props.projectId },
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true

@@ -56,7 +56,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import axios from '@/utils/axiosInstance.js';
+import api from '@/api';
 import NoticeList from '@/components/notice/NoticeList.vue';
 import NoticeDetailModal from '@/components/notice/NoticeDetailModal.vue';
 import NoticeCreateModal from '@/components/notice/NoticeCreateModal.vue';
@@ -74,7 +74,7 @@ const selectedNotice = ref(null);
 async function fetchProfessorProjects() {
   try {
     // ProfessorMainPage.vue에서 사용하는 것과 동일한 방식으로 프로젝트 목록을 가져옵니다.
-    const { data: meData } = await axios.get('/auth/me');
+    const { data: meData } = await api.get('/auth/me');
     const projectList = meData.projectId || [];
 
     // TeamCard와 달리 여기서는 title과 projectId만 필요하므로,
@@ -95,7 +95,7 @@ async function fetchNotices() {
   }
   isLoading.value = true;
   try {
-    const { data } = await axios.get(`/notices/all-notice?projectId=${selectedProjectId.value}`);
+    const { data } = await api.get(`/notices/all-notice?projectId=${selectedProjectId.value}`);
     notices.value = data
       .sort((a, b) => new Date(b.createdDate) - new Date(a.createdDate))
       .map(n => ({
@@ -112,7 +112,7 @@ async function fetchNotices() {
 
 async function fetchMe() {
   try {
-    const { data } = await axios.get('/auth/me');
+    const { data } = await api.get('/auth/me');
     currentUserName.value = data.userName;
   } catch (error) {
     console.error('사용자 정보 로딩 실패:', error);
@@ -134,7 +134,7 @@ function openNoticeDetail(notice) {
 
 async function handleCreateNotice(newNoticeData) {
   try {
-    await axios.post(
+    await api.post(
       `/notices/create?projectId=${selectedProjectId.value}`,
       newNoticeData
     );
@@ -148,7 +148,7 @@ async function handleCreateNotice(newNoticeData) {
 
 async function handleUpdateNotice(updatedData) {
   try {
-    await axios.put(`/notices/update/${updatedData.noticeId}`, updatedData);
+    await api.put(`/notices/update/${updatedData.noticeId}`, updatedData);
     showDetailModal.value = false;
     await fetchNotices();
   } catch (e) {
@@ -159,7 +159,7 @@ async function handleUpdateNotice(updatedData) {
 
 async function handleDeleteNotice(noticeId) {
   try {
-    await axios.delete(`/notices/delete/${noticeId}`);
+    await api.delete(`/notices/delete/${noticeId}`);
     showDetailModal.value = false;
     await fetchNotices();
   } catch (e) {

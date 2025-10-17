@@ -71,7 +71,7 @@ import { ref, onMounted, computed } from 'vue';
 import FullCalendar from '@fullcalendar/vue3';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
-import axios from 'axios';
+import api from '@/api';
 
 const props = defineProps({
   projectId: { type: [String, Number], required: true },
@@ -160,7 +160,7 @@ async function handleEventChange(changeInfo) {
   };
 
   try {
-    await axios.patch(`/work-tasks/${id}/schedule`, payload);
+    await api.patch(`/work-tasks/${id}/schedule`, payload);
     // 변경 성공 후, 데이터 동기화를 위해 전체 작업을 다시 불러옵니다.
     await fetchTasks();
   } catch (err) {
@@ -221,11 +221,11 @@ async function saveChanges() {
   try {
     if (editingEvent.value.id) {
       // 작업 수정
-      await axios.patch(`/work-tasks/${editingEvent.value.id}`, payload);
+      await api.patch(`/work-tasks/${editingEvent.value.id}`, payload);
       alert('작업이 성공적으로 수정되었습니다.');
     } else {
       // 새 작업 생성
-      await axios.post('/work-tasks', { ...payload, status: 'PENDING' });
+      await api.post('/work-tasks', { ...payload, status: 'PENDING' });
       alert('작업이 성공적으로 생성되었습니다.');
     }
 
@@ -245,7 +245,7 @@ async function deleteTask() {
   }
 
   try {
-    await axios.delete(`/work-tasks/${editingEvent.value.id}`);
+    await api.delete(`/work-tasks/${editingEvent.value.id}`);
     alert('작업이 삭제되었습니다.');
     showDetailModal.value = false;
     await fetchTasks(); // 달력 새로고침
@@ -276,7 +276,7 @@ const goToDate = (date) => {
 
 async function fetchTeamMembers() {
   try {
-    const { data } = await axios.get('/projects/members/students', { params: { projectId: props.projectId } });
+    const { data } = await api.get('/projects/members/students', { params: { projectId: props.projectId } });
     teamMembersWithColor.value = data;
   } catch (e) {
     console.error('팀원 정보 가져오기 실패', e);
@@ -285,7 +285,7 @@ async function fetchTeamMembers() {
 
 async function fetchTasks() {
   try {
-    const res = await axios.get('/work-tasks/project', { params: { projectId: props.projectId } });
+    const res = await api.get('/work-tasks/project', { params: { projectId: props.projectId } });
     const filteredTasks = res.data.filter(task => task.category === props.category);
 
     allEvents.value = filteredTasks.map(task => {

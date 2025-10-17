@@ -68,7 +68,7 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
-import axios from 'axios';
+import api from '@/api';
 import FeedbackCategoryManager from '@/components/feedback/FeedbackCategoryManager.vue';
 
 const loading = ref(true);
@@ -100,7 +100,7 @@ const filteredFeedbacks = computed(() => {
 });
 const fetchProfessorProjects = async () => {
   try {
-    const { data } = await axios.get('/projects/my-projects/sorted-by-created', {
+    const { data } = await api.get('/projects/my-projects/sorted-by-created', {
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true,
     });
@@ -115,7 +115,7 @@ const fetchProfessorProjects = async () => {
 
 const fetchFeedbackCategories = async () => {
   try {
-    const { data } = await axios.get('/feedbacks/categories', {
+    const { data } = await api.get('/feedbacks/categories', {
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true,
     });
@@ -132,7 +132,7 @@ const fetchFeedbacks = async () => {
   loading.value = true;
   try {
     console.log(`[2] 선택된 프로젝트 ID [${selectedProjectId.value}]에 대한 피드백을 요청합니다.`); // 디버깅 로그
-    const { data } = await axios.get('/feedbacks/my', {
+    const { data } = await api.get('/feedbacks/my', {
       params: { projectId: selectedProjectId.value },
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true
@@ -163,7 +163,7 @@ const fetchFeedbacks = async () => {
 const deleteFeedback = async (feedbackId) => {
   if (!confirm('이 피드백을 정말 삭제하시겠습니까?')) return;
   try {
-    await axios.delete(`/feedbacks/${feedbackId}`, {
+    await api.delete(`/feedbacks/${feedbackId}`, {
       params: { projectId: selectedProjectId.value },
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true

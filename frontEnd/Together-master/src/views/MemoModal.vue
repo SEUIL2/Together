@@ -11,7 +11,7 @@
 
 <script setup>
 import { ref, watch } from 'vue'
-import axios from '@/utils/axiosInstance'
+import api from '@/api'
 
 const props = defineProps({
   member: { type: Object, required: true },
@@ -39,7 +39,7 @@ async function saveNote() {
   try {
     let res
     if (props.member.noteId) {
-      res = await axios.put(
+      res = await api.put(
           `/notes/update/${props.member.userId}`,
           {content: noteText.value},
           {
@@ -52,7 +52,7 @@ async function saveNote() {
         noteId: res.data.noteId
       })
     } else {
-      res = await axios.post(
+      res = await api.post(
           '/notes/create',
           payload,
           {

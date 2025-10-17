@@ -167,7 +167,7 @@
 <script setup>
 import { ref, reactive, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import axios from '@/utils/axiosInstance'
+import api from '@/api'
 import FeedbackPopup from '@/components/feedback/FeedbackPopup.vue'
 import ContextMenu from '@/components/feedback/ContextMenu.vue'
 import FeedbackInput from '@/components/feedback/FeedbackInput.vue'
@@ -361,7 +361,7 @@ async function fetchRowsForTab(tab) {
   const config = getConfigByType(tab.type)
   tab.loading = true
   try {
-    const { data } = await axios.get(`${config.basePath}/project`, {
+    const { data } = await api.get(`${config.basePath}/project`, {
       params: getProjectParams(),
     })
     tab.rows = data.map(row => mapResponse(tab.type, row))
@@ -377,7 +377,7 @@ async function loadFeedbacks() {
   if (!resolvedProjectId.value) return
   const pageIdentifier = `test-${currentTab.value.type.toLowerCase()}`;
   try {
-    const { data } = await axios.get('/feedbacks/project', {
+    const { data } = await api.get('/feedbacks/project', {
       params: { page: pageIdentifier, projectId: resolvedProjectId.value },
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true,
@@ -399,7 +399,7 @@ async function addRow(type) {
   if (isReadOnly.value) return
   const config = getConfigByType(type)
   try {
-    const { data } = await axios.post(`${config.basePath}/create`, config.createDefaults, {
+    const { data } = await api.post(`${config.basePath}/create`, config.createDefaults, {
       params: getProjectParams(),
     })
     const tab = getTabByType(type)
@@ -420,7 +420,7 @@ async function saveRow(type, row) {
     payload[key] = row[key] ?? ''
   })
   try {
-    const { data } = await axios.put(`${config.basePath}/${row.id}`, payload, {
+    const { data } = await api.put(`${config.basePath}/${row.id}`, payload, {
       params: getProjectParams(),
     })
     Object.assign(row, mapResponse(type, data))
@@ -435,7 +435,7 @@ async function toggleCompleted(type, row) {
   if (isReadOnly.value || !row.id) return
   const config = getConfigByType(type)
   try {
-    const { data } = await axios.patch(`${config.basePath}/${row.id}/toggle`, null, {
+    const { data } = await api.patch(`${config.basePath}/${row.id}/toggle`, null, {
       params: getProjectParams(),
     })
     Object.assign(row, mapResponse(type, data))
@@ -451,7 +451,7 @@ async function deleteRow(type, rowId) {
   if (!confirm('이 테스트 행을 삭제하시겠습니까?')) return
   const config = getConfigByType(type)
   try {
-    await axios.delete(`${config.basePath}/${rowId}`, {
+    await api.delete(`${config.basePath}/${rowId}`, {
       params: getProjectParams(),
     })
     const tab = getTabByType(type)

@@ -51,7 +51,7 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import axios from 'axios'
+import api from '@/api'
 import TeamCard from '@/components/professor/TeamCard.vue'
 import { useRouter } from 'vue-router'
 import { useGlobalToast } from '@/composables/useGlobalToast';
@@ -93,8 +93,8 @@ async function processProjects(baseProjects) {
   const detailedProjectsPromises = baseProjects.map(async (p) => {
     try {
       const [planningRes, tasksRes] = await Promise.all([
-        axios.get('/planning/all', { params: { projectId: p.projectId }, headers: { Authorization: authHeader }, withCredentials: true }),
-        axios.get('/work-tasks/project', { params: { projectId: p.projectId }, headers: { Authorization: authHeader }, withCredentials: true })
+        api.get('/planning/all', { params: { projectId: p.projectId }, headers: { Authorization: authHeader }, withCredentials: true }),
+        api.get('/work-tasks/project', { params: { projectId: p.projectId }, headers: { Authorization: authHeader }, withCredentials: true })
       ]);
 
       const description = planningRes.data.description?.text || '';
@@ -140,7 +140,7 @@ async function fetchInitialProjects() {
       console.error('❌ Authorization 헤더가 없습니다.');
       return;
     }
-    const res = await axios.get('/projects/my-projects/sorted-by-created', {
+    const res = await api.get('/projects/my-projects/sorted-by-created', {
       headers: { Authorization: authHeader },
       withCredentials: true,
     });
@@ -169,7 +169,7 @@ async function performSearch() {
   }
   try {
     const authHeader = localStorage.getItem('authHeader');
-    const res = await axios.get('/projects/search/language', {
+    const res = await api.get('/projects/search/language', {
       params: { lang: searchQuery.value },
       headers: { Authorization: authHeader },
       withCredentials: true,

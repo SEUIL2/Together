@@ -35,7 +35,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import axios from 'axios'
+import api from '@/api'
 
 const props = defineProps({
   projectId: Number
@@ -50,7 +50,7 @@ onMounted(fetchMemos)
 
 async function fetchMemos() {
   try {
-    const res = await axios.get(`/memos/project/${props.projectId}`, {
+    const res = await api.get(`/memos/project/${props.projectId}`, {
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true
     })
@@ -63,7 +63,7 @@ async function fetchMemos() {
 async function createMemo() {
   if (!newContent.value.trim()) return
   try {
-    const res = await axios.post(`/memos?projectId=${props.projectId}`, newContent.value, {
+    const res = await api.post(`/memos?projectId=${props.projectId}`, newContent.value, {
       headers: {
         Authorization: localStorage.getItem('authHeader'),
         'Content-Type': 'text/plain'
@@ -89,7 +89,7 @@ function cancelEdit() {
 
 async function updateMemo(memoId) {
   try {
-    const res = await axios.put(`/memos/${memoId}`, editContent.value, {
+    const res = await api.put(`/memos/${memoId}`, editContent.value, {
       headers: {
         Authorization: localStorage.getItem('authHeader'),
         'Content-Type': 'text/plain'
@@ -107,7 +107,7 @@ async function updateMemo(memoId) {
 async function deleteMemo(memoId) {
   if (!confirm('메모를 삭제하시겠습니까?')) return
   try {
-    await axios.delete(`/memos/${memoId}`, {
+    await api.delete(`/memos/${memoId}`, {
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true
     })

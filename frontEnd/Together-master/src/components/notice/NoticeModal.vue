@@ -44,7 +44,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import axios from 'axios'
+import api from '@/api'
 import NoticeCreateModal from './NoticeCreateModal.vue'
 import NoticeDetailModal from './NoticeDetailModal.vue'
 
@@ -61,7 +61,7 @@ onMounted(async () => {
 
 async function fetchUserName() {
   try {
-    const res = await axios.get('/auth/me', {
+    const res = await api.get('/auth/me', {
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true
     })
@@ -73,7 +73,7 @@ async function fetchUserName() {
 
 async function fetchNotices() {
   try {
-    const res = await axios.get(`/notices/all-notice?projectId=${props.projectId}`, {
+    const res = await api.get(`/notices/all-notice?projectId=${props.projectId}`, {
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true
     })
@@ -92,7 +92,7 @@ async function fetchNotices() {
 
 async function handleCreate(noticeData) {
   try {
-    await axios.post(`/notices/create?projectId=${props.projectId}`, noticeData, {
+    await api.post(`/notices/create?projectId=${props.projectId}`, noticeData, {
       headers: {
         Authorization: localStorage.getItem('authHeader'),
         'Content-Type': 'application/json'

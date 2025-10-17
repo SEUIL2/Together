@@ -65,9 +65,8 @@ import { onMounted, onUnmounted, ref, computed, nextTick } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import AgoraRTC from 'agora-rtc-sdk-ng';
 import { debounce } from 'lodash-es';
-import meetingApi from '@/api/meetingApi'; // 회의록 저장을 위해 MeetingPage와 동일한 api를 사용합니다.
-// ✅ [최종 수정] 프로젝트의 표준 axios 인스턴스를 사용하여 API 호출 방식을 통일합니다.
-import api from '@/utils/axiosInstance.js';
+import api from '@/api'; // ✅ 프로젝트 공용 api 인스턴스 사용
+import meetingApi from '@/api/meetingApi';
 
 const route = useRoute();
 const router = useRouter();
@@ -233,7 +232,7 @@ const saveNotes = async () => {
   if (!meetingId.value || saveStatus.value === 'saving') return;
   saveStatus.value = 'saving';
   try {
-    await meetingApi.put(`/update/${meetingId.value}`, {
+    await meetingApi.put(`/update/${meetingId.value}`, { // ✅
       title: meetingTitle.value, // 제목 정보 추가
       content: meetingNotes.value,
       category: meetingCategory.value, // 카테고리 정보 추가

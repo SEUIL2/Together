@@ -84,7 +84,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import axios from 'axios'
+import api from '@/api'
 
 const emit = defineEmits(['close', 'created'])
 
@@ -124,7 +124,7 @@ async function submit() {
   try {
     const projectId = Number(localStorage.getItem('currentProjectId'))
 
-    await axios.post(
+    await api.post(
       '/votes/create',
       {
         projectId,

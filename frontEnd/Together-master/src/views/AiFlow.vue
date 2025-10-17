@@ -120,7 +120,7 @@
 </template>
 
 <script>
-import axios from 'axios'
+import api from '@/api'
 export default {
   data() {
     return {
@@ -140,16 +140,22 @@ export default {
   created() {
     this.fetchKeywords()
   },
+  mounted() {
+    this.$emit('update:layout', false); // 헤더와 사이드바를 숨기는 이벤트 발생
+  },
+  beforeUnmount() {
+    this.$emit('update:layout', true); // 페이지를 떠날 때 헤더와 사이드바를 다시 표시
+  },
   methods: {
     fetchKeywords() {
       this.loadingKeywords = true
-      axios.get('/api/ai/keywords')
+      api.get('/api/ai/keywords')
           .then(res => (this.keywords = this.removeSelectedFromList(res.data)))          .finally(() => (this.loadingKeywords = false))
     },
     refreshKeywords() {
       this.loadingKeywords = true
       this.keywords = []
-      axios.get('/api/ai/keywords')
+      api.get('/api/ai/keywords')
           .then(res => (this.keywords = this.removeSelectedFromList(res.data)))
           .finally(() => (this.loadingKeywords = false))
     },
@@ -173,7 +179,7 @@ export default {
       this.loadingUserKeywords = true
       this.userKeywordSuggestions = []
 
-      axios.post('/api/ai/keywords/user-input', { keywords: parsed })
+      api.post('/api/ai/keywords/user-input', { keywords: parsed })
           .then(res => {
             const suggestions = Array.isArray(res.data) ? res.data : []
             this.userKeywordSuggestions = this.removeSelectedFromList(suggestions)
@@ -208,7 +214,7 @@ export default {
     confirmKeywords() {
       this.step = 2
       this.startProgress()
-      axios.post('/api/ai/topics', { keywords: this.selectedKeywords })
+      api.post('/api/ai/topics', { keywords: this.selectedKeywords })
           .then(res => {
             clearInterval(this.intervalId)
             this.progress = 100
@@ -282,5 +288,3 @@ export default {
 .topic-title { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
 .topic-desc { font-size: 14px; color: #555; }
 </style>
-
-

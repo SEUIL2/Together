@@ -89,7 +89,7 @@
 <script setup>
 import { ref, reactive, watch, onMounted, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
-import axios from 'axios'
+import api from '@/api'
 import debounce from 'lodash/debounce'
 
 import ToolBox from '@/components/diagramtool/ToolBox.vue'
@@ -111,14 +111,6 @@ const links = ref([])
 const scale = ref(1)
 const minScale = 0.4
 const maxScale = 2.2
-
-const props = defineProps({
-  projectId: Number,
-  readonly: Boolean,
-  projectTitle: String
-})
-
-console.log('✅ props.projectId:', props.projectId)  // 여기에 1이 나와야 정상
 
 
 const connectState = ref({ start: null })
@@ -342,16 +334,13 @@ const saveStatus = ref('idle')
       formData.append('files', imageBlob, 'usecase_capture.png');
     }
  
-    const projectId = route.query.projectId
+    const projectId = route.params.projectId
     if (projectId) {
       formData.append('projectId', projectId)
     }
  
     try {
-      await axios.put('/design/update', formData, {
-        headers: { Authorization: localStorage.getItem('authHeader') },
-        withCredentials: true
-      });
+      await api.put('/design/update', formData);
       saveStatus.value = 'saved'
       setTimeout(() => saveStatus.value = 'idle', 1200)
       console.log('✅ 유스케이스 다이어그램 저장 성공')
@@ -390,10 +379,8 @@ function handleWheel(e) {
 // === 불러오기 ===
 onMounted(async () => {
   try {
-    const res = await axios.get('/design/all', {
-      params: { projectId: props.projectId },
-      headers: { Authorization: localStorage.getItem('authHeader') },
-      withCredentials: true
+    const res = await api.get('/design/all', {
+      params: { projectId: route.params.projectId } // props 대신 route.params 사용
     })
 
     const { usecase } = res.data

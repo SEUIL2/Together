@@ -41,7 +41,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import axios from 'axios';
+import api from '@/api';
 
 const props = defineProps({
   x: Number,
@@ -62,7 +62,7 @@ const categories = ref([]);
 
 const fetchFeedbackHistory = async () => {
   try {
-    const response = await axios.get('/feedbacks/history', {
+    const response = await api.get('/feedbacks/history', {
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true
     });
@@ -87,7 +87,7 @@ const applyHistory = (historyText) => {
 
 const fetchCategories = async () => {
   try {
-    const response = await axios.get('/feedbacks/categories', {
+    const response = await api.get('/feedbacks/categories', {
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true
     });
@@ -128,7 +128,7 @@ const submit = async () => {
   }
 
   try {
-await axios.post('/feedbacks/create', {
+await api.post('/feedbacks/create', {
   page: props.page,
   x: props.x,
   y: props.y,

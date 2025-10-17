@@ -85,7 +85,7 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, onActivated, onDeactivated, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
-import axios from 'axios'
+import api from '@/api'
 import 'dhtmlx-gantt/codebase/dhtmlxgantt.css'
 import gantt from 'dhtmlx-gantt'
 
@@ -130,8 +130,8 @@ const selectedFeedback = ref(null)
 async function fetchProjectInfo() {
   try {
     const res = isReadOnly.value && projectId.value
-      ? await axios.get(`/projects/${projectId.value}`)
-      : await axios.get('/projects/my')
+      ? await api.get(`/projects/${projectId.value}`)
+      : await api.get('/projects/my')
     projectId.value = res.data.projectId
   } catch (e) {
     console.error('프로젝트 정보 로드 실패', e)
@@ -141,7 +141,7 @@ async function fetchProjectInfo() {
 async function fetchCurrentUser() {
   if (isReadOnly.value) return
   try {
-    const { data } = await axios.get('/auth/me')
+    const { data } = await api.get('/auth/me')
     currentUser.value = data.userName.trim()
   } catch (e) {
     console.error('유저 정보 로드 실패', e)
@@ -150,7 +150,7 @@ async function fetchCurrentUser() {
 
 async function fetchTeamMembers() {
   try {
-    const { data } = await axios.get('/projects/members/students', { params: { projectId: projectId.value } })
+    const { data } = await api.get('/projects/members/students', { params: { projectId: projectId.value } })
     rawTeamMembers.value = data.filter(u => u.role === 'STUDENT')
     teamMembers.value = rawTeamMembers.value.map(u => ({ key: u.userName, label: u.userName, userId: u.userId, color: u.userColor }))
   } catch (e) {
@@ -180,7 +180,7 @@ function flattenTask(task, parent = null) {
 
 async function fetchTasksFromServer() {
   try {
-    const res = await axios.get('/work-tasks/project', { params: { projectId: projectId.value } })
+    const res = await api.get('/work-tasks/project', { params: { projectId: projectId.value } })
     allRows = res.data.flatMap(t => flattenTask(t))
     onSearch()
   } catch (e) {
@@ -191,7 +191,7 @@ async function fetchTasksFromServer() {
 async function loadFeedbacks() {
   if (!projectId.value) return;
   try {
-    const res = await axios.get('/feedbacks/project', {
+    const res = await api.get('/feedbacks/project', {
       params: {
         page: 'schedule-view',
         projectId: projectId.value
@@ -328,7 +328,7 @@ async function loadAndInitializeGantt() {
       const sel      = rawTeamMembers.value.find(u => u.userName === task.assignee)
       if (sel?.userColor) task.color = sel.userColor
       const payload  = { title: task.text, startDate: startStr, endDate: endStr, assignedUserId: sel?.userId ?? null, status: 'PENDING', parentTaskId: task.parent || null, category: task.category }
-      axios.post('/work-tasks', payload)
+      api.post('/work-tasks', payload)
           .then(({ data }) => gantt.changeTaskId(tempId, data.id))
           .catch(err => { console.error('작업 생성 실패', err); gantt.deleteTask(tempId) })
     }));
@@ -340,7 +340,7 @@ async function loadAndInitializeGantt() {
         startDate: gantt.date.date_to_str("%Y-%m-%d")(task.start_date),
         endDate: gantt.date.date_to_str("%Y-%m-%d")(gantt.calculateEndDate({ start_date: task.start_date, duration: task.duration, task: task }))
       }
-      axios.patch(`/work-tasks/${id}/schedule`, payload).catch(err => console.error('일정 업데이트 실패', err))
+      api.patch(`/work-tasks/${id}/schedule`, payload).catch(err => console.error('일정 업데이트 실패', err))
     }));
 
     ganttEventIds.push(gantt.attachEvent('onAfterTaskUpdate', (id, task) => {
@@ -356,12 +356,12 @@ async function loadAndInitializeGantt() {
         parentTaskId: task.parent || null,
         category: task.category
       }
-      axios.patch(`/work-tasks/${id}`, dto)
+      api.patch(`/work-tasks/${id}`, dto)
           .catch(err => console.error('작업 업데이트 실패', err))
     }));
 
     ganttEventIds.push(gantt.attachEvent("onBeforeTaskDelete", id => {
-      axios.delete(`/work-tasks/${id}`).catch(err => { console.error('작업 삭제 실패', err); fetchTasksFromServer() })
+      api.delete(`/work-tasks/${id}`).catch(err => { console.error('작업 삭제 실패', err); fetchTasksFromServer() })
       return true
     }));
   }

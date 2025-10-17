@@ -67,7 +67,7 @@
 </template>
 
 <script>
-import axios from "axios";
+import api from "@/api";
 import router from "@/router"; // 프로젝트의 router 인스턴스 경로에 맞춰 경로 수정
 
 export default {
@@ -99,7 +99,7 @@ export default {
       }
 
       try {
-        await axios.post("/auth/find-id", null, { params: { email: this.email } });
+        await api.post("/auth/find-id", null, { params: { email: this.email } });
         // 호출 성공 시 인증번호 입력 STEP으로 전환
         this.step = "verify";
         this.code = "";
@@ -123,7 +123,7 @@ export default {
       }
 
       try {
-        const res = await axios.post(
+        const res = await api.post(
             "/auth/find-id/verify",
             null,
             {
@@ -159,7 +159,7 @@ export default {
       this.isResending = true;
       this.errorMessage = "";
       try {
-        await axios.post("/auth/find-id", null, {
+        await api.post("/auth/find-id", null, {
           params: { email: this.email },
         });
         // 재전송 후에도 동일하게 인증번호 입력 화면을 유지

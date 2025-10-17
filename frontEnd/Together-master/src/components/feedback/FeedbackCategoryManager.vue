@@ -36,7 +36,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import axios from 'axios';
+import api from '@/api';
 
 const emit = defineEmits(['close']);
 
@@ -45,14 +45,14 @@ const newCategoryName = ref('');
 const editingCategoryId = ref(null);
 const editingCategoryName = ref('');
 
-const axiosConfig = {
+const apiConfig = {
   headers: { Authorization: localStorage.getItem('authHeader') },
   withCredentials: true,
 };
 
 const fetchCategories = async () => {
   try {
-    const { data } = await axios.get('/feedbacks/categories', axiosConfig);
+    const { data } = await api.get('/feedbacks/categories', apiConfig);
     categories.value = data;
   } catch (error) {
     console.error('카테고리 목록 로딩 실패:', error);
@@ -63,7 +63,7 @@ const fetchCategories = async () => {
 const addCategory = async () => {
   if (!newCategoryName.value.trim()) return;
   try {
-    await axios.post('/feedbacks/categories', { name: newCategoryName.value }, axiosConfig);
+    await api.post('/feedbacks/categories', { name: newCategoryName.value }, apiConfig);
     newCategoryName.value = '';
     await fetchCategories();
   } catch (error) {
@@ -75,7 +75,7 @@ const addCategory = async () => {
 const deleteCategory = async (id) => {
   if (!confirm('정말로 이 카테고리를 삭제하시겠습니까? 관련된 모든 피드백의 카테고리가 초기화될 수 있습니다.')) return;
   try {
-    await axios.delete(`/feedbacks/categories/${id}`, axiosConfig);
+    await api.delete(`/feedbacks/categories/${id}`, apiConfig);
     await fetchCategories();
   } catch (error) {
     console.error('카테고리 삭제 실패:', error);
@@ -96,7 +96,7 @@ const cancelEdit = () => {
 const saveCategory = async (id) => {
   if (!editingCategoryName.value.trim()) return;
   try {
-    await axios.put(`/feedbacks/categories/${id}`, { name: editingCategoryName.value }, axiosConfig);
+    await api.put(`/feedbacks/categories/${id}`, { name: editingCategoryName.value }, apiConfig);
     cancelEdit();
     await fetchCategories();
   } catch (error) {

@@ -3,32 +3,20 @@ import App from './App.vue'
 import router from './router'
 import { createPinia } from 'pinia' // ✅ Pinia import
 import { API_BASE_URL } from './config'
-
-
-// ✅ 인증 쿠키 포함 설정
-import axios from 'axios'
-axios.defaults.withCredentials = true
-//axios.defaults.baseURL = '/api'// 서버 설정
-
-// 로그인 정보가 남아있다면 Authorization 헤더를 복원
-const savedAuth = localStorage.getItem('authHeader')
-if (savedAuth) {
-    axios.defaults.headers.common['Authorization'] = savedAuth
-}
-
+// ✅ api 인스턴스를 가져와서 사용합니다.
+import api from './api'
 
 async function fetchCsrfToken() {
     try {
         // 이 GET 호출이 CsrfFilter를 타며 Set-Cookie 헤더를 내려줍니다
-        await axios.get(`${API_BASE_URL}/csrf`)
+        // API_BASE_URL 대신 api 인스턴스의 baseURL('/api')이 사용됩니다.
+        await api.get(`/csrf`)
     } catch (e) {
         console.error('CSRF 토큰 받아오기 실패', e)
     }
 }
 
-
 import { GcSpreadSheets, GcWorksheet, GcColumn } from '@grapecity/spread-sheets-vue'
-import './api'
 
 // Gantt 차트
 import GanttChart from 'vue-ganttastic'

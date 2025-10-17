@@ -66,7 +66,7 @@
 
 <script setup>
 import { ref, watch, computed } from 'vue'
-import axios from 'axios'
+import api from '@/api'
 import { debounce } from 'lodash'
 import defaultLogo from '@/assets/togetherlogo.png'
 
@@ -104,7 +104,7 @@ async function handleImageChange(event) {
   try {
     const formData = new FormData()
     formData.append('image', file)
-    const { data } = await axios.put('/projects/image', formData, {
+    const { data } = await api.put('/projects/image', formData, {
       headers: {
         Authorization: localStorage.getItem('authHeader'),
         'Content-Type': 'multipart/form-data'
@@ -123,7 +123,7 @@ const autoSaveProjectInfo = debounce(async () => {
   if (!props.projectId || props.isReadOnly) return
   saveStatus.value = 'saving';
   try {
-    await axios.put(
+    await api.put(
       `/projects/${props.projectId}/update-title`,
       { newTitle: projectName.value },
       {
@@ -135,7 +135,7 @@ const autoSaveProjectInfo = debounce(async () => {
     formData.append('type', 'description')
     formData.append('text', projectDescription.value)
     formData.append('projectId', props.projectId)
-    await axios.put('/planning/update', formData, {
+    await api.put('/planning/update', formData, {
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true
     })

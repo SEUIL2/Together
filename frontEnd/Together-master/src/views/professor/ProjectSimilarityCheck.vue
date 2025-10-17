@@ -26,7 +26,7 @@
 
 <script>
 import { ref, onMounted, computed } from 'vue';
-import axiosInstance from '@/utils/axiosInstance';
+import apiInstance from '@/api';
 import { Bar } from 'vue-chartjs';
 import { Chart as ChartJS, Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale } from 'chart.js';
 
@@ -44,7 +44,7 @@ export default {
 
     const fetchProjects = async () => {
       try {
-        const response = await axiosInstance.get('/api/projects/professor');
+        const response = await apiInstance.get('/api/projects/professor');
         projects.value = response.data;
       } catch (err) {
         console.error('프로젝트 목록을 불러오는 데 실패했습니다.', err);
@@ -63,7 +63,7 @@ export default {
       similarityReport.value = null;
       error.value = null;
       try {
-        const response = await axiosInstance.post(`/api/project-similarity/report/${selectedProject.value}`);
+        const response = await apiInstance.post(`/api/project-similarity/report/${selectedProject.value}`);
         similarityReport.value = response.data;
       } catch (err) {
         console.error('유사성 검사에 실패했습니다.', err);

@@ -158,7 +158,7 @@ import {ref, reactive, computed, onMounted, watch} from 'vue';
 import {useRouter, useRoute} from 'vue-router';
 import CategoryScheduleModal from './CategoryScheduleModal.vue';
 import DevOrderTable from './DevOrderTable.vue';
-import axios from 'axios';
+import api from '@/api';
 import ContextMenu from '@/components/feedback/ContextMenu.vue';
 import FeedbackInput from '@/components/feedback/FeedbackInput.vue';
 import FeedbackPopup from '@/components/feedback/FeedbackPopup.vue';
@@ -193,7 +193,7 @@ const environment = ref({
 const fetchEnvironment = async () => {
   if (!props.projectId) return;
   try {
-    const response = await axios.get('/api/dev-env', {
+    const response = await api.get('/api/dev-env', {
       headers: {Authorization: localStorage.getItem('authHeader')},
       withCredentials: true,
     });
@@ -218,11 +218,11 @@ const saveEnvironment = async () => {
     let response;
     // 기존 환경 정보가 있으면(id가 존재하면) 수정(PUT), 없으면 생성(POST)
     if (environment.value.id) {
-      response = await axios.put(`/api/dev-env/${environment.value.id}`, requestDto, {
+      response = await api.put(`/api/dev-env/${environment.value.id}`, requestDto, {
         headers: {Authorization: localStorage.getItem('authHeader')}
       });
     } else {
-      response = await axios.post('/api/dev-env', requestDto, {
+      response = await api.post('/api/dev-env', requestDto, {
         headers: {Authorization: localStorage.getItem('authHeader')}
       });
       // 새로 생성된 경우, 반환된 id를 받아와 상태에 업데이트
@@ -319,7 +319,7 @@ async function saveChanges() {
   form.append('projectId', String(props.projectId));
 
   try {
-    await axios.put('/develop/update', form, {
+    await api.put('/develop/update', form, {
       headers: {Authorization: localStorage.getItem('authHeader')},
       withCredentials: true
     });
@@ -344,7 +344,7 @@ async function loadFeedbacks() {
   if (!activeItem.value) return;
   const pageIdentifier = `develop-${activeItem.value.type}`;
   try {
-    const {data} = await axios.get('/feedbacks/project', {
+    const {data} = await api.get('/feedbacks/project', {
       params: {page: pageIdentifier, projectId: props.projectId},
       headers: {Authorization: localStorage.getItem('authHeader')},
       withCredentials: true
@@ -369,7 +369,7 @@ function uploadFiles(files) {
   form.append('projectId', props.projectId);
   files.forEach(f => form.append('files', f));
 
-  axios.post('/develop/upload', form, {
+  api.post('/develop/upload', form, {
     headers: {Authorization: localStorage.getItem('authHeader')},
     withCredentials: true
   })
@@ -386,7 +386,7 @@ function uploadFiles(files) {
 async function removeFile(idx) {
   const file = activeItem.value.files[idx];
   try {
-    await axios.delete('/develop/delete-file', {
+    await api.delete('/develop/delete-file', {
       params: {
         type: activeItem.value.type,
         fileUrl: file.url
@@ -404,7 +404,7 @@ async function removeFile(idx) {
 
 onMounted(async () => {
   try {
-    const res = await axios.get('/develop/all', {
+    const res = await api.get('/develop/all', {
       params: {projectId: props.projectId},
       headers: {Authorization: localStorage.getItem('authHeader')},
       withCredentials: true

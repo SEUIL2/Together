@@ -57,7 +57,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import axios from 'axios';
+import api from '@/api';
 import { useRoute } from 'vue-router';
 
 const route = useRoute();
@@ -76,7 +76,7 @@ const environment = ref({
 const fetchEnvironment = async () => {
   if (!projectId.value) return;
   try {
-    const response = await axios.get('/api/dev-env', {
+    const response = await api.get('/api/dev-env', {
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true,
     });
@@ -101,11 +101,11 @@ const saveEnvironment = async () => {
     let response;
     // 기존 환경 정보가 있으면(id가 존재하면) 수정(PUT), 없으면 생성(POST)
     if (environment.value.id) {
-      response = await axios.put(`/api/dev-env/${environment.value.id}`, requestDto, {
+      response = await api.put(`/api/dev-env/${environment.value.id}`, requestDto, {
         headers: { Authorization: localStorage.getItem('authHeader') }
       });
     } else {
-      response = await axios.post('/api/dev-env', requestDto, {
+      response = await api.post('/api/dev-env', requestDto, {
         headers: { Authorization: localStorage.getItem('authHeader') }
       });
       // 새로 생성된 경우, 반환된 id를 받아와 상태에 업데이트
@@ -121,7 +121,7 @@ const saveEnvironment = async () => {
 
 onMounted(async () => {
   // 현재 사용자의 프로젝트 ID를 가져옴
-  const { data: me } = await axios.get('/auth/me', { withCredentials: true });
+  const { data: me } = await api.get('/auth/me', { withCredentials: true });
   projectId.value = route.params.projectId || me.projectId;
   if(projectId.value) {
     await fetchEnvironment();

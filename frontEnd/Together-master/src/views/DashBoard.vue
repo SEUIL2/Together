@@ -176,7 +176,7 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount, computed, reactive } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import axios from 'axios'
+import api from '@/api'; // ✅ axios 대신 api 인스턴스 사용
 
 import NoticeList from '@/components/notice/NoticeList.vue'
 import NoticeDetailModal from '@/components/notice/NoticeDetailModal.vue'
@@ -281,7 +281,7 @@ async function handleCreateMeeting(meetingData) {
     scheduleDate: meetingData.meetingDate,
   };
   try {
-    await axios.post(`/api/meeting/schedules?projectId=${projectId.value}`, scheduleDto, {
+    await api.post(`/api/meeting/schedules?projectId=${projectId.value}`, scheduleDto, {
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true,
     });
@@ -300,7 +300,7 @@ async function handleUpdateMeeting(meetingData) {
     scheduleDate: meetingData.meetingDate,
   };
   try {
-    await axios.put(`/api/meeting/schedules/${meetingData.id}`, scheduleDto, {
+    await api.put(`/api/meeting/schedules/${meetingData.id}`, scheduleDto, {
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true,
     });
@@ -315,7 +315,7 @@ async function handleUpdateMeeting(meetingData) {
 async function handleDeleteMeeting(scheduleId) {
   if (!confirm('이 회의 일정을 삭제하시겠습니까?')) return;
   try {
-    await axios.delete(`/api/meeting/schedules/${scheduleId}`, {
+    await api.delete(`/api/meeting/schedules/${scheduleId}`, {
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true,
     });
@@ -360,21 +360,17 @@ function updateTooltipPosition(event) {
 
 async function fetchTasks() {
   if (!projectId.value) return;
-  const taskRes = await axios.get('/work-tasks/project', {
-    params: { projectId: projectId.value },
-    headers: { Authorization: localStorage.getItem('authHeader') },
-    withCredentials: true
-  })
+  const taskRes = await api.get('/work-tasks/project', {
+    params: { projectId: projectId.value }
+  });
   tasks.value = taskRes.data
 }
 
 async function fetchTeamMembers() {
   if (!projectId.value) return;
   try {
-    const { data } = await axios.get('/projects/members/students', {
-      params: { projectId: projectId.value },
-      headers: { Authorization: localStorage.getItem('authHeader') },
-      withCredentials: true
+    const { data } = await api.get('/projects/members/students', {
+      params: { projectId: projectId.value }
     });
     teamMembers.value = data.filter(m => m.role === 'STUDENT').map(m => ({...m, userName: m.userName.trim()}));
   } catch (e) {
@@ -386,11 +382,9 @@ async function fetchTeamMembers() {
 async function fetchNotices() {
   if (!projectId.value) return;
   try {
-    const res = await axios.get('/notices/all-notice', {
-      params: { projectId: projectId.value },
-      headers: { Authorization: localStorage.getItem('authHeader') },
-      withCredentials: true
-    })
+    const res = await api.get('/notices/all-notice', {
+      params: { projectId: projectId.value }
+    });
 
     notices.value = res.data
         .sort((a, b) => new Date(b.createdDate) - new Date(a.createdDate))
@@ -406,7 +400,7 @@ async function fetchNotices() {
 async function fetchMeetingSchedules() {
   if (!projectId.value) return;
   try {
-    const { data } = await axios.get('/api/meeting/schedules', {
+    const { data } = await api.get('/api/meeting/schedules', {
       params: { projectId: projectId.value },
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true,
@@ -425,13 +419,7 @@ async function fetchMeetingSchedules() {
 async function handleCreateNotice(newNotice) {
   if (!projectId.value) return;
   try {
-    await axios.post(`/notices/create?projectId=${projectId.value}`, newNotice, {
-      headers: {
-        Authorization: localStorage.getItem('authHeader'),
-        'Content-Type': 'application/json'
-      },
-      withCredentials: true
-    })
+    await api.post(`/notices/create?projectId=${projectId.value}`, newNotice);
     showCreateModal.value = false
     await fetchNotices()
   } catch (e) {
@@ -442,13 +430,7 @@ async function handleCreateNotice(newNotice) {
 // 공지 수정
 async function handleUpdateNotice(updated) {
   try {
-    await axios.put(`/notices/update/${updated.noticeId}`, updated, {
-      headers: {
-        Authorization: localStorage.getItem('authHeader'),
-        'Content-Type': 'application/json'
-      },
-      withCredentials: true
-    })
+    await api.put(`/notices/update/${updated.noticeId}`, updated);
     showNoticeModal.value = false
     await fetchNotices()
   } catch (e) {
@@ -460,7 +442,7 @@ async function handleUpdateNotice(updated) {
 onMounted(async () => {
   try {
     const routeProjectId = route.params.projectId;
-    const { data: me } = await axios.get('/auth/me', { withCredentials: true });
+    const { data: me } = await api.get('/auth/me');
     currentUserName.value = me.userName;
 
     // 뷰를 보고 있는 프로젝트 ID를 설정합니다.

@@ -142,7 +142,7 @@
 <script setup>
 import { ref, onMounted, computed, watch, reactive } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import axios from 'axios'
+import api from '@/api'
 import ProjectInfoCard from '@/components/dashboard/ProjectInfoCard.vue'
 
 // isCollapsed prop과 toggle 이벤트를 정의합니다.
@@ -170,7 +170,7 @@ const projectDetails = reactive({
 
 const authHeader = localStorage.getItem('authHeader')
 if (authHeader) {
-  axios.defaults.headers.common['Authorization'] = authHeader
+  api.defaults.headers.common['Authorization'] = authHeader
 }
 
 const goToPdfExportPage = () => {
@@ -182,7 +182,7 @@ async function leaveProject() {
   if (!projectDetails.projectId) return;
   if (!confirm('정말로 프로젝트를 탈퇴하시겠습니까?')) return;
   try {
-    await axios.delete('/projects/leave', {
+    await api.delete('/projects/leave', {
       params: { projectId: projectDetails.projectId },
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true,
@@ -202,9 +202,9 @@ const toggleProjectActions = () => {
 const checkLoginStatus = async () => {
   const authHeader = localStorage.getItem('authHeader')
   if (authHeader) {
-    axios.defaults.headers.common['Authorization'] = authHeader
+    api.defaults.headers.common['Authorization'] = authHeader
     try {
-      await axios.get('/auth/me', { headers: { Authorization: authHeader }, withCredentials: true })
+      await api.get('/auth/me', { headers: { Authorization: authHeader }, withCredentials: true })
       isLoggedIn.value = true
     } catch {
       isLoggedIn.value = false
@@ -214,7 +214,7 @@ const checkLoginStatus = async () => {
   }
 }
 
-const axiosConfig = {
+const apiConfig = {
   headers: { Authorization: localStorage.getItem('authHeader') },
   withCredentials: true,
 }
@@ -224,7 +224,7 @@ const fetchProjectDetails = async () => {
   if (!pid) {
     // 학생의 경우, /projects/my 에서 projectId를 먼저 가져와야 함
     try {
-      const myProjectRes = await axios.get('/projects/my', axiosConfig)
+      const myProjectRes = await api.get('/projects/my', apiConfig)
       if (myProjectRes.data && myProjectRes.data.projectId) {
         await fetchDetailsById(myProjectRes.data.projectId)
       }
@@ -240,9 +240,9 @@ const fetchProjectDetails = async () => {
 const fetchDetailsById = async (id) => {
   try {
     const [projectRes, planningRes, memberRes] = await Promise.all([
-      axios.get(`/projects/${id}`, axiosConfig),
-      axios.get(`/planning/all`, { params: { projectId: id }, ...axiosConfig }),
-      axios.get(`/projects/members/students`, { params: { projectId: id }, ...axiosConfig }),
+      api.get(`/projects/${id}`, apiConfig),
+      api.get(`/planning/all`, { params: { projectId: id }, ...apiConfig }),
+      api.get(`/projects/members/students`, { params: { projectId: id }, ...apiConfig }),
     ])
 
     projectDetails.projectId = projectRes.data.projectId

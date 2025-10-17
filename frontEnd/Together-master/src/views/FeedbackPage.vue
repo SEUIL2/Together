@@ -52,7 +52,7 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
-import axios from 'axios';
+import api from '@/api';
 
 const loading = ref(true);
 
@@ -87,7 +87,7 @@ const fetchFeedbackCategories = async () => {};
 
 const fetchFeedbacks = async () => {
   try {
-    const { data } = await axios.get('/feedbacks/my');
+    const { data } = await api.get('/feedbacks/my');
     // 백엔드에서 받은 Set<String> 형태의 카테고리를 프론트엔드에서 사용할 객체 배열 형태로 변환합니다.
     const processedData = data.map(fb => ({
       ...fb,
@@ -111,7 +111,7 @@ const fetchFeedbacks = async () => {
 
 const markAsRead = async (feedbackId) => {
   try {
-    await axios.post(`/feedbacks/${feedbackId}/read`, null);
+    await api.post(`/feedbacks/${feedbackId}/read`, null);
     const feedback = feedbacks.value.find(fb => fb.feedbackId === feedbackId);
     if (feedback) feedback.isRead = true;
   } catch (err) {
@@ -122,7 +122,7 @@ const markAsRead = async (feedbackId) => {
 const deleteFeedback = async (feedbackId) => {
   if (!confirm('이 피드백을 정말 삭제하시겠습니까?')) return;
   try {
-    await axios.delete(`/feedbacks/${feedbackId}`);
+    await api.delete(`/feedbacks/${feedbackId}`);
     feedbacks.value = feedbacks.value.filter((fb) => fb.feedbackId !== feedbackId);
   } catch (err) {
     console.error('피드백 삭제 실패:', err);

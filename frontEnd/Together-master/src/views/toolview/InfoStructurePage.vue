@@ -108,7 +108,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import axios from 'axios'
+import api from '@/api'
 import ToolBox from '@/components/diagramtool/ToolBox.vue'
 import IABlock from '@/components/diagramtool/ia/IABlock.vue'
 import IARelationship from '@/components/diagramtool/ia/IARelationship.vue'
@@ -138,7 +138,7 @@ const tempLinePoints = computed(() => tempLine.value ? [...tempLine.value.from, 
 // 최초 진입 시 데이터 불러오기
 onMounted(async () => {
   try {
-    const res = await axios.get('/planning/all', {
+    const res = await api.get('/planning/all', {
       params: { projectId: props.projectId },
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true,
@@ -200,8 +200,8 @@ async function doSave() {
       form.append('files', imageBlob, 'infostructure_capture.png');
     }
 
-    await axios.put('/planning/update', form, {
-      headers: { Authorization: localStorage.getItem('authHeader') }, // Content-Type은 axios가 자동으로 설정
+    await api.put('/planning/update', form, {
+      headers: { Authorization: localStorage.getItem('authHeader') }, // Content-Type은 api가 자동으로 설정
       withCredentials: true,
     });
 

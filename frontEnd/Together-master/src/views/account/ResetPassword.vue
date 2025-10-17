@@ -106,7 +106,7 @@
 </template>
 
 <script>
-import axios from "axios";
+import api from "@/api";
 import router from "@/router"; // 프로젝트의 router 설정 경로에 맞춰주세요
 
 export default {
@@ -149,7 +149,7 @@ export default {
         return;
       }
       try {
-        await axios.post("/auth/find-password", null, {
+        await api.post("/auth/find-password", null, {
           params: { email: this.email },
         });
         this.step = "verify";
@@ -191,7 +191,7 @@ export default {
         return;
       }
       try {
-        await axios.post("/auth/reset-password", null, {
+        await api.post("/auth/reset-password", null, {
           params: {
             email: this.email,
             code: this.code,
@@ -222,7 +222,7 @@ export default {
       this.isResending = true;
       this.errorMessage = "";
       try {
-        await axios.post("/auth/find-password", null, {
+        await api.post("/auth/find-password", null, {
           params: { email: this.email },
         });
       } catch (err) {

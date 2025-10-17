@@ -33,7 +33,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import axios from 'axios'
+import api from '@/api'
 
 const router = useRouter()
 const projectName = ref("")
@@ -50,7 +50,7 @@ const createProject = async () => {
       title: projectName.value
     }
 
-    const res = await axios.post("/projects/create", payload)
+    const res = await api.post("/projects/create", payload)
     alert("프로젝트가 성공적으로 생성되었습니다!")
 
     console.log("생성된 프로젝트:", res.data)

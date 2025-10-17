@@ -38,7 +38,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import axios from 'axios';
+import api from '@/api';
 
 const props = defineProps({
   projectId: {
@@ -52,7 +52,7 @@ const priorities = ['상', '중', '하'];
 
 async function fetchDevOrderItems() {
   try {
-    const { data } = await axios.get('/dev-order-items', {
+    const { data } = await api.get('/dev-order-items', {
       params: { projectId: props.projectId },
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true,
@@ -78,7 +78,7 @@ async function addDevOrderItem() {
     completed: false,
   };
   try {
-    const { data } = await axios.post('/dev-order-items', newRow, {
+    const { data } = await api.post('/dev-order-items', newRow, {
       params: { projectId: props.projectId },
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true,
@@ -99,7 +99,7 @@ async function updateDevOrderItem(row) {
       description: row.featureDescription,
       completed: row.completed,
     };
-    await axios.put(`/dev-order-items/${row.id}`, requestDto, {
+    await api.put(`/dev-order-items/${row.id}`, requestDto, {
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true,
     });
@@ -109,7 +109,7 @@ async function updateDevOrderItem(row) {
 }
 
 async function toggleDevOrderItemStatus(row) {
-  await axios.patch(`/dev-order-items/${row.id}/status`, { completed: row.completed }, {
+  await api.patch(`/dev-order-items/${row.id}/status`, { completed: row.completed }, {
     headers: { Authorization: localStorage.getItem('authHeader') },
     withCredentials: true,
   });
@@ -117,7 +117,7 @@ async function toggleDevOrderItemStatus(row) {
 
 async function deleteDevOrderItem(itemId, index) {
   try {
-    await axios.delete(`/dev-order-items/${itemId}`, {
+    await api.delete(`/dev-order-items/${itemId}`, {
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true,
     });

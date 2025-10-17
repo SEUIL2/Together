@@ -23,7 +23,7 @@
 </template>
 
 <script>
-import axios from 'axios';
+import api from '@/api';
 
 export default {
   name: 'InviteModal',
@@ -49,7 +49,7 @@ export default {
       }
 
       try {
-        const response = await axios.post(
+        const response = await api.post(
             '/projects/invite',
             {},
             { params: { email: this.inviteEmail } }

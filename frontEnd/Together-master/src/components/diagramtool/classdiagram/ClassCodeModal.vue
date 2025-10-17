@@ -49,7 +49,7 @@
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
-import axios from 'axios'
+import api from '@/api'
 import Prism from 'prismjs'
 import 'prismjs/components/prism-java'
 import 'prismjs/components/prism-python'
@@ -147,7 +147,7 @@ async function fetchCodeDetail(id = props.codeId) {
   loading.value = true
   error.value = ''
   try {
-    const res = await axios.get(`/api/ai-code/${id}`)
+    const res = await api.get(`/api/ai-code/${id}`)
     codeResults.value = { [res.data.language]: res.data.generatedCode }
     selectedLang.value = res.data.language
   } catch (e) {
@@ -162,12 +162,12 @@ async function refreshCode() {
   loading.value = true
   error.value = ''
   try {
-    await axios.post('/api/ai-code/generate/class', {
+    await api.post('/api/ai-code/generate/class', {
       codeName: props.codeName,
       language: selectedLang.value
     })
     // 전체 코드 목록에서 가장 최근 코드 찾기
-    const allRes = await axios.get('/api/ai-code')
+    const allRes = await api.get('/api/ai-code')
     const newCode = allRes.data
       .filter(item => item.language === selectedLang.value)
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0]

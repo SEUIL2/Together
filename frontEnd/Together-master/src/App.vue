@@ -48,7 +48,7 @@ const isProfessorGlobalView = computed(() => {
 // 레이아웃(헤더, 사이드바)을 표시할지 여부를 결정합니다.
 const showLayout = computed(() => {
   // 로그인, 회원가입, 프로젝트 생성, 랜딩 페이지에서는 숨깁니다.
-  return !['/', '/login', '/Login', '/Signup', '/CreateProject', '/SignupDetails', '/EmailVerification', '/admin', '/MainPage2'].includes(route.path);
+  return !['/', '/login', '/Login', '/Signup', '/CreateProject', '/SignupDetails', '/EmailVerification', '/admin', '/MainPage2','/create-project/ai'].includes(route.path);
 });
 
 

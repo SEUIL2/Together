@@ -35,7 +35,7 @@
 
 <script setup>
 import { onMounted, ref } from 'vue'
-import axios from 'axios'
+import api from '@/api'
 
 const props = defineProps({
   projectId: Number
@@ -47,7 +47,7 @@ const currentUserId = ref(null)
 
 onMounted(async () => {
   try {
-    const { data: me } = await axios.get('/auth/me', { withCredentials: true })
+    const { data: me } = await api.get('/auth/me', { withCredentials: true })
     currentUserId.value = me.userId
     console.log('🙋 사용자 ID:', currentUserId.value)
     await loadFeedbacks()
@@ -58,7 +58,7 @@ onMounted(async () => {
 
 const loadFeedbacks = async () => {
   try {
-    const res = await axios.get('/feedbacks/my', {
+    const res = await api.get('/feedbacks/my', {
       params: { projectId: props.projectId },
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true
@@ -77,7 +77,7 @@ const loadFeedbacks = async () => {
 const deleteFeedback = async (id) => {
   if (!confirm('정말 삭제하시겠습니까?')) return
   try {
-    await axios.delete(`/feedbacks/${id}`, {
+    await api.delete(`/feedbacks/${id}`, {
       params: { projectId: props.projectId },
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true
@@ -91,7 +91,7 @@ const deleteFeedback = async (id) => {
 
 const markAsRead = async (feedbackId) => {
   try {
-    await axios.post(`/feedbacks/${feedbackId}/read`, null, {
+    await api.post(`/feedbacks/${feedbackId}/read`, null, {
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true
     })

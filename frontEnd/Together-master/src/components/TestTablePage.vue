@@ -40,21 +40,21 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import axios from '@/utils/axiosInstance' // 공통 axios 인스턴스
+import api from '@/api'
 
 const rows = ref([])
 const teamMembers = ref([])
 const tableType = 'INTEGRATION' // 단위테스트면 'UNIT'
 
 async function fetchRows() {
-  const { data } = await axios.get('/api/test-rows/list', {
+  const { data } = await api.get('/api/test-rows/list', {
     params: { tableType }
   })
   rows.value = data
 }
 
 async function fetchTeamMembers() {
-  const { data } = await axios.get('/api/project-members')
+  const { data } = await api.get('/api/project-members')
   teamMembers.value = data.filter(member => member.role === 'STUDENT')
 }
 
@@ -63,7 +63,7 @@ function formatDate(dateStr) {
 }
 
 async function addRow() {
-  const { data } = await axios.post('/api/test-rows/create', null, {
+  const { data } = await api.post('/api/test-rows/create', null, {
     params: {
       tableType,
       itemName: '',
@@ -75,7 +75,7 @@ async function addRow() {
 
 async function saveRow(row) {
   if (!row.rowId) return
-  await axios.put(`/api/test-rows/update/${row.rowId}`, null, {
+  await api.put(`/api/test-rows/update/${row.rowId}`, null, {
     params: {
       itemName: row.itemName,
       description: row.description,
@@ -85,7 +85,7 @@ async function saveRow(row) {
 }
 
 async function toggleCompleted(row) {
-  const { data } = await axios.patch(`/api/test-rows/toggle/${row.rowId}`)
+  const { data } = await api.patch(`/api/test-rows/toggle/${row.rowId}`)
   row.completed = data.completed
 }
 

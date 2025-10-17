@@ -65,7 +65,7 @@
 
 <script setup>
 import {ref, watch, onMounted} from 'vue'
-import axios from 'axios'
+import api from '@/api'
 import {useRouter} from 'vue-router'
 import defaultImage from '@/assets/defaultimage.png'
 import { API_BASE_URL } from '@/config'
@@ -79,7 +79,7 @@ const emit = defineEmits(['close', 'updated'])
 const router = useRouter()
 
 const authHeader = localStorage.getItem('authHeader')
-if (authHeader) axios.defaults.headers.common['Authorization'] = authHeader
+if (authHeader) api.defaults.headers.common['Authorization'] = authHeader
 
 // State
 const userId = ref(null)
@@ -91,7 +91,7 @@ const userColor = ref('#cccccc')
 const theme = ref('LIGHT')
 const fileInput = ref(null)
 
-const axiosInstance = axios.create({
+const apiInstance = api.create({
   baseURL: API_BASE_URL,
   headers: {
     'Authorization': localStorage.getItem('authHeader') || ''
@@ -99,7 +99,7 @@ const axiosInstance = axios.create({
   withCredentials: true
 })
 
-axiosInstance.interceptors.request.use(config => {
+apiInstance.interceptors.request.use(config => {
   const token = localStorage.getItem('authHeader')
   if (token) {
     config.headers.Authorization = token
@@ -116,7 +116,7 @@ function closeModal() {
 
 async function fetchProfile() {
   try {
-    const {data} = await axiosInstance.get('/users/profile')
+    const {data} = await apiInstance.get('/users/profile')
     userId.value = data.userId
     userName.value = data.userName
     userEmail.value = data.userEmail
@@ -125,7 +125,7 @@ async function fetchProfile() {
     theme.value = data.theme || 'LIGHT'
 
     // Fetch user color
-    const memberRes = await axiosInstance.get('/projects/members')
+    const memberRes = await apiInstance.get('/projects/members')
     const me = memberRes.data.find(m => m.userId === userId.value)
     userColor.value = me?.userColor || '#cccccc'
 
@@ -143,7 +143,7 @@ async function fetchProfile() {
 
 async function saveProfile() {
   try {
-    await axiosInstance.put('/users/profile', {
+    await apiInstance.put('/users/profile', {
       userName: userName.value,
       bio: bio.value,
       profileImageUrl: profileImageUrl.value,
@@ -168,7 +168,7 @@ async function onFileChange(e) {
   const formData = new FormData()
   formData.append('image', file)
   try {
-    const res = await axiosInstance.put(
+    const res = await apiInstance.put(
         '/users/profile/image',
         formData,
         {headers: {'Content-Type': 'multipart/form-data'}}
@@ -191,7 +191,7 @@ async function selectColor(color) {
     return
   }
   try {
-    await axiosInstance.put(
+    await apiInstance.put(
         `/projects/members/${userId.value}/color`,
         null,
         {params: {colorHex: color}}
@@ -210,7 +210,7 @@ async function deleteAccount() {
   if (!ok) return
 
   try {
-    await axiosInstance.delete('/auth/me')
+    await apiInstance.delete('/auth/me')
     alert('회원 탈퇴가 완료되었습니다. 그동안 이용해 주셔서 감사합니다.')
     localStorage.removeItem('authHeader')
     router.push({name: 'MainPage'})

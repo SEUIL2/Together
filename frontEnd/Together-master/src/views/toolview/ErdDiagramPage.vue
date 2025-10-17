@@ -119,7 +119,7 @@
 </template>
 
 <script setup>
-import axios from 'axios'
+import api from '@/api'
 import { ref, watch, onMounted } from 'vue'
 import ErdEntityBox from '@/components/diagramtool/erd/ErdEntityBox.vue'
 import ErdRelationshipBent from '@/components/diagramtool/erd/ErdRelationshipBent.vue'
@@ -414,7 +414,7 @@ const saveErd = debounce(async () => {
   const config = token ? { headers: { Authorization: token } } : {}
 
   try {
-    await axios.post('/design/upload', formData, config)
+    await api.post('/design/upload', formData, config)
     saveStatus.value = 'saved' // 저장됨 표시
     setTimeout(() => saveStatus.value = 'idle', 1200) // 1.2초 뒤 숨김
   } catch (e) {
@@ -431,7 +431,7 @@ watch([boxes, relationships], saveErd, { deep: true })
 
 onMounted(async () => {
   try {
-    const res = await axios.get('/design/all', {
+    const res = await api.get('/design/all', {
       params: { projectId: props.projectId },
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true

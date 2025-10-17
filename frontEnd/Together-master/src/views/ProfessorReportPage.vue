@@ -108,7 +108,7 @@
 
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
-import axios from '@/utils/axiosInstance.js'
+import api from '@/api'
 import ReportFeedback from '@/components/ReportFeedback.vue';
 
 const projects = ref([]);
@@ -153,7 +153,7 @@ const formatDate = (dateStr) => {
 
 const fetchProjects = async () => {
   try {
-    const { data } = await axios.get('/projects/my-projects/sorted-by-created');
+    const { data } = await api.get('/projects/my-projects/sorted-by-created');
     projects.value = data;
   } catch (error) {
     console.error('프로젝트 목록 로딩 실패:', error);
@@ -163,7 +163,7 @@ const fetchProjects = async () => {
 const fetchReports = async () => {
   if (!selectedProjectId.value) return;
   try {
-    const { data } = await axios.get('/reports', {
+    const { data } = await api.get('/reports', {
       params: { projectId: selectedProjectId.value }
     });
     if (Array.isArray(data)) {
@@ -199,7 +199,7 @@ const selectReport = (index) => {
 const exportReportAsPdf = async () => {
   if (!selectedReport.value) return;
   try {
-    const response = await axios.get(
+    const response = await api.get(
       `/reports/export/${selectedReport.value.id}`,
       { responseType: 'blob' }
     );
@@ -229,7 +229,7 @@ const exportAllReportsAsPdf = async () => {
   }
 
   try {
-    const response = await axios.get(
+    const response = await api.get(
       `/reports/export/all`,
       {
         params: { projectId: selectedProjectId.value },

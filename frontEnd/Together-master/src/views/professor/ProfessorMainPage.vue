@@ -184,20 +184,23 @@ async function performSearch() {
         // 백엔드 필드명과 매핑
         const keyMapping = {
           '언어': 'devLanguage',
-          'language': 'devLanguage',
-          'devlanguage': 'devLanguage',
+          '개발언어': 'devLanguage',
+          '개발 언어': 'devLanguage',
+          '데이터베이스': 'database',
           'db': 'database',
-          'database': 'database',
           '프레임워크': 'framework',
-          'framework': 'framework',
           'os': 'operatingSystem',
           '운영체제': 'operatingSystem',
-          'operatingsystem': 'operatingSystem',
           'ide': 'ide',
+          '개발환경': 'ide',
+          '통합개발환경': 'ide',
+          '개발 환경': 'ide',
+          '통합 개발 환경': 'ide',
           '버전관리': 'versionControl',
-          'versioncontrol': 'versionControl',
+          '버전 관리': 'versionControl',
+          '버전관리시스템': 'versionControl',
+          '버전 관리 시스템': 'versionControl',
           '기타': 'etc',
-          'etc': 'etc'
         };
 
         const mappedKey = keyMapping[paramKey];

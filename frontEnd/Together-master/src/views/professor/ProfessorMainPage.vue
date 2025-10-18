@@ -27,7 +27,7 @@
         <input
             type="text"
             v-model="searchQuery"
-            placeholder="개발 언어로 검색..."
+            placeholder="예: 언어:Java, DB:MySQL"
             @keyup.enter="performSearch"
             class="search-input"
         />
@@ -161,16 +161,63 @@ async function fetchInitialProjects() {
   }
 }
 
-// ⭐️ 개발 언어로 프로젝트를 검색하는 함수
+// ⭐️ 여러 기준으로 프로젝트를 검색하는 함수
 async function performSearch() {
-  if (!searchQuery.value.trim()) {
+  const query = searchQuery.value.trim();
+  if (!query) {
     showToast('검색어를 입력해주세요.', 'warning');
     return;
   }
+
+  let searchParams = {};
+
+  // "key:value" 형식 감지
+  if (query.includes(':')) {
+    // 검색어를 key:value 쌍으로 파싱 (예: "언어:Java, DB:MySQL")
+    const parts = query.split(',');
+    for (const part of parts) {
+      const [key, value] = part.split(':');
+      if (key && value) {
+        const paramKey = key.trim().toLowerCase();
+        const paramValue = value.trim();
+
+        // 백엔드 필드명과 매핑
+        const keyMapping = {
+          '언어': 'devLanguage',
+          'language': 'devLanguage',
+          'devlanguage': 'devLanguage',
+          'db': 'database',
+          'database': 'database',
+          '프레임워크': 'framework',
+          'framework': 'framework',
+          'os': 'operatingSystem',
+          '운영체제': 'operatingSystem',
+          'operatingsystem': 'operatingSystem',
+          'ide': 'ide',
+          '버전관리': 'versionControl',
+          'versioncontrol': 'versionControl',
+          '기타': 'etc',
+          'etc': 'etc'
+        };
+
+        const mappedKey = keyMapping[paramKey];
+        if (mappedKey && paramValue) {
+          searchParams[mappedKey] = paramValue;
+        }
+      }
+    }
+  }
+
+  // "key:value" 형식이 아니거나, 파싱 후에도 파라미터가 없는 경우
+  // 모든 필드를 대상으로 하는 범용 검색어로 처리 (백엔드에서 'term' 파라미터 지원 가정)
+  if (Object.keys(searchParams).length === 0) {
+    searchParams = { term: query };
+  }
+
   try {
     const authHeader = localStorage.getItem('authHeader');
-    const res = await api.get('/projects/search/language', {
-      params: { lang: searchQuery.value },
+    const res = await api.get('/projects/search/criteria', {
+      params: searchParams,
       headers: { Authorization: authHeader },
       withCredentials: true,
     });
@@ -180,7 +227,7 @@ async function performSearch() {
     }
     projects.value = await processProjects(baseProjects);
   } catch (error) {
-    console.error('❌ 언어 검색 실패:', error);
+    console.error('❌ 기준 검색 실패:', error);
     showToast('검색 중 오류가 발생했습니다.', 'error');
   }
 }

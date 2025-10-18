@@ -354,18 +354,14 @@ const goToStep = (stepName) => {
 }
 
 const goToSubStep = (step, subStepType) => {
-  if (step === '개발' && subStepType === 'environment') {
-    router.push('/development-environment');
-    showAllSubmenus.value = false;
-    return;
-  }
+  // 모든 서브스텝은 프로젝트 컨텍스트(프로젝트 ID와 step/substep 쿼리)로 이동하도록 통일
   if (isProfessorReadOnly.value && projectId.value) {
     router.push({
       path: `/professor/project/${projectId.value}`,
       query: { ...route.query, step, substep: subStepType }
     });
   } else {
-    router.push({ path: '/MyProject', query: { step, substep: subStepType } });
+    router.push({ path: '/myproject', query: { step, substep: subStepType } });
   }
   showAllSubmenus.value = false;
 };

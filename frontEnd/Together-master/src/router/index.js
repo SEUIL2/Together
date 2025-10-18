@@ -328,6 +328,13 @@ const routes = [
     component: () => import('@/views/ProfessorFeedbackPage.vue'),
     meta: { requiresAuth: true, roles: ['PROFESSOR'] }
   },
+  // 개발 환경 설정 (헤더에서 바로 접근 가능한 페이지)
+  {
+    path: '/development-environment',
+    name: 'DevelopmentEnvironment',
+    component: () => import('@/components/myproject/DevelopmentDetails.vue'),
+    meta: { requiresAuth: true }
+  },
   {
     path: '/professor/report',
     name: 'ProfessorReportPage',

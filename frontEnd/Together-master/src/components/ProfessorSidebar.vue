@@ -59,7 +59,7 @@
 </template>
 
 <script setup>
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 
 defineProps({
   isCollapsed: Boolean
@@ -67,9 +67,28 @@ defineProps({
 defineEmits(['toggle'])
 
 const router = useRouter()
+const route = useRoute()
 
 const goTo = (path) => {
   router.push(path)
+}
+
+const getProjectIdFromRoute = () => {
+  const fromParams = route.params.projectId
+  const fromQuery = route.query.projectId || route.query.channel
+  if (typeof fromParams === 'string' || typeof fromParams === 'number') return String(fromParams)
+  if (typeof fromQuery === 'string' || typeof fromQuery === 'number') return String(fromQuery)
+  return ''
+}
+
+const goToVideoChat = () => {
+  const pid = getProjectIdFromRoute()
+  const videoQuery = pid ? { channel: pid } : {}
+  // readonly 쿼리가 있으면 전달
+  if (route.query && route.query.readonly) {
+    videoQuery.readonly = route.query.readonly
+  }
+  router.push({ path: '/videochat', query: videoQuery })
 }
 </script>
 

@@ -163,12 +163,28 @@ const prepareForMeeting = async () => {
   }
 
   try {
-    // 토큰 발급과 회의록 생성을 동시에 요청
-    const [tokenResponse] = await Promise.all([
+    // 1) 확인: 현재 사용자가 교수인지 체크 (auth/me)
+    let isProfessor = false;
+    try {
+      const meResp = await api.get('/auth/me');
+      const roles = meResp.data.roles || [];
+      isProfessor = roles.some(r => r.authority === 'ROLE_PROFESSOR');
+    } catch (e) {
+      // auth 실패 시 기본적으로 교수 아님으로 처리 (안전한 기본값)
+      console.warn('auth/me 호출 실패, 교수 여부 확인 불가:', e);
+    }
+
+    // 2) 토큰 발급과 회의록 생성을 병렬로 시도하되,
+    //    회의록 생성 실패가 있어도 토큰이 정상이라면 교수인 경우에는 경고를 억제합니다.
+    const [tokenResult, meetingResult] = await Promise.allSettled([
       api.get('/agora/token', { params: { projectId: channel.value } }),
       setupMeeting()
     ]);
 
+    if (tokenResult.status !== 'fulfilled') {
+      throw tokenResult.reason || new Error('토큰 요청에 실패했습니다.');
+    }
+    const tokenResponse = tokenResult.value;
     console.log('[DEBUG] Agora 토큰 응답:', tokenResponse.data);
     token.value = tokenResponse.data.token;
     uid.value = tokenResponse.data.userId ?? tokenResponse.data.user_id;
@@ -177,7 +193,20 @@ const prepareForMeeting = async () => {
       throw new Error('토큰 또는 UID가 유효하지 않습니다.');
     }
 
-    console.log('✅ Agora 토큰 및 회의록 준비 완료');
+    // 회의록 생성 결과 처리
+    if (meetingResult.status === 'rejected' || meetingResult.value === false) {
+      console.error('회의록 생성 중 오류가 발생했습니다:', meetingResult.status === 'rejected' ? meetingResult.reason : '생성 실패');
+      if (!isProfessor) {
+        // 교수는 회의록 생성 실패 경고를 보지 않도록 처리
+        alert('회의록을 생성하는 데 실패했습니다. 회의 내용은 저장되지 않을 수 있습니다.');
+        return false;
+      } else {
+        // 교수는 회의록이 필요없으므로 무시
+        meetingId.value = null;
+      }
+    }
+
+    console.log('✅ Agora 토큰 및 회의 준비 완료');
     return true;
   } catch (error) {
     console.error('❌ 화상회의 준비 실패:', error.response?.data || error.message);
@@ -222,9 +251,11 @@ const setupMeeting = async () => {
     meetingCategory.value = response.data.category; // 생성된 회의록의 카테고리 저장
     meetingNotes.value = response.data.content;
     console.log(`✅ 화상회의를 위한 회의록(ID: ${meetingId.value})이 생성되었습니다.`);
+    return true;
   } catch (err) {
     console.error('❌ 회의록 생성 실패:', err);
-    alert('회의록을 생성하는 데 실패했습니다. 회의 내용은 저장되지 않을 수 있습니다.');
+    // 실패시 true/false 반환으로 caller가 표시 여부를 결정하도록 함
+    return false;
   }
 };
 
@@ -257,8 +288,19 @@ const leaveChannel = async (redirectOnly = false) => {
       await client.value.leave();
     }
   }
-  // MeetingPage로 돌아갈 때 projectId를 쿼리에 포함
-  router.push({ name: 'MeetingPage', query: { projectId: channel.value } });
+
+  const pid = channel.value;
+  const readonly = route.query?.readonly;
+  const projectTitle = route.query?.projectTitle;
+
+  // 교수 열람 모드로 들어온 경우, 퇴장 시에도 읽기 모드를 유지해 프로젝트 뷰로 복귀
+  if (readonly && pid) {
+    router.push({ path: `/professor/project/${pid}`, query: { readonly, projectTitle } });
+    return;
+  }
+
+  // 기본: MeetingPage로 이동
+  router.push({ name: 'MeetingPage', query: { projectId: pid } });
 };
 
 onUnmounted(() => {

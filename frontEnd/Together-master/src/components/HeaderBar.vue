@@ -16,6 +16,17 @@
       </nav>
 
       <div class="settings-icon">
+        <!-- 알림 아이콘 버튼 -->
+        <div ref="notificationRef" class="notification-button-wrapper">
+          <button class="icon-button notification-btn" @click="toggleNotificationModal">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+            </svg>
+            <span v-if="unreadCount > 0" class="notification-badge">{{ unreadCount }}</span>
+          </button>
+        </div>
+        
         <div ref="settingsRef">
           <button class="icon-button" @click="toggleMenu">
             <img src="@/assets/settings.png" alt="Settings" class="settings-img" />
@@ -36,33 +47,14 @@
         @updated="onProfileUpdated"
     />
 
-    <div v-if="!isProfessor || isProfessorReadOnly" class="mega-menu-container" :class="{ open: showAllSubmenus }" @mouseenter="showAllSubmenus = true" @mouseleave="showAllSubmenus = false">
-      <div class="mega-menu-content">
-        <div class="mega-menu-column">
-          <button v-for="item in planningItems" :key="item.type" class="inline-item" @click="goToSubStep('기획', item.type)">
-            {{ item.name }}
-          </button>
+    <!-- 알림 전용 모달 -->
+    <div v-if="showNotificationModal" class="notification-modal-overlay">
+      <div class="notification-modal" @click.stop>
+        <div class="notification-modal-header">
+          <h3>알림</h3>
+          <button class="close-modal-btn" @click="closeNotificationModal">&times;</button>
         </div>
-        <div class="mega-menu-column">
-          <button v-for="item in designItems" :key="item.type" class="inline-item" @click="goToSubStep('설계', item.type)">
-            {{ item.name }}
-          </button>
-        </div>
-        <div class="mega-menu-column">
-          <button v-for="item in developItems" :key="item.type" class="inline-item" @click="goToSubStep('개발', item.type)">
-            {{ item.name }}
-          </button>
-        </div>
-        <div class="mega-menu-column">
-          <button v-for="item in testItems" :key="item.type" class="inline-item" @click="goToSubStep('테스트', item.type)">
-            {{ item.name }}
-          </button>
-        </div>
-        <div class="mega-menu-column notification-section">
-          <div class="popup-header">
-            <h3>알림</h3>
-            <span v-if="unreadCount > 0" class="unread-dot"></span>
-          </div>
+        <div class="notification-modal-content">
           <div v-if="invitations.length === 0 && notifications.length === 0" class="no-notifications">
             <p>새로운 알림이 없습니다.</p>
           </div>
@@ -96,6 +88,73 @@
         </div>
       </div>
     </div>
+
+    <div v-if="!isProfessor || isProfessorReadOnly" class="mega-menu-container" :class="{ open: showAllSubmenus }" @mouseenter="showAllSubmenus = true" @mouseleave="showAllSubmenus = false">
+      <div class="mega-menu-content">
+        <div class="mega-menu-column">
+          <button v-for="item in planningItems" :key="item.type" class="inline-item" @click="goToSubStep('기획', item.type)">
+            {{ item.name }}
+          </button>
+        </div>
+        <div class="mega-menu-column">
+          <button v-for="item in designItems" :key="item.type" class="inline-item" @click="goToSubStep('설계', item.type)">
+            {{ item.name }}
+          </button>
+        </div>
+        <div class="mega-menu-column">
+          <button v-for="item in developItems" :key="item.type" class="inline-item" @click="goToSubStep('개발', item.type)">
+            {{ item.name }}
+          </button>
+        </div>
+        <div class="mega-menu-column">
+          <button v-for="item in testItems" :key="item.type" class="inline-item" @click="goToSubStep('테스트', item.type)">
+            {{ item.name }}
+          </button>
+        </div>
+        <!-- 알림 섹션을 메가메뉴 우측에 추가 -->
+        <div class="mega-menu-column notification-mega-section">
+          <!-- 알림 헤더 -->
+          <div class="notification-mega-header">
+            <div v-if="unreadCount > 0" class="notification-text-highlight">
+              새 알림이 {{ unreadCount }}개 있습니다.
+            </div>
+          </div>
+          
+          <!-- 알림 미리보기 목록 -->
+          <div class="notification-preview-list">
+            <div v-if="invitations.length === 0 && notifications.length === 0" class="no-notifications-preview">
+              <p>새로운 알림이 없습니다.</p>
+            </div>
+            <template v-else>
+              <!-- 초대 알림 미리보기 (최대 2개) -->
+              <div v-for="invite in invitations.slice(0, 2)" :key="`preview-invite-${invite.invitationId}`" class="notification-preview-item">
+                <img src="@/assets/invite.png" class="preview-icon" alt="초대"/>
+                <div class="preview-content">
+                  <p class="preview-message">
+                    <strong>{{ truncateText(invite.projectTitle, 15) }}</strong> 프로젝트 초대
+                  </p>
+                  <span class="preview-time">{{ formatTime(invite.createdAt) }}</span>
+                </div>
+              </div>
+              
+              <!-- 일반 알림 미리보기 (최대 3개, 초대 알림이 있으면 조정) -->
+              <div v-for="noti in notifications.slice(0, Math.max(1, 3 - invitations.length))" :key="`preview-noti-${noti.id}`" class="notification-preview-item">
+                <img :src="getNotificationIconPath(noti)" class="preview-icon" alt="알림"/>
+                <div class="preview-content">
+                  <p class="preview-message">{{ truncateText(noti.message, 25) }}</p>
+                  <span class="preview-time">{{ formatTime(noti.createdAt) }}</span>
+                </div>
+              </div>
+              
+              <!-- 더 많은 알림이 있을 때 표시 -->
+              <div v-if="(invitations.length + notifications.length) > 3" class="more-notifications-hint">
+                ... 그 외 {{ (invitations.length + notifications.length) - 3 }}개의 알림
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -116,7 +175,9 @@ const isLoggedIn = ref(false)
 const userRole = ref('')
 const showMenu = ref(false)
 const showProfileModal = ref(false)
+const showNotificationModal = ref(false)
 const settingsRef = ref(null)
+const notificationRef = ref(null)
 
 const isProfessor = computed(() => userRole.value === 'PROFESSOR')
 const isProfessorReadOnly = computed(() => route.query.readonly === 'true')
@@ -176,6 +237,17 @@ const testItems = [
 const invitations = ref([])
 const notifications = ref([])
 let pollingTimer = null
+
+const toggleNotificationModal = () => {
+  showNotificationModal.value = !showNotificationModal.value
+  if (showNotificationModal.value) {
+    fetchAllNotifications()
+  }
+}
+
+const closeNotificationModal = () => {
+  showNotificationModal.value = false
+}
 
 watch(showAllSubmenus, (newValue) => {
   if (newValue) {
@@ -265,6 +337,13 @@ function formatTime(dateStr) {
 }
 
 const unreadCount = computed(() => invitations.value.length + notifications.value.length);
+
+// 텍스트 잘라내기 함수 (미리보기용)
+const truncateText = (text, maxLength) => {
+  if (!text) return '';
+  return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+};
+
 // --- Notification Logic End ---
 
 
@@ -304,6 +383,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleClickOutside)
+  window.removeEventListener('login-success', checkLoginStatus)
   clearInterval(pollingTimer);
 })
 
@@ -342,6 +422,16 @@ const handleAuth = async () => {
 const handleClickOutside = (e) => {
   if (showMenu.value && settingsRef.value && !settingsRef.value.contains(e.target)) {
     showMenu.value = false
+  }
+  if (showNotificationModal.value) {
+    const modalElement = document.querySelector('.notification-modal')
+    const notificationIconBtn = notificationRef.value
+    
+    // 모달, 알림 아이콘 버튼 외부를 클릭한 경우에만 모달 닫기
+    if (modalElement && !modalElement.contains(e.target) &&
+        (!notificationIconBtn || !notificationIconBtn.contains(e.target))) {
+      showNotificationModal.value = false
+    }
   }
 }
 
@@ -478,12 +568,157 @@ nav ul li button.active::after{
   color: var(--brand);
 }
 
+/* ===== 메가메뉴 알림 섹션 ===== */
+.notification-mega-section {
+  width: 380px;
+  margin-left: auto;
+  margin-right: 24px;
+  padding-left: 32px;
+  border-left: 1px solid #e5e7eb;
+}
+
+.notification-mega-header {
+  margin-bottom: 16px;
+}
+
+.notification-text-highlight {
+  background: linear-gradient(135deg, #ff6b6b, #ff8e8e);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3);
+  }
+  50% {
+    box-shadow: 0 2px 16px rgba(255, 107, 107, 0.5);
+  }
+}
+
+.notification-preview-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.notification-preview-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  transition: background-color 0.2s;
+  cursor: pointer;
+}
+
+.notification-preview-item:hover {
+  background: #e9ecef;
+}
+
+.preview-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.preview-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.preview-message {
+  font-size: 13px;
+  color: #333;
+  margin: 0 0 4px 0;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.preview-message strong {
+  font-weight: 600;
+  color: var(--brand);
+}
+
+.preview-time {
+  font-size: 11px;
+  color: #888;
+}
+
+.no-notifications-preview {
+  text-align: center;
+  padding: 32px 16px;
+  color: #999;
+}
+
+.no-notifications-preview p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.more-notifications-hint {
+  text-align: center;
+  padding: 8px;
+  font-size: 12px;
+  color: #666;
+  font-style: italic;
+}
+
 /* ===== 설정/뱃지 등 간단 유지 ===== */
 .settings-icon{
   position:relative; display:flex; align-items:center; gap:1rem;
   padding-right: 24px;
   margin-left: auto;
 }
+
+.notification-button-wrapper {
+  position: relative;
+}
+
+.notification-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notification-btn svg {
+  color: #333;
+  transition: color 0.2s;
+}
+
+.notification-btn:hover svg {
+  color: var(--brand);
+}
+
+.notification-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background-color: #ff3b30;
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 5px;
+  border-radius: 10px;
+  min-width: 16px;
+  text-align: center;
+}
+
 .settings-img{width:24px; height:24px}
 .settings-popup{
   position:absolute; top:40px; right:0; background:#fff; border:1px solid #ddd; border-radius:6px;
@@ -494,37 +729,95 @@ nav ul li button.active::after{
 .icon-button{background:none; border:none; cursor:pointer}
 .icon-button:focus{outline:none}
 
-
-/* --- Notification Styles --- */
-.notification-section {
-  width: 380px;
-  margin-left: auto;
-  padding-right: 2rem;
+/* ===== 알림 모달 스타일 ===== */
+.notification-modal-overlay {
+  position: fixed;
+  top: 60px;
+  right: 24px;
+  z-index: 2000;
+  pointer-events: none;
 }
-.popup-header {
+
+.notification-modal {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  width: 420px;
+  max-height: calc(100vh - 100px);
+  display: flex;
+  flex-direction: column;
+  animation: slideIn 0.3s ease-out;
+  pointer-events: auto;
+  border: 1px solid #e0e0e0;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.notification-modal-header {
   display: flex;
   align-items: center;
-  padding: 0 0 16px 0;
+  justify-content: space-between;
+  padding: 20px 24px;
   border-bottom: 1px solid #f0f0f0;
 }
-.popup-header h3 {
+
+.notification-modal-header h3 {
   margin: 0;
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 600;
   color: #333;
 }
-.unread-dot {
-  margin-left: 8px;
-  width: 9px;
-  height: 9px;
-  background-color: #ff3b30;
-  border-radius: 50%;
+
+.close-modal-btn {
+  background: none;
+  border: none;
+  font-size: 28px;
+  color: #888;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
+
+.close-modal-btn:hover {
+  color: #333;
+}
+
+.notification-modal-content {
+  overflow-y: auto;
+  flex: 1;
+}
+
+.no-notifications {
+  text-align: center;
+  padding: 60px 20px;
+  color: #999;
+}
+
+.no-notifications p {
+  margin: 0;
+  font-size: 15px;
+}
+
+/* --- Notification List Common Styles --- */
 .notification-list {
-  padding: 8px 0;
+  padding: 0;
   margin: 0;
   list-style: none;
-  max-height: 350px;
+  max-height: 500px;
   overflow-y: auto;
 }
 .notification-item {
@@ -532,9 +825,11 @@ nav ul li button.active::after{
   grid-template-columns: 40px 1fr auto;
   grid-template-areas: "icon content actions";
   gap: 16px;
-  padding: 16px 5px;
+  padding: 16px 20px;
   border-bottom: 1px solid #f0f0f0;
   align-items: center;
+  cursor: pointer;
+  transition: background-color 0.2s;
 }
 .notification-item:last-child {
   border-bottom: none;

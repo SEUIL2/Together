@@ -124,10 +124,21 @@ async function fetchProfile() {
     profileImageUrl.value = data.profileImageUrl
     theme.value = data.theme || 'LIGHT'
 
-    // Fetch user color
-    const memberRes = await apiInstance.get('/projects/members')
-    const me = memberRes.data.find(m => m.userId === userId.value)
-    userColor.value = me?.userColor || '#cccccc'
+    // Fetch user color (프로젝트 컨텍스트 없이도 안전하게 처리)
+    // 프로필에 userColor가 포함되어 있으면 사용, 없으면 기본값 사용
+    userColor.value = data.userColor || '#cccccc'
+
+    // 선택적으로 프로젝트 멤버 색상 정보를 가져오되, 실패해도 계속 진행
+    try {
+      const memberRes = await apiInstance.get('/projects/members')
+      const me = memberRes.data.find(m => m.userId === userId.value)
+      if (me?.userColor) {
+        userColor.value = me.userColor
+      }
+    } catch (memberErr) {
+      // 프로젝트 멤버 정보 조회 실패는 무시 (교수나 프로젝트 컨텍스트 없는 경우)
+      console.log('프로젝트 멤버 정보 조회 실패 (무시됨):', memberErr.message)
+    }
 
   } catch (err) {
     console.error('프로필 조회 실패', err)

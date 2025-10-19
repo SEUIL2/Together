@@ -41,9 +41,10 @@
     <div class="action-buttons">
       <button class="action-btn" @click="showNoticeModal = true">📢 공지사항</button>
       <button class="action-btn" @click="showVoteModal = true">🗳 투표</button>
-
       <button class="action-btn" @click="$emit('createFeedback', project.projectId)">📝 피드백 생성</button>
       <button class="action-btn" @click="showMemoModal = true">🧾 메모</button>
+      <button class="action-btn" @click="goToVideoChat">📹 화상채팅</button>
+      <button class="action-btn" @click="goToReport">📄 보고서</button>
     </div>
 
     <!-- 공지사항 모달 -->
@@ -72,11 +73,14 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import NoticeModal from '@/components/notice/NoticeModal.vue'
 import FeedbackHistoryModal from '@/components/feedback/FeedbackHistoryModal.vue'
 import VotingListModalWrapper from '@/components/dashboard/VotingListModalWrapper.vue'
 import ProjectMemoModal from '@/components/professor/ProjectMemoModal.vue'
+
 const props = defineProps({ project: Object })
+const router = useRouter()
 
 const showNoticeModal = ref(false)
 const showVoteModal = ref(false)
@@ -90,6 +94,34 @@ const defaultImage = new URL('@/assets/defaultimage.png', import.meta.url).href;
 const studentMembers = computed(() => {
   return (props.project?.members || []).filter(m => m.role === 'STUDENT');
 });
+
+// 화상채팅으로 이동 (교수 열람 모드 유지)
+const goToVideoChat = () => {
+  if (!props.project?.projectId) {
+    alert('프로젝트 정보가 없습니다.');
+    return;
+  }
+  const videoQuery = {
+    channel: String(props.project.projectId),
+    readonly: 'true'
+  };
+  router.push({ name: 'VideoChat', query: videoQuery });
+};
+
+// 보고서로 이동 (교수 열람 모드 유지)
+const goToReport = () => {
+  if (!props.project?.projectId) {
+    alert('프로젝트 정보가 없습니다.');
+    return;
+  }
+  router.push({
+    path: '/professor/report',
+    query: {
+      projectId: props.project.projectId,
+      readonly: 'true'
+    }
+  });
+};
 
 </script>
 

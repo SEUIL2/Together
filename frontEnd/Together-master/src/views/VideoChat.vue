@@ -238,6 +238,7 @@ const gridStyle = computed(() => {
 
 const setupMeeting = async () => {
   try {
+    const projectId = route.query.projectId || channel.value;
     const today = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\. /g, '-').replace('.', '');
     const meetingDto = {
       title: `화상회의 - ${today}`,
@@ -245,7 +246,12 @@ const setupMeeting = async () => {
       meetingDate: new Date().toISOString(),
       category: 'DEVELOPMENT' // 기본 카테고리 설정
     };
-    const response = await meetingApi.post('/create', meetingDto);
+    
+    // projectId를 params로 전달 (@CurrentProject 어노테이션이 params에서 가져감)
+    const response = await meetingApi.post('/create', meetingDto, {
+      params: { projectId }
+    });
+    
     meetingId.value = response.data.meetingId;
     meetingTitle.value = response.data.title; // 생성된 회의록의 제목 저장
     meetingCategory.value = response.data.category; // 생성된 회의록의 카테고리 저장
@@ -289,12 +295,12 @@ const leaveChannel = async (redirectOnly = false) => {
     }
   }
 
-  const pid = channel.value;
+  const pid = route.query?.projectId || channel.value;
   const readonly = route.query?.readonly;
   const projectTitle = route.query?.projectTitle;
 
   // 교수 열람 모드로 들어온 경우, 퇴장 시에도 읽기 모드를 유지해 프로젝트 뷰로 복귀
-  if (readonly && pid) {
+  if (readonly === 'true' && pid) {
     router.push({ path: `/professor/project/${pid}`, query: { readonly, projectTitle } });
     return;
   }

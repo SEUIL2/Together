@@ -42,7 +42,8 @@ const toggleSidebar = () => {
 // 교수님 전용 페이지(프로젝트 상세 조회가 아닌)인지 확인
 const isProfessorGlobalView = computed(() => {
   // /professor/ 로 시작하지만, projectId 파라미터가 없는 경우
-  return route.path.startsWith('/professor/') && !route.params.projectId;
+  // 또는 readonly 모드가 아닌 경우 (교수가 프로젝트를 열람 중이 아님)
+  return route.path.startsWith('/professor/') && !route.params.projectId && route.query.readonly !== 'true';
 });
 
 // 레이아웃(헤더, 사이드바)을 표시할지 여부를 결정합니다.

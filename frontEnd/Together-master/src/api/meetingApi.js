@@ -1,16 +1,18 @@
 // src/api/meetingApi.js
 import axios from 'axios'
-import { API_BASE_URL } from '../config'
-
-const token = localStorage.getItem('authHeader') // 여기만 바꾸면 돼!
 
 const api = axios.create({
-  baseURL: `${API_BASE_URL}/meeting`,
-  withCredentials: true,
-  headers: {
-    Authorization: token ? token : ''
-  }
+  baseURL: '/api/meeting',  // 상대 경로로 변경
+  withCredentials: true
 })
 
+// 요청 인터셉터로 Authorization 헤더 추가
+api.interceptors.request.use(config => {
+  const token = localStorage.getItem('authHeader')
+  if (token) {
+    config.headers.Authorization = token
+  }
+  return config
+})
 
 export default api

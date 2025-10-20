@@ -223,14 +223,19 @@ const apiConfig = {
 const fetchProjectDetails = async () => {
   const pid = projectId.value
   if (!pid) {
-    // 학생의 경우, /projects/my 에서 projectId를 먼저 가져와야 함
-    try {
-      const myProjectRes = await api.get('/projects/my', apiConfig)
-      if (myProjectRes.data && myProjectRes.data.projectId) {
-        await fetchDetailsById(myProjectRes.data.projectId)
+    // 교수 읽기 전용 모드가 아니고, projectId가 없을 때만 학생의 프로젝트를 가져옴
+    if (!isProfessorReadOnly.value) {
+      try {
+        const myProjectRes = await api.get('/projects/my', apiConfig)
+        if (myProjectRes.data && myProjectRes.data.projectId) {
+          await fetchDetailsById(myProjectRes.data.projectId)
+        }
+      } catch (error) {
+        console.error("내 프로젝트 ID 로딩 실패:", error)
+        projectDetails.projectName = '프로젝트 없음'
       }
-    } catch (error) {
-      console.error("내 프로젝트 ID 로딩 실패:", error)
+    } else {
+      // 교수 읽기 전용 모드인데 projectId가 없으면 프로젝트 정보를 표시하지 않음
       projectDetails.projectName = '프로젝트 없음'
     }
     return
@@ -269,6 +274,14 @@ onMounted(() => {
   fetchProjectDetails()
   document.addEventListener('click', handleClickOutside)
 })
+
+// route의 projectId나 readonly가 변경될 때마다 프로젝트 정보를 다시 로드
+watch(
+  () => [route.params.projectId, route.query.projectId, route.query.readonly],
+  () => {
+    fetchProjectDetails()
+  }
+)
 
 const handleProjectUpdate = (updatedData) => {
   projectDetails.projectName = updatedData.title

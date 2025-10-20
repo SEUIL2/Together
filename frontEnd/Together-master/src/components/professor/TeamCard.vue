@@ -103,7 +103,9 @@ const goToVideoChat = () => {
   }
   const videoQuery = {
     channel: String(props.project.projectId),
-    readonly: 'true'
+    projectId: String(props.project.projectId),
+    readonly: 'true',
+    projectTitle: props.project.title || '프로젝트'
   };
   router.push({ name: 'VideoChat', query: videoQuery });
 };

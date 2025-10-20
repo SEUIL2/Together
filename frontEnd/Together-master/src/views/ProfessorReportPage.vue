@@ -108,9 +108,11 @@
 
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import api from '@/api'
 import ReportFeedback from '@/components/ReportFeedback.vue';
 
+const route = useRoute()
 const projects = ref([]);
 const selectedProjectId = ref(null);
 const reports = ref([]);
@@ -155,6 +157,18 @@ const fetchProjects = async () => {
   try {
     const { data } = await api.get('/projects/my-projects/sorted-by-created');
     projects.value = data;
+    
+    // URL 쿼리에서 projectId를 읽어 자동 선택
+    const queryProjectId = route.query.projectId;
+    if (queryProjectId) {
+      const projectIdNum = parseInt(queryProjectId, 10);
+      const projectExists = projects.value.some(p => p.projectId === projectIdNum);
+      if (projectExists) {
+        selectedProjectId.value = projectIdNum;
+        // 프로젝트가 선택되면 자동으로 보고서 조회
+        await fetchReports();
+      }
+    }
   } catch (error) {
     console.error('프로젝트 목록 로딩 실패:', error);
   }

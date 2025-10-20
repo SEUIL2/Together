@@ -118,6 +118,9 @@
             <div v-if="unreadCount > 0" class="notification-text-highlight">
               새 알림이 {{ unreadCount }}개 있습니다.
             </div>
+            <button class="view-all-notifications-btn" @click="toggleNotificationModal">
+              모든 알림 보기
+            </button>
           </div>
           
           <!-- 알림 미리보기 목록 -->
@@ -572,7 +575,6 @@ nav ul li button.active::after{
 .notification-mega-section {
   width: 380px;
   margin-left: auto;
-  margin-right: 24px;
   padding-left: 32px;
   border-left: 1px solid #e5e7eb;
 }
@@ -601,6 +603,23 @@ nav ul li button.active::after{
   50% {
     box-shadow: 0 2px 16px rgba(255, 107, 107, 0.5);
   }
+}
+
+.view-all-notifications-btn {
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--brand);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.view-all-notifications-btn:hover {
+  background: #2c5aa0;
 }
 
 .notification-preview-list {

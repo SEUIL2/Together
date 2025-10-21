@@ -73,10 +73,18 @@ public class NewPdfExportService {
 
         PdfWriter.getInstance(document, response.getOutputStream());
 
+        String fontResourcePath = "fonts/NanumGothic-Regular.ttf";
+
         try {
-            koreanFont = BaseFont.createFont("c:/windows/fonts/malgun.ttf", BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
+            // "fonts/NanumGothic.ttf"는 src/main/resources/ 내부의 상대 경로입니다.
+            // 클래스패스에서 리소스를 찾아 폰트를 생성합니다.
+            koreanFont = BaseFont.createFont(fontResourcePath, BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
         } catch (IOException | DocumentException e) {
-            throw new IOException("한글 폰트를 로드할 수 없습니다. 서버 환경의 폰트 경로를 확인하세요.", e);
+            // 폰트 리소스를 찾지 못하거나 읽는 중 문제 발생
+            throw new IOException("프로젝트 리소스에서 폰트를 로드할 수 없습니다: " + fontResourcePath, e);
+        } catch (NullPointerException e) {
+            // createFont 내부에서 리소스를 못찾으면 NullPointerException이 발생할 수 있습니다.
+            throw new IOException(fontResourcePath + " 파일을 찾을 수 없습니다. src/main/resources/ 내 경로를 확인하세요.", e);
         }
 
         document.open();

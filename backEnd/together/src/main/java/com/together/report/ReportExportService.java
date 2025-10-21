@@ -2,6 +2,8 @@
 package com.together.report;
 
 import com.itextpdf.kernel.colors.ColorConstants;
+import com.itextpdf.io.font.PdfEncodings;
+import com.itextpdf.kernel.font.PdfFontFactory.EmbeddingStrategy;
 import com.itextpdf.kernel.font.PdfFont;
 import com.itextpdf.kernel.font.PdfFontFactory;
 import com.itextpdf.kernel.geom.PageSize;
@@ -85,8 +87,8 @@ public class ReportExportService {
     private void addReportContent(Document document, ReportEntity report) throws IOException {
         document.setMargins(50, 50, 50, 50);
 
-        String fontPath = "C:/Windows/Fonts/malgun.ttf";
-        PdfFont koreanFont = PdfFontFactory.createFont(fontPath);
+        String fontPath = "fonts/NanumGothic-Regular.ttf";
+        PdfFont koreanFont = PdfFontFactory.createFont(fontPath, PdfEncodings.IDENTITY_H, EmbeddingStrategy.PREFER_EMBEDDED);
 
         // 1. 메인 타이틀
         Text mainTitle = new Text("주간 업무 보고서").setFont(koreanFont).setFontSize(24).setBold();

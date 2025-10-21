@@ -63,6 +63,8 @@
   </div>
 </template>
 
+// juquett/together/Together-1bab7db606ec7ea9c7528ca3b069cc6cc42e0f71/frontEnd/Together-master/src/components/ProfileSettingsModal.vue
+
 <script setup>
 import {ref, watch, onMounted} from 'vue'
 import api from '@/api'
@@ -78,9 +80,6 @@ const emit = defineEmits(['close', 'updated'])
 
 const router = useRouter()
 
-const authHeader = localStorage.getItem('authHeader')
-if (authHeader) api.defaults.headers.common['Authorization'] = authHeader
-
 // State
 const userId = ref(null)
 const userName = ref('')
@@ -92,20 +91,9 @@ const theme = ref('LIGHT')
 const fileInput = ref(null)
 
 const apiInstance = api.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Authorization': localStorage.getItem('authHeader') || ''
-  },
-  withCredentials: true
+  withCredentials: true 
 })
 
-apiInstance.interceptors.request.use(config => {
-  const token = localStorage.getItem('authHeader')
-  if (token) {
-    config.headers.Authorization = token
-  }
-  return config
-})
 
 const availableColors = ['#FF8C00', '#F44336', '#2196F3', '#4CAF50', '#9C27B0']
 const showColorMenu = ref(false)
@@ -124,19 +112,19 @@ async function fetchProfile() {
     profileImageUrl.value = data.profileImageUrl
     theme.value = data.theme || 'LIGHT'
 
-    // Fetch user color (프로젝트 컨텍스트 없이도 안전하게 처리)
-    // 프로필에 userColor가 포함되어 있으면 사용, 없으면 기본값 사용
+    // Fetch user color
     userColor.value = data.userColor || '#cccccc'
 
     // 선택적으로 프로젝트 멤버 색상 정보를 가져오되, 실패해도 계속 진행
     try {
-      const memberRes = await apiInstance.get('/projects/members')
+      // [수정] 경로: /api/projects/members -> /projects/members
+      const memberRes = await apiInstance.get('/projects/members') 
       const me = memberRes.data.find(m => m.userId === userId.value)
       if (me?.userColor) {
         userColor.value = me.userColor
       }
     } catch (memberErr) {
-      // 프로젝트 멤버 정보 조회 실패는 무시 (교수나 프로젝트 컨텍스트 없는 경우)
+      // 프로젝트 멤버 정보 조회 실패는 무시 
       console.log('프로젝트 멤버 정보 조회 실패 (무시됨):', memberErr.message)
     }
 
@@ -154,6 +142,7 @@ async function fetchProfile() {
 
 async function saveProfile() {
   try {
+    // [수정] 경로: /api/users/profile -> /users/profile
     await apiInstance.put('/users/profile', {
       userName: userName.value,
       bio: bio.value,
@@ -179,6 +168,7 @@ async function onFileChange(e) {
   const formData = new FormData()
   formData.append('image', file)
   try {
+    // [수정] 경로: /api/users/profile/image -> /users/profile/image
     const res = await apiInstance.put(
         '/users/profile/image',
         formData,
@@ -202,6 +192,7 @@ async function selectColor(color) {
     return
   }
   try {
+    // [수정] 경로: /api/projects/members/... -> /projects/members/...
     await apiInstance.put(
         `/projects/members/${userId.value}/color`,
         null,
@@ -221,6 +212,7 @@ async function deleteAccount() {
   if (!ok) return
 
   try {
+    // [수정] 경로: /api/auth/me -> /auth/me
     await apiInstance.delete('/auth/me')
     alert('회원 탈퇴가 완료되었습니다. 그동안 이용해 주셔서 감사합니다.')
     localStorage.removeItem('authHeader')

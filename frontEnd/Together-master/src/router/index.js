@@ -347,6 +347,11 @@ const routes = [
     component: VideoChat,
   },
   {
+  path: '/video-lobby',
+  name: 'VideoConferenceLobby',
+  component: () => import('../views/VideoConferenceLobby.vue')
+},
+  {
     path: '/pdf-export/:projectId',
     name: 'PdfExportPage',
     component: PdfExportPage,

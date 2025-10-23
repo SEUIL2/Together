@@ -45,6 +45,7 @@
             :from="findAnchor(rel.from)"
             :to="findAnchor(rel.to)"
             :type="rel.type"
+            :hitStrokeWidth="8"
             @contextmenu="onLinkContextMenu(rel, $event)"
           />
         </v-layer>
@@ -334,13 +335,10 @@ const saveStatus = ref('idle')
       formData.append('files', imageBlob, 'usecase_capture.png');
     }
  
-    const projectId = route.params.projectId
-    if (projectId) {
-      formData.append('projectId', projectId)
-    }
+    formData.append('projectId', route.params.projectId);
  
     try {
-      await api.put('/design/update', formData);
+      await api.post('/design/upload', formData);
       saveStatus.value = 'saved'
       setTimeout(() => saveStatus.value = 'idle', 1200)
       console.log('✅ 유스케이스 다이어그램 저장 성공')

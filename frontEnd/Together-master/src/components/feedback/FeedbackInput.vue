@@ -5,13 +5,41 @@
         ref="feedbackInputRef"
         class="feedback-input"
       >
-        <div class="category-selector">
-          <div class="category-list">
-            <label v-for="cat in categories" :key="cat.id" class="category-label" :class="{ active: selectedCategoryId === cat.id }">
-              <input type="radio" v-model="selectedCategoryId" :value="cat.id" />
-              <span class="icon">{{ cat.icon }}</span>
-              <span>{{ cat.label }}</span>
-            </label>
+        <!-- 카테고리 선택 및 관리 -->
+        <div class="category-section">
+          <div class="category-header">
+            <label>카테고리 선택</label>
+            <div class="category-actions">
+              <button class="add-category-btn" @click="showCategoryInput = !showCategoryInput" title="카테고리 추가">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              </button>
+            </div>
+          </div>
+          
+          <!-- 새 카테고리 추가 입력창 -->
+          <div v-if="showCategoryInput" class="category-input-wrapper">
+            <input 
+              v-model="newCategoryName" 
+              placeholder="새 카테고리 이름"
+              @keyup.enter="createCategory"
+              class="category-input"
+            />
+            <button @click="createCategory" class="confirm-btn">추가</button>
+            <button @click="showCategoryInput = false; newCategoryName = ''" class="cancel-small-btn">취소</button>
+          </div>
+
+          <!-- 카테고리 목록 -->
+          <div class="category-selector">
+            <div class="category-list">
+              <label v-for="cat in categories" :key="cat.id" class="category-label" :class="{ active: selectedCategoryId === cat.id }">
+                <input type="radio" v-model="selectedCategoryId" :value="cat.id" />
+                <span class="icon">📌</span>
+                <span>{{ cat.label }}</span>
+                <button @click.stop="deleteCategory(cat.id)" class="delete-category-btn" title="카테고리 삭제">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+              </label>
+            </div>
           </div>
         </div>
   
@@ -20,9 +48,9 @@
           placeholder="피드백을 입력하세요"
         ></textarea>
         <div class="actions">
-          <button @click="submit">등록</button>
-          <button class="cancel" @click="$emit('close')">취소</button>
           <button class="history-btn" @click.stop="toggleHistory">내역</button>
+          <button class="cancel" @click="$emit('close')">취소</button>
+          <button @click="submit">등록</button>
         </div>
       </div>
   
@@ -57,6 +85,8 @@ const selectedCategoryId = ref(null);
 const feedbackInputRef = ref(null);
 const showHistory = ref(false);
 const feedbackHistory = ref([]);
+const showCategoryInput = ref(false);
+const newCategoryName = ref('');
 
 const categories = ref([]);
 
@@ -102,6 +132,52 @@ const fetchCategories = async () => {
   } catch (err) {
     console.error('❌ 카테고리 불러오기 실패:', err);
     alert('카테고리 목록을 불러오는 데 실패했습니다.');
+  }
+};
+
+const createCategory = async () => {
+  if (!newCategoryName.value.trim()) {
+    alert('카테고리 이름을 입력해주세요.');
+    return;
+  }
+
+  try {
+    await api.post('/feedbacks/categories', 
+      { name: newCategoryName.value.trim() },
+      {
+        headers: { Authorization: localStorage.getItem('authHeader') },
+        withCredentials: true
+      }
+    );
+    newCategoryName.value = '';
+    showCategoryInput.value = false;
+    await fetchCategories();
+  } catch (err) {
+    console.error('❌ 카테고리 생성 실패:', err);
+    alert('카테고리 생성에 실패했습니다.');
+  }
+};
+
+const deleteCategory = async (categoryId) => {
+  if (!confirm('이 카테고리를 삭제하시겠습니까?')) {
+    return;
+  }
+
+  try {
+    await api.delete(`/feedbacks/categories/${categoryId}`, {
+      headers: { Authorization: localStorage.getItem('authHeader') },
+      withCredentials: true
+    });
+    
+    // 삭제된 카테고리가 선택되어 있었다면 초기화
+    if (selectedCategoryId.value === categoryId) {
+      selectedCategoryId.value = null;
+    }
+    
+    await fetchCategories();
+  } catch (err) {
+    console.error('❌ 카테고리 삭제 실패:', err);
+    alert('카테고리 삭제에 실패했습니다.');
   }
 };
 
@@ -184,6 +260,80 @@ await api.post('/feedbacks/create', {
   font-family: 'SUIT', 'Noto Sans KR', sans-serif;
 }
 
+.category-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.category-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.category-header span {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+.category-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.add-category-btn {
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  color: #3f8efc;
+  transition: all 0.2s;
+}
+
+.add-category-btn:hover {
+  transform: scale(1.1);
+  box-shadow: none;
+}
+
+.category-input-wrapper {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.category-input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #ced4da;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+
+.category-input:focus {
+  outline: none;
+  border-color: #3f8efc;
+}
+
+.confirm-btn {
+  padding: 6px 12px !important;
+  font-size: 13px !important;
+  background-color: #3f8efc !important;
+  color: white !important;
+}
+
+.cancel-small-btn {
+  padding: 6px 12px !important;
+  font-size: 13px !important;
+  background-color: #f1f3f5 !important;
+  color: #495057 !important;
+}
+
 .category-selector {
   overflow-x: auto;
   padding-bottom: 8px; /* 스크롤바 공간 확보 */
@@ -213,6 +363,7 @@ await api.post('/feedbacks/create', {
   transition: all 0.2s;
   white-space: nowrap; /* 카테고리 이름이 길어도 줄바꿈 방지 */
   flex-shrink: 0; /* 아이템이 줄어들지 않도록 설정 */
+  position: relative;
 }
 .category-label:hover {
   background-color: #f5f5f5;
@@ -223,6 +374,23 @@ await api.post('/feedbacks/create', {
   border-color: #3f8efc;
   color: #3f8efc;
   font-weight: 700;
+}
+
+.delete-category-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  margin-left: 8px;
+  cursor: pointer;
+  color: #dc3545;
+  font-size: 16px;
+  line-height: 1;
+  transition: all 0.2s;
+}
+
+.delete-category-btn:hover {
+  transform: scale(1.2);
+  box-shadow: none;
 }
 
 textarea {

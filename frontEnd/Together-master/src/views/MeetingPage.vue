@@ -59,7 +59,7 @@
 
 <script setup>
 import {ref, onMounted, watch, computed, nextTick} from 'vue'
-import api from '@/api/meetingApi'
+import api from '@/api' // ✅ 공용 api 인스턴스 사용으로 변경
 import {useRouter} from 'vue-router'
 
 const router = useRouter()
@@ -117,7 +117,7 @@ const formatDate = (dateStr) => {
 // ✅ 회의 목록 불러오기
 async function fetchMeetings() {
   try {
-    const response = await api.get('/all-author');
+    const response = await api.get('/meeting/all-author'); // ✅ 전체 경로로 수정
     meetings.value = response.data.sort((a, b) => new Date(b.meetingDate) - new Date(a.meetingDate));
     if (meetings.value.length > 0 && selectedIndex.value >= filteredMeetings.value.length) {
       selectedIndex.value = 0
@@ -138,7 +138,7 @@ async function addMeeting() {
   }
 
   try {
-    const response = await api.post('/create', meetingDto);
+    const response = await api.post('/meeting/create', meetingDto); // ✅ 전체 경로로 수정
     meetings.value.unshift(response.data); // 새 회의를 배열 맨 앞에 추가
     // meetings.value.sort((a, b) => new Date(b.meetingDate) - new Date(a.meetingDate)); // unshift를 사용하므로 이 줄은 필요 없어집니다.
     selectedFilter.value = 'ALL';
@@ -162,7 +162,7 @@ async function deleteMeeting() {
   const currentIndex = selectedIndex.value
 
   try {
-    await api.delete(`/delete/${meetingToDelete.meetingId}`)
+    await api.delete(`/meeting/delete/${meetingToDelete.meetingId}`) // ✅ 전체 경로로 수정
     meetings.value = meetings.value.filter(m => m.meetingId !== meetingToDelete.meetingId)
 
     if (currentIndex >= filteredMeetings.value.length) {
@@ -178,7 +178,7 @@ async function saveMeeting(meeting) {
   if (!meeting) return
   try {
     const payload = {...meeting, updatedAt: new Date().toISOString()}
-    await api.put(`/update/${meeting.meetingId}`, payload)
+    await api.put(`/meeting/update/${meeting.meetingId}`, payload) // ✅ 전체 경로로 수정
     // console.log('저장됨:', meeting)
   } catch (err) {
     console.error('회의 저장 실패:', err)

@@ -294,14 +294,16 @@ const startVideoConference = async () => {
     return;
   }
 
-  // VideoChat 페이지로 채널 정보(projectId)만 전달합니다.
-  // 토큰은 VideoChat 컴포넌트에서 직접 요청하도록 합니다.
-  const videoQuery = { channel: String(projectDetails.projectId) };
-  // 현재 route에 readonly 쿼리가 있으면 그대로 전달하여 교수 열람 모드를 유지
-  if (route.query && route.query.readonly) {
-    videoQuery.readonly = route.query.readonly;
+  // 화상회의 로비 페이지로 이동
+  const lobbyQuery = {
+    projectId: String(projectDetails.projectId),
+    projectTitle: projectDetails.projectName,
+  };
+
+  if (isProfessorReadOnly.value) {
+    lobbyQuery.readonly = 'true';
   }
-  router.push({ name: 'VideoChat', query: videoQuery });
+  router.push({ name: 'VideoConferenceLobby', query: lobbyQuery });
 };
 
 /* ====== 읽기 전용/프로젝트 ====== */

@@ -76,7 +76,7 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
-import axiosInstance from '@/utils/axiosInstance';
+import api from '@/api';
 
 const projects = ref([]);
 const baseProjectId = ref('');
@@ -86,7 +86,7 @@ const error = ref('');
 
 const fetchProjects = async () => {
   try {
-    const response = await axiosInstance.get('/projects/professor/list');
+    const response = await api.get('/projects/professor/list');
     projects.value = response.data;
   } catch (err) {
     error.value = '프로젝트 목록을 불러오는 데 실패했습니다.';
@@ -132,7 +132,7 @@ const runSimilarityCheck = async () => {
   };
 
   try {
-    const response = await axiosInstance.post('/professor/project-similarity/compare', requestDto);
+    const response = await api.post('/professor/project-similarity/compare', requestDto);
     report.value = response.data;
      if (!report.value.comparisonResults || report.value.comparisonResults.length === 0) {
         error.value = '유사도 분석 결과를 받지 못했습니다. AI 서비스에 문제가 있을 수 있습니다.';

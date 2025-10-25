@@ -9,7 +9,7 @@
           v-for="(tab, idx) in testTabs"
           :key="tab.type"
           :class="['nav-btn', { active: selectedIndex === idx }]"
-          @click="selectedIndex = idx"
+          @click="selectTab(idx)"
       >
         {{ tab.name }}
       </button>
@@ -166,7 +166,7 @@
 
 <script setup>
 import { ref, reactive, computed, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import api from '@/api'
 import FeedbackPopup from '@/components/feedback/FeedbackPopup.vue'
 import ContextMenu from '@/components/feedback/ContextMenu.vue'
@@ -182,6 +182,7 @@ const props = defineProps({
 })
 
 const route = useRoute()
+const router = useRouter()
 const resolvedProjectId = computed(() => {
   if (props.projectId != null) {
     return Number(props.projectId)
@@ -279,6 +280,20 @@ const testTabs = reactive([
 
 const selectedIndex = ref(0)
 const hoveredRow = ref(null)
+
+// URL 쿼리에서 substep을 확인하여 초기 탭 설정
+watch(
+  () => route.query.substep,
+  (substep) => {
+    if (substep === 'unit') {
+      selectedIndex.value = 0
+    } else if (substep === 'integration') {
+      selectedIndex.value = 1
+    }
+  },
+  { immediate: true }
+)
+
 const currentTab = computed(() => testTabs[selectedIndex.value])
 const currentConfig = computed(() => tabConfigs[currentTab.value.type])
 const columnCount = computed(() => currentConfig.value.fields.length + 1)
@@ -289,6 +304,14 @@ const showFeedbackInput = ref(false)
 const showContextMenu = ref(false)
 const feedbackPosition = ref({ x: 0, y: 0 })
 const { markFeedbackAsRead } = useFeedback()
+
+function selectTab(idx) {
+  selectedIndex.value = idx
+  const substep = idx === 0 ? 'unit' : 'integration'
+  router.push({
+    query: { ...route.query, substep }
+  })
+}
 
 function handleRightClick(e) {
   const rect = e.currentTarget.getBoundingClientRect()

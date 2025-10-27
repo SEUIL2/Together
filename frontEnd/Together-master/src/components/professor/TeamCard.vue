@@ -171,6 +171,7 @@ const goToReport = () => {
   /* 긴 설명은 2줄로 제한하고 말줄임표 표시 */
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }

@@ -338,7 +338,10 @@ const saveStatus = ref('idle')
     formData.append('projectId', route.params.projectId);
  
     try {
-      await api.post('/design/upload', formData);
+      await api.post('/design/upload', formData, {
+        headers: { Authorization: localStorage.getItem('authHeader') },
+        withCredentials: true,
+      });
       saveStatus.value = 'saved'
       setTimeout(() => saveStatus.value = 'idle', 1200)
       console.log('✅ 유스케이스 다이어그램 저장 성공')

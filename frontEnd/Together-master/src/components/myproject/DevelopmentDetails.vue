@@ -191,18 +191,24 @@ const environment = ref({
 });
 
 const fetchEnvironment = async () => {
-  if (!props.projectId) return;
+  if (!props.projectId) {
+    console.log('⚠️ projectId가 없어서 개발 환경을 불러올 수 없습니다.');
+    return;
+  }
+  console.log('📥 개발 환경 조회 - projectId:', props.projectId);
   try {
     const response = await api.get('/api/dev-env', {
+      params: { projectId: props.projectId },
       headers: {Authorization: localStorage.getItem('authHeader')},
       withCredentials: true,
     });
+    console.log('✅ 개발 환경 데이터:', response.data);
     // 프로젝트에 설정된 첫 번째 환경 정보를 불러옴
     if (response.data && response.data.length > 0) {
       environment.value = response.data[0];
     }
   } catch (error) {
-    console.error('개발 환경 정보를 불러오는 데 실패했습니다.', error);
+    console.error('❌ 개발 환경 정보를 불러오는 데 실패했습니다.', error);
   }
 };
 

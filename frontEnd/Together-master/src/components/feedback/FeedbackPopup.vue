@@ -3,7 +3,7 @@
     <div
       v-show="visible"
       class="feedback-popup"
-      :style="{ top: (fb.y || 0) + 28 + 'px', left: (fb.x || 0) + 28 + 'px' }"
+      :style="{ top: (fb.y || 0) - 100 + 'px', left: (fb.x || 0) - 120 + 'px' }"
     >
       <div class="popup-content">
         <!-- 상단: 작성자 + 닫기 -->
@@ -67,7 +67,7 @@ onMounted(() => setTimeout(() => (visible.value = true), 0))
 .feedback-popup {
   position: absolute;
   z-index: 999;
-  transform: translate(-50%, -50%);
+  transform: translateX(-50%);
   pointer-events: auto;
 }
 

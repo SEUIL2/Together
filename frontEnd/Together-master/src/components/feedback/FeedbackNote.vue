@@ -28,14 +28,21 @@ const handleClick = () => {
 }
 
 const categoryColor = computed(() => {
-  return '#e53935'; // 기본 핀 색상
+  switch (props.category) {
+    case 'IMPROVEMENT': return '#3498db'; // 개선 (파랑)
+    case 'IDEA': return '#f1c40f'; // 아이디어 (노랑)
+    case 'COMPLIMENT': return '#2ecc71'; // 칭찬 (초록)
+    case 'QUESTION': return '#9b59b6'; // 질문 (보라)
+    default: return '#e53935'; // 기본 (빨강)
+  }
 });
 
 // SVG 아이콘을 사용하여 렌더링 일관성 확보
 const markerSvg = computed(() => {
   return `
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="${categoryColor.value}" stroke="white" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="${categoryColor.value}" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+      <circle cx="12" cy="10" r="3"></circle>
     </svg>
   `;
 });
@@ -45,7 +52,6 @@ const markerSvg = computed(() => {
 <style scoped>
 .feedback-note {
   position: absolute;
-  font-size: 22px;
   cursor: pointer;
   z-index: 50;
   transform: translate(-1200%, -500%); /* 💡 수정: 마커의 끝점이 좌표에 위치하도록 조정 */

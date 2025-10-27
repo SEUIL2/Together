@@ -130,13 +130,13 @@ const toolButtons = {
       label: '반복(Loop)',
       type: 'fragment',
       subtype: 'loop',
-      icon: new URL('@/assets/loop.png', import.meta.url).href
+      icon: new URL('@/assets/vote.png', import.meta.url).href
     },
     {
       label: '대안(Alt)',
       type: 'fragment',
       subtype: 'alt',
-      icon: new URL('@/assets/alt.png', import.meta.url).href
+      icon: new URL('@/assets/vote.png', import.meta.url).href
     },
     // opt는 alt와 유사하여 아이콘 생략 가능
   ]

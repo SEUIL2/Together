@@ -74,18 +74,24 @@ const environment = ref({
 });
 
 const fetchEnvironment = async () => {
-  if (!projectId.value) return;
+  if (!projectId.value) {
+    console.log('⚠️ projectId가 없어서 개발 환경을 불러올 수 없습니다.');
+    return;
+  }
+  console.log('📥 개발 환경 조회 - projectId:', projectId.value);
   try {
     const response = await api.get('/api/dev-env', {
+      params: { projectId: projectId.value },
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true,
     });
+    console.log('✅ 개발 환경 데이터:', response.data);
     // 프로젝트에 설정된 첫 번째 환경 정보를 불러옴
     if (response.data && response.data.length > 0) {
       environment.value = response.data[0];
     }
   } catch (error) {
-    console.error('개발 환경 정보를 불러오는 데 실패했습니다.', error);
+    console.error('❌ 개발 환경 정보를 불러오는 데 실패했습니다.', error);
   }
 };
 
@@ -120,11 +126,26 @@ const saveEnvironment = async () => {
 };
 
 onMounted(async () => {
-  // 현재 사용자의 프로젝트 ID를 가져옴
-  const { data: me } = await api.get('/auth/me', { withCredentials: true });
-  projectId.value = route.params.projectId || me.projectId;
-  if(projectId.value) {
-    await fetchEnvironment();
+  // URL에서 프로젝트 ID 가져오기 (route.params, route.query, 사용자 정보 순으로 확인)
+  console.log('🔍 route.params:', route.params);
+  console.log('🔍 route.query:', route.query);
+  
+  try {
+    const { data: me } = await api.get('/auth/me', { withCredentials: true });
+    console.log('👤 사용자 정보:', me);
+    
+    // 우선순위: route.params > route.query > me.projectId
+    projectId.value = route.params.projectId || route.query.projectId || me.projectId;
+    
+    console.log('✅ 최종 projectId:', projectId.value);
+    
+    if (projectId.value) {
+      await fetchEnvironment();
+    } else {
+      console.warn('⚠️ projectId를 찾을 수 없습니다.');
+    }
+  } catch (error) {
+    console.error('❌ 사용자 정보 조회 실패:', error);
   }
 });
 </script>

@@ -36,6 +36,7 @@
           padding: 5,
           fontSize: 14,
           fontStyle: 'bold',
+          listening: true, // 더블 클릭 이벤트를 감지하도록 추가
         }"
       />
     </v-label>
@@ -100,6 +101,6 @@ const onRightClick = (e) => {
 };
 
 const onDblClick = (e) => {
-  emit('dblclick', e);
+  emit('dblclick', e); // 이벤트 객체를 부모로 전달
 };
 </script>

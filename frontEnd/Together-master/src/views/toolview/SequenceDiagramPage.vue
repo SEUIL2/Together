@@ -1,7 +1,7 @@
 <template>
   <div class="diagram-layout" @click="hideAllMenus" @wheel.prevent="handleWheel">
     <!-- 툴박스 -->
-    <ToolBox />
+    <ToolBox/>
 
     <!-- 다이어그램 캔버스 -->
     <div class="diagram-canvas" ref="canvasRef" @dragover.prevent @drop="handleDrop">
@@ -27,7 +27,7 @@
             :config="fragment"
             @update="updateFragment"
             @contextmenu="onFragmentContextMenu"
-            @dblclick="onNodeDblClick('fragment', fragment)"
+            @dblclick="onNodeDblClick('fragment', fragment, $event)"
           />
 
           <!-- 생명선 (Lifeline) -->
@@ -35,8 +35,9 @@
             v-for="lifeline in lifelines"
             :key="lifeline.id"
             :config="lifeline"
-            :canvasHeight="20000" 
+            :canvasHeight="lifeline.height"
             @update-position="updateLifelinePosition"
+            @update-height="updateLifelineHeight"
             @contextmenu="onLifelineContextMenu"
             @dblclick="onNodeDblClick('lifeline', lifeline)"
           />
@@ -48,7 +49,7 @@
             :config="message"
             :lifelines="lifelines"
             @contextmenu="onMessageContextMenu"
-            @dblclick="onNodeDblClick('message', message)"
+            @dblclick="onNodeDblClick('message', message, $event)"
           />
 
           <!-- 메시지 생성 중 임시선 -->
@@ -95,7 +96,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onUnmounted, watch, nextTick } from 'vue';
+import { ref, reactive, onMounted, onUnmounted, watch, nextTick, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import api from '@/api';
 import { debounce } from 'lodash';
@@ -125,6 +126,31 @@ const stageConfig = reactive({
   y: 0,
 });
 
+
+const minLifelineHeight = computed(() => {
+  let maxY = 0;
+  // 메시지들의 최대 y 위치 계산
+  if (messages.value.length > 0) {
+    maxY = Math.max(...messages.value.map(m => m.y));
+  }
+  // 프래그먼트들의 최대 y 위치 계산 (y + height)
+  if (fragments.value.length > 0) {
+    const maxFragmentY = Math.max(...fragments.value.map(f => f.y + f.height));
+    maxY = Math.max(maxY, maxFragmentY);
+  }
+  // 기본 높이(stageConfig.height)와 계산된 최대 높이 중 더 큰 값을 사용하고, 추가 여백을 줍니다.
+  return Math.max(stageConfig.height, maxY) + 200;
+});
+
+const updateLifelineHeight = (id, newHeight) => {
+  const lifeline = lifelines.value.find(l => l.id === id);
+  if (lifeline) {
+    // 사용자가 드래그하여 조절한 높이를 반영하되,
+    // 다이어그램 내용이 차지하는 최소 높이(minLifelineHeight)보다는 작아지지 않도록 보장합니다.
+    lifeline.height = Math.max(minLifelineHeight.value, newHeight);
+  }
+};
+
 const isSpacebarDown = ref(false);
 const isPanning = ref(false);
 const lastPanPoint = reactive({ x: 0, y: 0 });
@@ -144,6 +170,7 @@ const handleDrop = (e) => {
       name: tool.subtype === 'actor' ? '액터' : '객체',
       x: pos.x,
       y: pos.y,
+      height: 800, // 개별 높이 속성 추가
     });
   } else if (['loop', 'alt', 'opt'].includes(tool.subtype)) {
     fragments.value.push({
@@ -157,6 +184,16 @@ const handleDrop = (e) => {
     });
   }
 };
+
+watch(minLifelineHeight, (newMinHeight) => {
+  // 다이어그램 요소가 추가/삭제되어 최소 높이가 변경될 때, 모든 생명선의 높이를 업데이트합니다.
+  // 현재 높이가 최소 높이보다 작으면, 최소 높이로 강제 조정합니다.
+  lifelines.value.forEach(lifeline => {
+    if (lifeline.height < newMinHeight) {
+      lifeline.height = newMinHeight;
+    }
+  });
+});
 
 // --- 생명선 및 프래그먼트 위치/크기 업데이트 ---
 const updateLifelinePosition = (id, x, y) => { // y 파라미터 추가
@@ -204,7 +241,7 @@ const handleStageMouseDown = (e) => {
 
     tempLine.fromLifelineId = fromLifelineId;
     tempLine.startX = fromLifeline.x;
-    tempLine.startY = pos.y; // 마우스 클릭의 정확한 Y좌표를 시작점으로 설정합니다.
+    tempLine.startY = pos.y; // 캔버스 내부의 정확한 포인터 위치를 사용합니다.
     tempLine.endX = pos.x;   // 임시선은 마우스 위치를 따라다니도록 초기화합니다.
     tempLine.endY = pos.y;
     tempLine.visible = true;
@@ -269,7 +306,8 @@ const handleStageMouseUp = (e) => {
       to: toLifeline.id,
       y: tempLine.startY, // 수정: 마우스를 처음 클릭한 지점의 Y좌표를 사용합니다.
       name: '메시지',
-      type: 'sync', // 기본 동기 메시지
+      type: 'sync', // 기본 동기 메시지,
+      dash: [10, 5], // 점선 간격 기본값 추가
     });
     messages.value.sort((a, b) => a.y - b.y);
   }
@@ -294,7 +332,7 @@ const onLifelineContextMenu = (id, e) => {
 
 const onMessageContextMenu = (config, e) => {
   e.evt.preventDefault();
-  contextMenu.target = { type: 'message', id: config.id, currentType: config.type };
+  contextMenu.target = { type: 'message', id: config.id, currentType: config.type, currentDash: config.dash || [10, 5] };
   contextMenu.x = e.evt.clientX;
   contextMenu.y = e.evt.clientY;
   contextMenu.visible = true;
@@ -323,7 +361,10 @@ const deleteTarget = (target) => {
 const updateTarget = (update) => {
   if (update.type === 'message') {
     const msg = messages.value.find(m => m.id === update.id);
-    if (msg) msg.type = update.newType;
+    if (msg) {
+      if (update.newType) msg.type = update.newType;
+      if (update.newDash) msg.dash = update.newDash;
+    }
   }
   contextMenu.visible = false;
 };
@@ -332,7 +373,11 @@ const updateTarget = (update) => {
 const nameEdit = reactive({ visible: false, type: '', id: null, value: '', x: 0, y: 0 });
 const nameEditInput = ref(null);
 
-const onNodeDblClick = (type, node) => {
+const onNodeDblClick = (type, node, e) => {
+  if (e && e.evt) {
+    e.evt.stopPropagation(); // 이벤트 버블링을 막아 hideAllMenus가 실행되는 것을 방지합니다.
+  }
+
   const stage = stageRef.value.getStage();
   let nodePos;
   if (type === 'lifeline') {
@@ -432,9 +477,13 @@ const saveData = debounce(async () => {
     const formData = new FormData();
     formData.append('type', 'sequence');
     formData.append('projectId', props.projectId);
-    formData.append('json', JSON.stringify(diagramData));
 
-    await api.put('/design/update', formData, {
+    const jsonString = JSON.stringify(diagramData);
+    formData.append('json', jsonString);
+    formData.append('text', jsonString); // 💡 서버 API 호환성을 위해 text 필드 추가
+
+    // 💡 수정: 다른 다이어그램과 동일하게 PUT 메서드를 사용합니다.
+    await api.post('/design/upload', formData, {
       headers: { Authorization: localStorage.getItem('authHeader') },
       withCredentials: true,
     });
@@ -460,9 +509,11 @@ onMounted(async () => {
       withCredentials: true,
     });
     const { sequence } = res.data;
-    if (sequence?.json) {
+    if (sequence?.json) { // 💡 수정: 'sequenceJson' 대신 'json' 필드를 사용합니다.
       const data = JSON.parse(sequence.json);
-      lifelines.value = data.lifelines || [];
+      lifelines.value = (data.lifelines || []).map(l => ({
+        ...l, height: l.height || 800 // 이전 데이터 호환성을 위해 height 기본값 추가
+      }));
       messages.value = data.messages || [];
       fragments.value = data.fragments || [];
     }

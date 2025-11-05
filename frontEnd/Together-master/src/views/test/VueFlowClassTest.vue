@@ -1,10 +1,14 @@
 <template>
   <div class="editor-layout">
-
     <DiagramTabs 
       :active-tab-id="activeTab"
       @tab-changed="onTabChange" 
     />
+
+    <!-- 저장 상태 토스트 -->
+    <div v-if="saveStatus !== 'idle'" class="save-toast" :class="saveStatus">
+      {{ saveStatus === 'saving' ? '저장 중...' : saveStatus === 'saved' ? '💾 저장 완료' : '저장 실패!' }}
+    </div>
 
     <div 
       class="canvas-wrapper" 
@@ -106,7 +110,10 @@
 </template>
 
 <script setup>
-import { ref, computed, ref as vueRef, markRaw } from 'vue'
+import { ref, computed, ref as vueRef, markRaw, watch, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
+import api from '@/api'
+import { debounce } from 'lodash'
 // [수정] 중복된 import를 모두 정리하고, 필요한 모든 것을 한 번에 가져옵니다.
 import { VueFlow, useVueFlow } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
@@ -144,6 +151,7 @@ const flowWrapper = vueRef(null);
 // 이렇게 하면 컴포넌트 생명주기 문제를 피할 수 있습니다.
 const vueFlowRef = ref(null);
 const { project } = useVueFlow();
+const route = useRoute();
 const activeTab = ref('usecase'); 
 
 const contextMenu = ref({
@@ -373,6 +381,70 @@ function onDrop(event) {
 
 function onNodeDragStop() {}
 
+// === 저장 관련 ===
+const saveStatus = ref('idle')
+
+const saveUsecase = debounce(async () => {
+  const readonly = route.query.readonly === 'true'
+  if (readonly) {
+    console.log('🔒 읽기 전용 모드입니다. 저장하지 않습니다.')
+    return
+  }
+
+  saveStatus.value = 'saving'
+
+  // VueFlow 인스턴스에서 toObject() 메서드를 사용하여 현재 상태를 가져옵니다.
+  const flowData = vueFlowRef.value?.toObject();
+  if (!flowData) {
+    console.error('Flow 데이터를 가져올 수 없습니다.');
+    saveStatus.value = 'error';
+    return;
+  }
+
+  const jsonData = {
+    nodes: flowData.nodes,
+    edges: flowData.edges,
+    // 필요하다면 viewport 정보도 저장할 수 있습니다.
+    // viewport: flowData.viewport,
+  }
+
+  const formData = new FormData()
+  formData.append('type', 'usecase') // 현재는 유스케이스만 저장
+  formData.append('json', JSON.stringify(jsonData))
+  formData.append('projectId', route.params.projectId);
+
+  try {
+    await api.post('/design/upload', formData);
+    saveStatus.value = 'saved'
+    setTimeout(() => saveStatus.value = 'idle', 1200)
+    console.log('✅ 유스케이스 다이어그램 저장 성공')
+  } catch (err) {
+    console.error('❌ 유스케이스 저장 실패:', err)
+    saveStatus.value = 'error'
+    setTimeout(() => saveStatus.value = 'idle', 3000)
+    alert('⚠️ 유스케이스 저장 중 오류 발생')
+  }
+}, 1000)
+
+watch([activeNodes, activeEdges], saveUsecase, { deep: true })
+
+// === 불러오기 ===
+onMounted(async () => {
+  try {
+    const res = await api.get('/design/all', {
+      params: { projectId: route.params.projectId }
+    })
+
+    const { usecase } = res.data
+    if (usecase?.json) {
+      const parsed = JSON.parse(usecase.json)
+      allDiagramData.value.usecase = { nodes: parsed.nodes || [], edges: parsed.edges || [] };
+      console.log('✅ 유스케이스 불러오기 성공:', parsed)
+    }
+  } catch (err) {
+    console.error('❌ 유스케이스 초기 데이터 로드 실패:', err)
+  }
+})
 </script>
 
 <style scoped>
@@ -471,4 +543,18 @@ function onNodeDragStop() {}
   background: #ffe6e7;
   color: #d7263d;
 }
+.save-toast {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  padding: 10px 20px;
+  border-radius: 8px;
+  color: white;
+  font-weight: 600;
+  z-index: 1000;
+  transition: opacity 0.3s;
+}
+.save-toast.saving { background-color: #777; }
+.save-toast.saved { background-color: #323232; }
+.save-toast.error { background-color: #dc3545; }
 </style>

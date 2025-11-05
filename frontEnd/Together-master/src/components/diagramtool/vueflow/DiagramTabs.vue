@@ -30,11 +30,12 @@ const emit = defineEmits(['tab-changed']);
 // 백엔드 구조에 맞는 고정된 탭 목록
 // (id는 DesignDetailService의 'type'과 일치시키는 것이 좋음)
 const tabs = ref([
-  { id: 'classDiagram', name: '클래스 다이어그램' },
-  { id: 'usecase', name: '유스케이스' },
-  { id: 'sequence', name: '시퀀스 다이어그램' },
-  { id: 'erd', name: 'ERD' },
   { id: 'infostructure', name: '정보구조도' }, // 백엔드 type 'infostructure'와 일치
+  { id: 'usecase', name: '유스케이스' },
+  { id: 'erd', name: 'ERD' },
+  { id: 'classDiagram', name: '클래스 다이어그램' },
+  { id: 'sequence', name: '시퀀스 다이어그램' },
+  
 ]);
 
 // 탭 클릭 시 부모에게 'tab-changed' 이벤트를 발생시킴

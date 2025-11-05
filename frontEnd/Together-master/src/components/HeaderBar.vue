@@ -216,10 +216,10 @@ const planningItems = [
 
 const designItems = [
   { name: "유스케이스 다이어그램", type: "usecase" },
+  { name: "ERD", type: "erd" },
   { name: "클래스 다이어그램", type: "classDiagram" },
   { name: "시퀀스 다이어그램", type: "sequence" },
   { name: "UI 디자인", type: "ui" },
-  { name: "ERD", type: "erd" },
   { name: "테이블 명세", type: "table" },
   { name: "시스템 아키텍쳐", type: "architecture" },
 ]

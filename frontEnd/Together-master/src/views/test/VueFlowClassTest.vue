@@ -24,6 +24,7 @@
         ref="vueFlowRef"
         v-model:nodes="activeNodes"
         v-model:edges="activeEdges"
+        
         :node-types="nodeTypes"
         :edge-types="edgeTypes"
         edges-up-front
@@ -31,8 +32,8 @@
         @nodes-drag-stop="onNodeDragStop" 
         @node-context-menu="onNodeContextMenu"
         @edge-context-menu="onEdgeContextMenu"
-        @move-start="hideContextMenu"
-        class="vue-flow-wrapper"
+       @move-start="hideContextMenu"
+        @move-end="onViewportChange" class="vue-flow-wrapper"
       >
         <Background />
         <Controls />
@@ -201,7 +202,7 @@
 </template>
 
 <script setup>
-import { ref, computed, ref as vueRef, markRaw, watch, onMounted } from 'vue'
+import { ref, computed, ref as vueRef, markRaw, watch, onMounted, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import api from '@/api'
 import { debounce } from 'lodash'
@@ -217,7 +218,7 @@ import CustomActorNode from '@/components/diagramtool/vueflow/Usecase/CustomActo
 import CustomUsecaseNode from '@/components/diagramtool/vueflow/Usecase/CustomUsecaseNode.vue'
 import CustomSystemNode from '@/components/diagramtool/vueflow/Usecase/CustomSystemNode.vue'
 import CustomNoteNode from '@/components/diagramtool/vueflow/Usecase/CustomNoteNode.vue'
-import CustomPageNode from './CustomPageNode.vue'
+import CustomPageNode from '../../components/diagramtool/vueflow/InfoStructure/CustomPageNode.vue'
 import Toolbox from '@/components/diagramtool/vueflow/Toolbox.vue' 
 import DiagramTabs from '@/components/diagramtool/vueflow/DiagramTabs.vue' 
 
@@ -250,7 +251,7 @@ const flowWrapper = vueRef(null);
 const vueFlowRef = ref(null);
 const { project } = useVueFlow();
 const route = useRoute();
-const activeTab = ref('usecase'); 
+const activeTab = ref(localStorage.getItem('lastActiveDiagramTab') || 'usecase');
 
 const contextMenu = ref({
   visible: false,
@@ -294,6 +295,10 @@ const activeEdges = computed({
 
 function onTabChange(tabId) {
   activeTab.value = tabId;
+  localStorage.setItem('lastActiveDiagramTab', tabId);
+
+  // [추가] 탭이 변경되면, 해당 탭의 뷰포트를 불러옵니다.
+  loadViewportForTab(tabId);
 }
 
 // 현재 컨텍스트 메뉴의 대상 노드/엣지를 가져오는 computed 속성
@@ -367,6 +372,36 @@ function getEdgeProperty(key) {
   if (key === 'markerStart') return edge.markerStart || '';
   
   return edge.data ? edge.data[key] : null;
+}
+
+function onViewportChange() {
+  if (vueFlowRef.value) {
+    // 현재 뷰포트 정보를 가져옵니다.
+    const viewport = vueFlowRef.value.toObject().viewport;
+    
+    // 현재 활성화된 탭에 맞춰 뷰포트를 localStorage에 저장합니다.
+    localStorage.setItem(`viewport-${activeTab.value}`, JSON.stringify(viewport));
+  }
+}
+
+function loadViewportForTab(tabId) {
+  const savedViewportJson = localStorage.getItem(`viewport-${tabId}`);
+  
+  // 뷰포트가 로드될 시간을 벌기 위해 nextTick을 사용합니다.
+  nextTick(() => {
+    if (savedViewportJson && vueFlowRef.value) {
+      try {
+        const savedViewport = JSON.parse(savedViewportJson);
+        vueFlowRef.value.setViewport(savedViewport, { duration: 0 }); // 즉시 이동
+      } catch (e) {
+        console.error("저장된 뷰포트 로드 실패:", e);
+        vueFlowRef.value.fitView(); // 실패 시 기본 뷰로
+      }
+    } else if (vueFlowRef.value) {
+      // 저장된 값이 없으면 기본 뷰(fitView)로 맞춥니다.
+      vueFlowRef.value.fitView();
+    }
+  });
 }
 
 // [추가] 선의 타입을 변경하는 함수 (step, smoothstep, default)
@@ -782,7 +817,7 @@ onMounted(async () => {
     const res = await api.get('/design/all', {
       params: { projectId: route.params.projectId }
     })
-
+    
     const { usecase } = res.data
     if (usecase?.json) {
       const parsed = JSON.parse(usecase.json)
@@ -814,6 +849,8 @@ onMounted(async () => {
       // ===============
 
     }
+
+    loadViewportForTab(activeTab.value);
   } catch (err) {
     console.error('❌ 유스케이스 초기 데이터 로드 실패:', err)
   }

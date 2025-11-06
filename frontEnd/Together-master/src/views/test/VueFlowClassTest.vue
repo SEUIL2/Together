@@ -41,22 +41,20 @@
         <defs>
           <marker
             id="arrow-closed"
-            viewBox="-10 -5 10 10"
-            refX="0"
-            refY="0"
-            markerUnits="strokeWidth"
-            markerWidth="12"
-            markerHeight="12"
-            
+            viewBox="0 0 10 10" 
+            refX="10" 
+            refY="5"
+            markerWidth="8"
+            markerHeight="8"
             orient="auto"
           >
-            <!-- [수정] 화살표가 올바른 방향을 향하도록 path를 수정합니다. -->
-            <path d="M 0 0 L -10 -5 L -10 5 z" fill="#555" />
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#000000" />
           </marker>
-        </defs>
-      </VueFlow>
 
-      <Toolbox />
+          </defs>
+      </VueFlow>
+      <!-- activeTab을 Toolbox에 prop으로 전달하여 현재 활성화된 다이어그램에 맞는 도구만 표시하도록 합니다. -->
+      <Toolbox :active-tab="activeTab" />
 
       <!-- 우클릭 컨텍스트 메뉴 -->
       <div
@@ -66,28 +64,38 @@
         @click.stop
       >
         <!-- 관계선(Edge)을 위한 상세 메뉴 -->
-        <div v-if="contextMenu.target?.type === 'edge'">
+        <div v-if="contextMenu.target?.type === 'edge' && currentContextMenuTargetEdge">
           <div class="menu-section">
             <div class="menu-label">선 스타일</div>
-            <select class="menu-select" @change="setEdgeStyle($event.target.value)" :value="getEdgeProperty('lineStyle')">
+            <select class="menu-select" @change="setEdgeStyle($event.target.value)" :value="currentContextMenuTargetEdge.data?.lineStyle || 'none'">
               <option value="none">실선</option>
               <option value="dashed">점선</option>
             </select>
           </div>
-          <!-- [수정] 시작 화살표 설정 메뉴 -->
+
           <div class="menu-section">
-            <div class="menu-label">시작 화살표</div>
-            <select class="menu-select" @change="setEdgeMarkerStart($event.target.value)" :value="getEdgeProperty('markerStart')">
-              <option value="">없음</option>
-              <option value="url(#arrow-closed)">일반화 (삼각형)</option>
+            <div class="menu-label">선 종류</div>
+            <select class="menu-select" @change="setEdgeType($event.target.value)" :value="currentContextMenuTargetEdge.type || 'step'">
+              <option value="step">직각 선</option>
+              <option value="smoothstep">곡선</option>
+              <option value="default">직선</option>
             </select>
           </div>
-          <!-- [수정] 끝 화살표 설정 메뉴 -->
+
+          <!-- 유스케이스 다이어그램 관계선 메뉴 -->
+        <template v-if="activeTab === 'usecase'">
+          <div class="menu-section">
+            <div class="menu-label">시작 화살표</div>
+            <select class="menu-select" @change="setEdgeMarkerEnd($event.target.value)" :value="currentContextMenuTargetEdge.markerEnd?.type || ''">
+              <option value="">없음</option>
+              <option value="arrowclosed">일반화 (삼각형)</option>
+            </select>
+          </div>
           <div class="menu-section">
             <div class="menu-label">끝 화살표</div>
-            <select class="menu-select" @change="setEdgeMarkerEnd($event.target.value)" :value="getEdgeProperty('markerEnd')">
+            <select class="menu-select" @change="setEdgeMarkerStart($event.target.value)" :value="currentContextMenuTargetEdge.markerStart?.type || ''">
               <option value="">없음</option>
-              <option value="url(#arrow-closed)">일반화 (삼각형)</option>
+              <option value="arrowclosed">일반화 (삼각형)</option>
             </select>
           </div>
           <div class="menu-section">
@@ -95,6 +103,89 @@
             <button class="menu-item" @click="setEdgeLabel('<<include>>')">&lt;&lt;include&gt;&gt;</button>
             <button class="menu-item" @click="setEdgeLabel('<<extend>>')">&lt;&lt;extend&gt;&gt;</button>
             <button class="menu-item" @click="setEdgeLabel('')">라벨 삭제</button>
+          </div>
+        </template>
+
+          <!-- 클래스 다이어그램 관계선 메뉴 -->
+          <template v-else-if="activeTab === 'classDiagram'">
+            <div class="menu-section">
+              <div class="menu-label">관계 종류</div>
+              <select class="menu-select" @change="setEdgeRelationshipType($event.target.value)" :value="currentContextMenuTargetEdge.data?.relationshipType || 'association'">
+                <option value="association">연관 (실선)</option>
+                <option value="generalization">일반화 (빈 삼각형)</option>
+                <option value="realization">구현 (점선 빈 삼각형)</option>
+                <option value="aggregation">집합 (빈 마름모)</option>
+                <option value="composition">복합 (채워진 마름모)</option>
+                <option value="dependency">의존 (점선 화살표)</option>
+              </select>
+            </div>
+            <div class="menu-section">
+              <div class="menu-label">라벨</div>
+              <button class="menu-item" @click="setEdgeLabel('1..*')">1..*</button>
+              <button class="menu-item" @click="setEdgeLabel('0..1')">0..1</button>
+              <button class="menu-item" @click="setEdgeLabel('')">라벨 삭제</button>
+            </div>
+          </template>
+
+          <!-- ERD 관계선 메뉴 -->
+          <template v-else-if="activeTab === 'erd'">
+            <div class="menu-section">
+              <div class="menu-label">시작 관계</div>
+              <select class="menu-select" @change="setEdgeMarkerStart($event.target.value)" :value="currentContextMenuTargetEdge.markerStart || ''">
+                <option value="">없음</option>
+                <option value="url(#erd-one-to-one)">1</option>
+                <option value="url(#erd-one-to-many)">1:N</option>
+                <option value="url(#erd-many-to-many)">N:M</option>
+              </select>
+            </div>
+            <div class="menu-section">
+              <div class="menu-label">끝 관계</div>
+              <select class="menu-select" @change="setEdgeMarkerEnd($event.target.value)" :value="currentContextMenuTargetEdge.markerEnd || ''">
+                <option value="">없음</option>
+                <option value="url(#erd-one-to-one)">1</option>
+                <option value="url(#erd-one-to-many)">1:N</option>
+                <option value="url(#erd-many-to-many)">N:M</option>
+              </select>
+            </div>
+          </template>
+
+          <!-- 정보구조도 관계선 메뉴 (기본 선 스타일만) -->
+         <template v-else-if="activeTab === 'infostructure'">
+            <div class="menu-section">
+              <div class="menu-label">시작 화살표</div>
+              <select class="menu-select" @change="setEdgeMarkerStart($event.target.value)" :value="currentContextMenuTargetEdge.markerStart?.type || ''">
+                <option value="">없음</option>
+                <option value="arrowclosed">채워진 화살표</option>
+              </select>
+            </div>
+            <div class="menu-section">
+              <div class="menu-label">끝 화살표</div>
+              <select class="menu-select" @change="setEdgeMarkerEnd($event.target.value)" :value="currentContextMenuTargetEdge.markerEnd?.type || ''">
+                <option value="">없음</option>
+                <option value="arrowclosed">채워진 화살표</option>
+              </select>
+            </div>
+          </template>
+        </div>
+
+        <div v-else-if="contextMenu.target?.type === 'node' && activeTab === 'infostructure'">
+          <div class="menu-section">
+            <div class="menu-label">페이지 헤더 색상</div>
+            <div class="color-palette">
+              <button class="color-swatch" style="background: #718096;" @click="setNodeHeaderColor('#718096')"></button>
+              <button class="color-swatch" style="background: #63B3ED;" @click="setNodeHeaderColor('#63B3ED')"></button>
+              <button class="color-swatch" style="background: #F6E05E;" @click="setNodeHeaderColor('#F6E05E')"></button>
+              <button class="color-swatch" style="background: #68D391;" @click="setNodeHeaderColor('#68D391')"></button>
+              <button class="color-swatch" style="background: #F56565;" @click="setNodeHeaderColor('#F56565')"></button>
+            </div>
+          </div>
+        </div>
+
+        <div v-else-if="contextMenu.target?.type === 'node'">
+          <!-- 노드별 추가 메뉴는 추후 구현 -->
+          <div class="menu-section">
+            <div class="menu-label">노드 옵션</div>
+            <!-- 노드별 메뉴는 여기에 추가될 수 있습니다. (예: 속성/메서드 추가) -->
           </div>
         </div>
         <!-- 삭제 버튼 -->
@@ -115,7 +206,7 @@ import { useRoute } from 'vue-router'
 import api from '@/api'
 import { debounce } from 'lodash'
 // [수정] 중복된 import를 모두 정리하고, 필요한 모든 것을 한 번에 가져옵니다.
-import { VueFlow, useVueFlow } from '@vue-flow/core'
+import { VueFlow, useVueFlow, MarkerType } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 import { Controls } from '@vue-flow/controls'
 import '@vue-flow/core/dist/style.css'
@@ -126,23 +217,30 @@ import CustomActorNode from '@/components/diagramtool/vueflow/Usecase/CustomActo
 import CustomUsecaseNode from '@/components/diagramtool/vueflow/Usecase/CustomUsecaseNode.vue'
 import CustomSystemNode from '@/components/diagramtool/vueflow/Usecase/CustomSystemNode.vue'
 import CustomNoteNode from '@/components/diagramtool/vueflow/Usecase/CustomNoteNode.vue'
-import CustomUsecaseEdge from '@/components/diagramtool/vueflow/Usecase/CustomUsecaseEdge.vue'
-
+import CustomPageNode from './CustomPageNode.vue'
 import Toolbox from '@/components/diagramtool/vueflow/Toolbox.vue' 
 import DiagramTabs from '@/components/diagramtool/vueflow/DiagramTabs.vue' 
 
+
 const nodeTypes = {
   classNode: markRaw(CustomClassNode),
+  interfaceNode: markRaw(CustomClassNode), // Placeholder for custom interface node
+  enumNode: markRaw(CustomClassNode), // Placeholder for custom enum node
+  packageNode: markRaw(CustomClassNode), // Placeholder for custom package node
   'usecase-actor': markRaw(CustomActorNode),
   'usecase-bubble': markRaw(CustomUsecaseNode),
   // [수정] 중복 정의를 모두 제거하고, markRaw를 적용하지 않아 크기 조절이 가능하도록 합니다.
   'usecase-system': CustomSystemNode, // markRaw를 제거하여 크기 조절이 가능하도록 합니다.
   note: markRaw(CustomNoteNode),
+  entityNode: markRaw(CustomClassNode), // ERD 및 정보구조도 노드 타입 추가 (임시로 CustomClassNode 사용)
+  relationshipNode: markRaw(CustomClassNode),
+  attributeNode: markRaw(CustomClassNode),
+  pageNode: markRaw(CustomPageNode),
 };
 // [수정] 디버깅용 코드를 제거하고, 커스텀 엣지를 사용하도록 다시 설정합니다.
-// (라벨 위치 조절 등 커스텀 기능이 필요하기 때문)
+// (라벨 위치 조절 등 커스텀 기능이 필요하기 때문).
+// pageNode는 CustomClassNode를 임시로 사용합니다.
 const edgeTypes = {
-  'usecase-edge': markRaw(CustomUsecaseEdge),
 };
 
 const newNodeId = ref(10) 
@@ -162,7 +260,7 @@ const contextMenu = ref({
 });
 
 const allDiagramData = ref({
-  class: {
+  classDiagram: {
     nodes: [
       { id: '1', type: 'classNode', position: { x: 50, y: 50 }, data: { label: 'User' } },
       { id: '2', type: 'classNode', position: { x: 350, y: 150 }, data: { label: 'Admin' } },
@@ -198,12 +296,45 @@ function onTabChange(tabId) {
   activeTab.value = tabId;
 }
 
+// 현재 컨텍스트 메뉴의 대상 노드/엣지를 가져오는 computed 속성
+const currentContextMenuTargetNode = computed(() => {
+  if (contextMenu.value.target?.type === 'node') {
+    return activeNodes.value.find(node => node.id === contextMenu.value.target.id);
+  }
+  return null;
+});
+
+const currentContextMenuTargetEdge = computed(() => {
+  if (contextMenu.value.target?.type === 'edge') {
+    return activeEdges.value.find(edge => edge.id === contextMenu.value.target.id);
+  }
+  return null;
+});
+
 function onConnect(connectionParams) {
+  let edgeType = 'default'; // 기본 엣지 타입
+  let markerEnd = undefined;
+  let markerStart = undefined;
+
+  if (activeTab.value === 'usecase') {
+    edgeType = 'usecase-edge';
+    
+  } else if (activeTab.value === 'classDiagram') {
+    // 클래스 다이어그램은 기본적으로 연관 관계 (화살표 없음)
+    edgeType = 'default';
+  } else if (activeTab.value === 'erd') {
+    // ERD는 기본적으로 화살표 없음 (관계선은 나중에 커스텀 마커로 표현)
+    edgeType = 'default';
+  } else if (activeTab.value === 'infostructure' ) {
+    // 정보구조도 및 시퀀스 다이어그램도 기본 엣지 타입 사용
+    edgeType = 'default';
+  }
+
   const newEdge = {
     id: `e${connectionParams.source}${connectionParams.sourceHandle}-${connectionParams.target}${connectionParams.targetHandle}-${Date.now()}`,
     source: connectionParams.source,
     target: connectionParams.target,
-    type: 'usecase-edge', // [수정] 커스텀 라벨 위치 등을 위해 커스텀 엣지를 사용합니다.
+    type: edgeType,
     sourceHandle: connectionParams.sourceHandle,
     targetHandle: connectionParams.targetHandle,
     data: { 
@@ -212,8 +343,17 @@ function onConnect(connectionParams) {
       labelOffsetX: 0,
       labelOffsetY: -20,
     },
-    markerStart: '', // [추가] 시작 화살표 기본값
-    markerEnd: 'url(#arrow-closed)',   // [수정] 연결 시 기본으로 끝 화살표를 표시합니다.
+    markerStart: markerStart,
+    markerEnd: markerEnd,
+
+    // [수정] 기본 선이 읽을 수 있도록 최상위 속성 추가
+    label: '', // 라벨 텍스트
+    labelStyle: { fill: '#2d3748', fontWeight: 500 }, // 라벨 텍스트 스타일
+    labelBgStyle: { fill: '#f8f9fa' }, // 라벨 배경색 (캔버스 배경과 동일하게)
+    labelBgPadding: [4, 8], // 라벨 배경 여백
+    labelBgBorderRadius: 4, // 라벨 배경 둥근 모서리
+    // [추가] 라벨을 선 위쪽으로 이동시킵니다.
+    labelYOffset: -20, // 원하는 만큼 숫자를 조절해보세요.
   }
   activeEdges.value = [...activeEdges.value, newEdge];
 }
@@ -227,6 +367,21 @@ function getEdgeProperty(key) {
   if (key === 'markerStart') return edge.markerStart || '';
   
   return edge.data ? edge.data[key] : null;
+}
+
+// [추가] 선의 타입을 변경하는 함수 (step, smoothstep, default)
+function setEdgeType(type) {
+  const { id } = contextMenu.value.target;
+  if (!id) return; // 대상 ID가 없으면 중단
+
+  const edgeIndex = activeEdges.value.findIndex(edge => edge.id === id);
+  if (edgeIndex !== -1) {
+    const updatedEdges = [...activeEdges.value];
+    // 반응성을 위해 새 객체를 만들고 'type' 속성을 변경
+    const edgeToUpdate = { ...updatedEdges[edgeIndex], type: type };
+    updatedEdges[edgeIndex] = edgeToUpdate;
+    activeEdges.value = updatedEdges;
+  }
 }
 
 function onNodeContextMenu(event) {
@@ -293,27 +448,53 @@ function setEdgeStyle(lineStyle) {
   }
 }
 
-function setEdgeMarkerStart(markerId) {
+function setEdgeMarkerStart(markerValue) { // markerId -> markerValue
   const { id } = contextMenu.value.target;
   if (!id) return;
   const edgeIndex = activeEdges.value.findIndex(edge => edge.id === id);
   if (edgeIndex !== -1) {
     const updatedEdges = [...activeEdges.value];
-    // [수정] Vue 반응성을 확실히 트리거하기 위해 객체를 새로 생성합니다.
-    const edgeToUpdate = { ...updatedEdges[edgeIndex], markerStart: markerId };
+
+    // [수정] 값에 따라 내장 마커 객체 또는 undefined를 할당합니다.
+    let newMarkerStart;
+    if (markerValue === 'arrowclosed') {
+      newMarkerStart = { 
+        type: MarkerType.ArrowClosed, 
+        color: '#000000', 
+        width: 15,
+        height: 15,
+      };
+    } else {
+      newMarkerStart = undefined; // '없음' 선택 시
+    }
+
+    const edgeToUpdate = { ...updatedEdges[edgeIndex], markerStart: newMarkerStart };
     updatedEdges[edgeIndex] = edgeToUpdate;
     activeEdges.value = updatedEdges;
   }
 }
 
-function setEdgeMarkerEnd(markerId) {
+function setEdgeMarkerEnd(markerValue) { // markerId -> markerValue로 이름 변경
   const { id } = contextMenu.value.target;
   if (!id) return;
   const edgeIndex = activeEdges.value.findIndex(edge => edge.id === id);
   if (edgeIndex !== -1) {
     const updatedEdges = [...activeEdges.value];
-    // [수정] Vue 반응성을 확실히 트리거하기 위해 객체를 새로 생성합니다.
-    const edgeToUpdate = { ...updatedEdges[edgeIndex], markerEnd: markerId };
+    
+    // [수정] 값에 따라 내장 마커 객체 또는 undefined를 할당합니다.
+    let newMarkerEnd;
+    if (markerValue === 'arrowclosed') {
+      newMarkerEnd = { 
+        type: MarkerType.ArrowClosed, // 우리가 import한 MarkerType 사용
+        color: '#000000', // 검은색 지정
+        width: 15,
+        height: 15,
+      };
+    } else {
+      newMarkerEnd = undefined; // '없음' 선택 시
+    }
+
+    const edgeToUpdate = { ...updatedEdges[edgeIndex], markerEnd: newMarkerEnd };
     updatedEdges[edgeIndex] = edgeToUpdate;
     activeEdges.value = updatedEdges;
   }
@@ -325,13 +506,95 @@ function setEdgeLabel(label) {
   const edgeIndex = activeEdges.value.findIndex(edge => edge.id === id);
   if (edgeIndex !== -1) {
     const updatedEdges = [...activeEdges.value];
-    // [수정] 기본 엣지가 인식하도록 최상위 label 속성을 직접 변경하고, data.label도 함께 업데이트합니다.
+    
+    // [수정] 반응성을 위해 새 객체로 복사
     const edgeToUpdate = { ...updatedEdges[edgeIndex] };
+
+    // [수정] data.label과 함께 최상위 'label' 속성도 업데이트합니다.
+    // 이것이 기본 선(default edge)이 읽는 값입니다.
     edgeToUpdate.data = { ...edgeToUpdate.data, label: label };
+    edgeToUpdate.label = label; // <-- ★★★ 이 부분이 핵심입니다 ★★★
+
     updatedEdges[edgeIndex] = edgeToUpdate;
     activeEdges.value = updatedEdges;
   }
   hideContextMenu();
+}
+
+// [추가] 노드 헤더 색상을 변경하는 함수
+function setNodeHeaderColor(color) {
+  const { id } = contextMenu.value.target;
+  if (!id) return; // 대상 ID가 없으면 중단
+
+  // activeNodes에서 해당 노드를 찾습니다.
+  const node = activeNodes.value.find(n => n.id === id);
+  if (node) {
+    // data 객체를 새로 만들어 반응성을 유지하며 headerColor를 업데이트합니다.
+    node.data = { ...node.data, headerColor: color };
+  }
+  
+  hideContextMenu(); // 메뉴 닫기
+}
+
+// 클래스 다이어그램 관계 종류 설정
+function setEdgeRelationshipType(relationshipType) {
+  const { id } = contextMenu.value.target;
+  if (!id) return;
+  const edgeIndex = activeEdges.value.findIndex(edge => edge.id === id);
+  if (edgeIndex !== -1) {
+    const updatedEdges = [...activeEdges.value];
+    const edgeToUpdate = { ...updatedEdges[edgeIndex] };
+
+    // 관계 종류에 따라 markerStart, markerEnd, style, label 변경
+    edgeToUpdate.data = { ...edgeToUpdate.data, relationshipType: relationshipType };
+    edgeToUpdate.data.lineStyle = 'none'; // 기본 실선
+    edgeToUpdate.style = { strokeDasharray: undefined }; // 기본 실선
+    edgeToUpdate.markerStart = '';
+    edgeToUpdate.markerEnd = '';
+    edgeToUpdate.data.label = '';
+
+    switch (relationshipType) {
+      case 'association':
+        // 기본값 (화살표 없음)
+        break;
+      case 'generalization': // 일반화 (상속)
+        edgeToUpdate.markerEnd = 'url(#arrow-closed)'; // 빈 삼각형
+        break;
+      case 'realization': // 구현 (점선 빈 삼각형)
+        edgeToUpdate.data.lineStyle = 'dashed';
+        edgeToUpdate.style = { strokeDasharray: '5 5' };
+        edgeToUpdate.markerEnd = 'url(#arrow-closed)'; // 빈 삼각형
+        break;
+      case 'aggregation': // 집합 (빈 마름모)
+        // TODO: 마름모 마커 정의 필요
+        // edgeToUpdate.markerEnd = 'url(#diamond-open)';
+        break;
+      case 'composition': // 복합 (채워진 마름모)
+        // TODO: 채워진 마름모 마커 정의 필요
+        // edgeToUpdate.markerEnd = 'url(#diamond-filled)';
+        break;
+      case 'dependency': // 의존 (점선 화살표)
+        edgeToUpdate.data.lineStyle = 'dashed';
+        edgeToUpdate.style = { strokeDasharray: '5 5' };
+        edgeToUpdate.markerEnd = 'url(#arrow-closed)'; // 일반 화살표
+        break;
+      // ERD 관계는 onConnect에서 처리하거나 별도 함수로 분리
+      case 'erd-one-to-one':
+        edgeToUpdate.markerStart = 'url(#erd-one-to-one)';
+        edgeToUpdate.markerEnd = 'url(#erd-one-to-one)';
+        break;
+      case 'erd-one-to-many':
+        edgeToUpdate.markerStart = 'url(#erd-one-to-one)';
+        edgeToUpdate.markerEnd = 'url(#erd-one-to-many)';
+        break;
+      case 'erd-many-to-many':
+        edgeToUpdate.markerStart = 'url(#erd-many-to-many)';
+        edgeToUpdate.markerEnd = 'url(#erd-many-to-many)';
+        break;
+    }
+    updatedEdges[edgeIndex] = edgeToUpdate;
+    activeEdges.value = updatedEdges;
+  }
 }
 
 function onDragOver(event) {
@@ -352,81 +615,166 @@ function onDrop(event) {
     y: event.clientY - wrapperBounds.top,
   });
 
-  let label = '새 항목';
+  let newNode;
+  let defaultWidth = 160;
+  let defaultHeight = 100;
+
   switch (nodeType) {
-    case 'usecase-actor': label = '액터'; break;
-    case 'usecase-bubble': label = '유스케이스'; break;
-    case 'usecase-system': label = '시스템 경계'; break;
-    case 'note': label = '노트...'; break;
-    case 'classNode': label = 'NewClass'; break;
-    case 'entityNode': label = 'NewEntity'; break;
+    case 'classNode':
+      newNode = {
+        id: `node-${newNodeId.value++}`,
+        type: 'classNode',
+        position: projectedPosition,
+        data: { 
+          label: 'NewClass', 
+          attributes: ['+ attribute: Type'], 
+          methods: ['+ method(): ReturnType'] 
+        },
+        style: { width: defaultWidth, height: defaultHeight },
+      };
+      break;
+    case 'interfaceNode':
+      newNode = {
+        id: `node-${newNodeId.value++}`,
+        type: 'interfaceNode',
+        position: projectedPosition,
+        data: { 
+          label: '<<interface>>\nNewInterface', 
+          attributes: [], 
+          methods: ['+ operation(): ReturnType'] 
+        },
+        style: { width: defaultWidth, height: defaultHeight },
+      };
+      break;
+    case 'enumNode':
+      newNode = {
+        id: `node-${newNodeId.value++}`,
+        type: 'enumNode',
+        position: projectedPosition,
+        data: { 
+          label: '<<enum>>\nNewEnum', 
+          attributes: ['VALUE1', 'VALUE2'], 
+          methods: [] 
+        },
+        style: { width: defaultWidth, height: defaultHeight },
+      };
+      break;
+    case 'packageNode':
+      newNode = {
+        id: `node-${newNodeId.value++}`,
+        type: 'packageNode',
+        position: projectedPosition,
+        data: { label: 'NewPackage' },
+        style: { width: 200, height: 150, backgroundColor: '#f0f8ff', border: '1px dashed #ccc' },
+      };
+      break;
+    case 'note': // Generic note, used in Usecase and Class diagrams
+      newNode = {
+        id: `node-${newNodeId.value++}`,
+        type: 'note',
+        position: projectedPosition,
+        data: { label: '노트...' },
+        style: { width: 150, height: 80, backgroundColor: '#fffacd', border: '1px solid #e0e0e0' },
+      };
+      break;
+    case 'usecase-actor':
+      newNode = { id: `node-${newNodeId.value++}`, type: nodeType, position: projectedPosition, data: { label: '액터' } };
+      break;
+    case 'usecase-bubble':
+      newNode = { id: `node-${newNodeId.value++}`, type: nodeType, position: projectedPosition, data: { label: '유스케이스' } };
+      break;
+    case 'usecase-system':
+      newNode = {
+        id: `node-${newNodeId.value++}`,
+        type: nodeType,
+        position: projectedPosition,
+        data: { label: '시스템 경계' },
+        style: { width: '400px', height: '300px' },
+      };
+      break; // 쉼표를 세미콜론으로 수정하여 문법 오류 해결
+    case 'entityNode': // ERD entity (테이블)
+      newNode = { id: `node-${newNodeId.value++}`, type: nodeType, position: projectedPosition, data: { label: 'NewEntity', attributes: ['PK id: INT', 'name: VARCHAR(255)'] }, style: { width: 180, height: 120, backgroundColor: '#f0f9ff', border: '1px solid #90cdf4' } };
+      break;
+    case 'relationshipNode': // ERD relationship
+      newNode = { id: `node-${newNodeId.value++}`, type: nodeType, position: projectedPosition, data: { label: '관계' }, style: { width: 100, height: 60, backgroundColor: '#fffbe0', border: '1px solid #fbd38d', borderRadius: '50%' } };
+      break;
+    case 'attributeNode': // ERD attribute
+      newNode = { id: `node-${newNodeId.value++}`, type: nodeType, position: projectedPosition, data: { label: '속성' }, style: { width: 120, height: 50, backgroundColor: '#e6fffa', border: '1px solid #81e6d9', borderRadius: '25px' } };
+      break;
+    case 'pageNode': // Info Structure page
+      newNode = { id: `node-${newNodeId.value++}`, type: nodeType, position: projectedPosition, data: { label: '새 페이지' ,items: [], headerColor: '#718096'}, style: { width: 180, height: 100, backgroundColor: '#f0f4f8', border: '1px solid #cbd5e1' } };
+      break;
+    case 'sequence-lifeline':
+      newNode = { id: `node-${newNodeId.value++}`, type: 'classNode', position: projectedPosition, data: { label: '객체' }, style: { width: 120, height: 400 } };
+      break;
+    case 'sequence-actor':
+      newNode = { id: `node-${newNodeId.value++}`, type: 'usecase-actor', position: projectedPosition, data: { label: '액터' } };
+      break;
+    case 'sequence-loop':
+      newNode = { id: `node-${newNodeId.value++}`, type: 'classNode', position: projectedPosition, data: { label: 'loop' }, style: { width: 300, height: 200, border: '1px dashed #999' } };
+      break;
+    case 'sequence-alt':
+      newNode = { id: `node-${newNodeId.value++}`, type: 'classNode', position: projectedPosition, data: { label: 'alt' }, style: { width: 300, height: 200, border: '1px dashed #999' } };
+      break;
+    case 'sequence-opt':
+      newNode = { id: `node-${newNodeId.value++}`, type: 'classNode', position: projectedPosition, data: { label: 'opt' }, style: { width: 300, height: 200, border: '1px dashed #999' } };
+      break;
+    default:
+      console.warn('알 수 없는 노드 타입이 드롭되었습니다:', nodeType);
+      return;
   }
 
-  const newNode = {
-    id: `node-${newNodeId.value++}`,
-    type: nodeType,
-    position: projectedPosition, // 변환된 좌표를 사용합니다.
-    data: { label },
-    // [추가] 시스템 경계 노드에 초기 크기를 지정합니다.
-    ...(nodeType === 'usecase-system' && {
-      style: {
-        width: '400px',
-        height: '300px',
-      },
-    }),
-  };
-
-  allDiagramData.value[activeTab.value].nodes.push(newNode);
+  if (newNode) {
+    allDiagramData.value[activeTab.value].nodes.push(newNode);
+  }
 }
 
 function onNodeDragStop() {}
 
 // === 저장 관련 ===
 const saveStatus = ref('idle')
-
-const saveUsecase = debounce(async () => {
+const saveDiagramData = debounce(async () => {
   const readonly = route.query.readonly === 'true'
   if (readonly) {
     console.log('🔒 읽기 전용 모드입니다. 저장하지 않습니다.')
     return
   }
+  
+  // 유스케이스 탭이 아닐 경우 저장을 건너뜁니다.
+  if (activeTab.value !== 'usecase') {
+    console.log(`ℹ️ ${activeTab.value} 다이어그램은 현재 저장되지 않습니다. (테스트 목적)`);
+    return;
+  }
 
   saveStatus.value = 'saving'
 
-  // VueFlow 인스턴스에서 toObject() 메서드를 사용하여 현재 상태를 가져옵니다.
-  const flowData = vueFlowRef.value?.toObject();
-  if (!flowData) {
-    console.error('Flow 데이터를 가져올 수 없습니다.');
+  // 현재 활성화된 탭의 데이터를 가져옵니다.
+  const currentDiagramData = allDiagramData.value[activeTab.value];
+  if (!currentDiagramData) {
+    console.error(`현재 활성화된 탭 (${activeTab.value})의 데이터를 찾을 수 없습니다.`);
     saveStatus.value = 'error';
     return;
   }
 
-  const jsonData = {
-    nodes: flowData.nodes,
-    edges: flowData.edges,
-    // 필요하다면 viewport 정보도 저장할 수 있습니다.
-    // viewport: flowData.viewport,
-  }
-
   const formData = new FormData()
-  formData.append('type', 'usecase') // 현재는 유스케이스만 저장
-  formData.append('json', JSON.stringify(jsonData))
+  formData.append('type', activeTab.value) // 현재 활성화된 탭의 ID를 type으로 전송
+  formData.append('json', JSON.stringify(currentDiagramData)) // 현재 탭의 데이터 전송
   formData.append('projectId', route.params.projectId);
 
   try {
     await api.post('/design/upload', formData);
     saveStatus.value = 'saved'
     setTimeout(() => saveStatus.value = 'idle', 1200)
-    console.log('✅ 유스케이스 다이어그램 저장 성공')
+    console.log(`✅ ${activeTab.value} 다이어그램 저장 성공`)
   } catch (err) {
-    console.error('❌ 유스케이스 저장 실패:', err)
+    console.error(`❌ ${activeTab.value} 다이어그램 저장 실패:`, err)
     saveStatus.value = 'error'
     setTimeout(() => saveStatus.value = 'idle', 3000)
-    alert('⚠️ 유스케이스 저장 중 오류 발생')
+    alert(`⚠️ ${activeTab.value} 저장 중 오류 발생`)
   }
 }, 1000)
 
-watch([activeNodes, activeEdges], saveUsecase, { deep: true })
+watch([activeNodes, activeEdges], saveDiagramData, { deep: true })
 
 // === 불러오기 ===
 onMounted(async () => {
@@ -440,6 +788,31 @@ onMounted(async () => {
       const parsed = JSON.parse(usecase.json)
       allDiagramData.value.usecase = { nodes: parsed.nodes || [], edges: parsed.edges || [] };
       console.log('✅ 유스케이스 불러오기 성공:', parsed)
+
+      // === [수정됨] ===
+      // DB에서 불러온 모든 노드를 확인하여 가장 큰 ID를 찾습니다.
+      let maxId = 0;
+      
+      // 현재는 유스케이스만 불러오지만, 모든 다이어그램을 순회하도록 처리
+      Object.values(allDiagramData.value).forEach(diagram => {
+        diagram.nodes.forEach(node => {
+          // ID 형식이 'node-10', 'node-11' 등으로 가정
+          const idParts = node.id.split('-');
+          if (idParts.length === 2) {
+            const idNum = parseInt(idParts[1], 10);
+            if (!isNaN(idNum) && idNum > maxId) {
+              maxId = idNum;
+            }
+          }
+        });
+      });
+
+      // 찾은 가장 큰 ID + 1로 새 노드 ID 카운터를 설정합니다.
+      // (기존 노드가 없으면 maxId는 0이므로, 10부터 시작하도록 보정)
+      newNodeId.value = Math.max(10, maxId + 1);
+      console.log(`[중복 방지] 새 노드 ID 시작값을 ${newNodeId.value}로 설정합니다.`);
+      // ===============
+
     }
   } catch (err) {
     console.error('❌ 유스케이스 초기 데이터 로드 실패:', err)
@@ -557,4 +930,33 @@ onMounted(async () => {
 .save-toast.saving { background-color: #777; }
 .save-toast.saved { background-color: #323232; }
 .save-toast.error { background-color: #dc3545; }
+</style>
+
+<style>
+
+@import '@vue-flow/node-resizer/dist/style.css';
+
+/* Vue Flow 연결선을 진한 검정색으로 변경 */
+.vue-flow__edge-path {
+  stroke: #000000 !important;
+  stroke-width: 2 !important;
+}
+
+/* 화살촉 색상도 검정으로 통일 */
+.vue-flow__arrowhead path,
+.custom-arrowhead-path { /* [수정] 이 부분을 추가하세요. */
+  fill: #000000 !important;
+  stroke: #000000 !important;
+}
+
+.color-swatch {
+  width: 36px;  /* 28px -> 36px로 변경 (원하는 크기로 조절) */
+  height: 36px; /* 28px -> 36px로 변경 */
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  cursor: pointer;
+  transition: transform 0.1s ease;
+}
+
 </style>

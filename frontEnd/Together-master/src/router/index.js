@@ -363,6 +363,12 @@ const routes = [
     component: ProjectSimilarityCheck,
     meta: { requiresAuth: true, roles: ['PROFESSOR'] }
   },
+
+  {
+    path: '/test-class-diagram',
+    name: 'TestClassDiagram',
+    component: () => import('@/views/test/VueFlowClassTest.vue'),
+  },
 ]
 
 const router = createRouter({

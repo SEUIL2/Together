@@ -2,7 +2,7 @@
 package com.together.agoraVideoChat;
 
 import io.agora.media.RtcTokenBuilder;
-import io.agora.media.RtcTokenBuilder.Role;
+import io.agora.rtm.RtmTokenBuilder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -13,8 +13,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 import java.util.Map;
+
+import static io.agora.media.RtcTokenBuilder.Role.Role_Publisher;
 
 
 /**
@@ -27,6 +31,7 @@ public class AgoraService {
 
     // --- 화상채팅 키값 ---
     private final RestTemplate restTemplate;
+
     @Value("${agora.app.id}")
     private String appId;
 
@@ -64,9 +69,41 @@ public class AgoraService {
                 appCertificate,
                 channelName,
                 userId,         // Agora는 Integer 타입의 UID를 사용합니다.
-                Role.Role_Publisher,
+                Role_Publisher,
                 timestamp
         );
+        return token;
+    }
+
+    /**
+     * RTM (Real-Time Messaging) 토큰을 생성합니다.
+     *
+     * @param userId      채널에 참여하는 사용자의 고유 ID (RTM은 String 타입을 사용)
+     * @return 생성된 RTM 토큰 문자열
+     */
+    public String generateRtmToken(String userId) {
+        RtmTokenBuilder tokenBuilder = new RtmTokenBuilder();
+        // 1시간 뒤 만료 시간 설정
+        int timestamp = (int) (System.currentTimeMillis() / 1000 + EXPIRATION_TIME_IN_SECONDS);
+
+        String token;
+        try {
+            // RTM 토큰 생성 (App ID, App Certificate, 사용자 ID(String), 만료 시간)
+            // RTM 토큰은 채널명이 아닌, 사용자 ID를 기준으로 발급됩니다.
+            token = tokenBuilder.buildToken(
+                    appId,
+                    appCertificate,
+                    userId,
+                    RtmTokenBuilder.Role.Rtm_User,
+                    timestamp
+            );
+        } catch (NoSuchAlgorithmException | InvalidKeyException e) {
+            // RTM 토큰 생성 실패 시 런타임 예외 발생
+            log.error("Agora RTM 토큰 생성 실패: userId={}, error={}", userId, e.getMessage());
+            throw new RuntimeException("RTM 토큰 생성에 실패했습니다.", e);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
         return token;
     }
 
@@ -108,4 +145,6 @@ public class AgoraService {
             return Map.of("error", true, "message", e.getMessage());
         }
     }
+
+
 }

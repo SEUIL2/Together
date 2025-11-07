@@ -53,6 +53,27 @@ public class AgoraController {
     }
 
     /**
+     * 채팅(RTM)을 위한 RTM 토큰을 발급하는 API
+     * @param userDetails 현재 로그인된 사용자 정보 (@AuthenticationPrincipal 어노테이션으로 주입)
+     * @return 생성된 RTM 토큰과 RTM용 사용자 ID(String)
+     */
+    @GetMapping("/rtm-token")
+    public ResponseEntity<Map<String, String>> generateRtmToken(
+            @AuthenticationPrincipal UserDetailsImpl userDetails
+    ) {
+        // RTM SDK는 사용자 ID로 Integer가 아닌 String을 요구합니다.
+        String userId = String.valueOf(userDetails.getUser().getUserId());
+
+        log.info("RTM 토큰 발급 요청: userId={}", userId);
+
+        // AgoraService를 통해 RTM 토큰 생성
+        String token = agoraService.generateRtmToken(userId);
+
+        // 프론트에서 RTM 로그인 시 String 타입의 userId도 필요하므로 함께 반환합니다.
+        return ResponseEntity.ok(Map.of("token", token, "userId", userId));
+    }
+
+    /**
      * 현재 화상 채팅방(채널)의 참여자 목록을 조회하는 API
      * @param projectId 현재 프로젝트 ID (@CurrentProject 어노테이션으로 자동 주입)
      * @return 채널 참여자 정보가 담긴 응답 객체

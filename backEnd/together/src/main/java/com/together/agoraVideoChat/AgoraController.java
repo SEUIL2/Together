@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Map;
+
 
 /**
  * Agora 화상 채팅 관련 API 컨트롤러
@@ -48,5 +50,34 @@ public class AgoraController {
 
         // 생성된 토큰을 DTO에 담아 성공(200 OK) 응답 반환
         return ResponseEntity.ok(new AgoraTokenResponse(token, userId));
+    }
+
+    /**
+     * 현재 화상 채팅방(채널)의 참여자 목록을 조회하는 API
+     * @param projectId 현재 프로젝트 ID (@CurrentProject 어노테이션으로 자동 주입)
+     * @return 채널 참여자 정보가 담긴 응답 객체
+     * ---응답 예시---
+     *{
+     *     "success": true,
+     *     "data": {
+     *         "channel_exist": true, //접속을 성공했음
+     *         "mode": 1,
+     *         "total": 1, //총 1명 접속상태
+     *         "users": [ 2 ] //접속한 유저의 아이디는 2이다
+     *     }
+     * }
+     */
+    @GetMapping("/participants")
+    public ResponseEntity<Map<String, Object>> getParticipants(
+            @CurrentProject Long projectId // @CurrentProject로 현재 프로젝트 ID를 안전하게 받음 (규칙 4)
+    ) {
+        String channelName = String.valueOf(projectId);
+        log.info("참여자 목록 조회 요청: projectId={}", projectId);
+
+        // AgoraService를 통해 참여자 목록 조회
+        Map<String, Object> participantsData = agoraService.getChannelParticipants(channelName);
+
+        // 조회된 데이터를 그대로 반환
+        return ResponseEntity.ok(participantsData);
     }
 }

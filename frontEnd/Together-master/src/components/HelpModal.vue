@@ -61,6 +61,7 @@ import uidesign from '@/assets/helpimage/uidesign.png'
 import usecase from '@/assets/helpimage/usecase.png'
 import classdiagram from '@/assets/helpimage/classdiagram.png'
 import erd from '@/assets/helpimage/erd.png'
+import test from '@/assets/test.png'
 
 // 선택된 카테고리 및 항목
 const selectedCategory = ref('기획')
@@ -296,9 +297,10 @@ const helpData = {
   ],
   테스트: [
     {
-      title: "단위 테스트",
-      description: "기능별 테스트 계획과 체크리스트를 작성합니다.",
-      image: "https://via.placeholder.com/400x200?text=테스트"
+      title: "단위 테스트 및 통합 테스트",
+      description: `테스트 페이지는 프로젝트의 품질과 안정성을 보장하기 위해 '단위 테스트'와 '통합 테스트'를 체계적으로 기록하고 관리하는 공간입니다.
+개발한 기능들이 개별적으로 잘 작동하는지, 그리고 여러 기능이 합쳐졌을 때도 충돌 없이 올바르게 동작하는지 이곳에서 검증하고 이력을 남길 수 있습니다.`,
+      image: test
     }
   ]
 }

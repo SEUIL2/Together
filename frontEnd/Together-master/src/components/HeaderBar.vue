@@ -6,12 +6,40 @@
         <span class="logo-text">TOGETHER</span>
       </div>
 
-      <nav v-if="!isProfessor || isProfessorReadOnly" class="main-nav" @mouseenter="showAllSubmenus = true">
+      <nav v-if="!isProfessor || isProfessorReadOnly" class="main-nav">
         <ul>
-          <li><button :class="{ active: $route.query.step === '기획' }" @click="goToStep('기획')">기획</button></li>
-          <li><button :class="{ active: $route.query.step === '설계' }" @click="goToStep('설계')">설계</button></li>
-          <li><button :class="{ active: $route.query.step === '개발' }" @click="goToStep('개발')">개발</button></li>
-          <li><button :class="{ active: $route.query.step === '테스트' }" @click="goToStep('테스트')">테스트</button></li>
+          <li @mouseenter="activeDropdown = '기획'" @mouseleave="activeDropdown = null">
+            <button :class="{ active: $route.query.step === '기획' }" @click="goToStep('기획')">기획</button>
+            <div v-if="activeDropdown === '기획'" class="dropdown-menu">
+              <button v-for="item in planningItems" :key="item.type" class="dropdown-item" @click="goToSubStep('기획', item.type)">
+                {{ item.name }}
+              </button>
+            </div>
+          </li>
+          <li @mouseenter="activeDropdown = '설계'" @mouseleave="activeDropdown = null">
+            <button :class="{ active: $route.query.step === '설계' }" @click="goToStep('설계')">설계</button>
+            <div v-if="activeDropdown === '설계'" class="dropdown-menu">
+              <button v-for="item in designItems" :key="item.type" class="dropdown-item" @click="goToSubStep('설계', item.type)">
+                {{ item.name }}
+              </button>
+            </div>
+          </li>
+          <li @mouseenter="activeDropdown = '개발'" @mouseleave="activeDropdown = null">
+            <button :class="{ active: $route.query.step === '개발' }" @click="goToStep('개발')">개발</button>
+            <div v-if="activeDropdown === '개발'" class="dropdown-menu">
+              <button v-for="item in developItems" :key="item.type" class="dropdown-item" @click="goToSubStep('개발', item.type)">
+                {{ item.name }}
+              </button>
+            </div>
+          </li>
+          <li @mouseenter="activeDropdown = '테스트'" @mouseleave="activeDropdown = null">
+            <button :class="{ active: $route.query.step === '테스트' }" @click="goToStep('테스트')">테스트</button>
+            <div v-if="activeDropdown === '테스트'" class="dropdown-menu">
+              <button v-for="item in testItems" :key="item.type" class="dropdown-item" @click="goToSubStep('테스트', item.type)">
+                {{ item.name }}
+              </button>
+            </div>
+          </li>
         </ul>
       </nav>
 
@@ -89,75 +117,7 @@
       </div>
     </div>
 
-    <div v-if="!isProfessor || isProfessorReadOnly" class="mega-menu-container" :class="{ open: showAllSubmenus }" @mouseenter="showAllSubmenus = true" @mouseleave="showAllSubmenus = false">
-      <div class="mega-menu-content">
-        <div class="mega-menu-column">
-          <button v-for="item in planningItems" :key="item.type" class="inline-item" @click="goToSubStep('기획', item.type)">
-            {{ item.name }}
-          </button>
-        </div>
-        <div class="mega-menu-column">
-          <button v-for="item in designItems" :key="item.type" class="inline-item" @click="goToSubStep('설계', item.type)">
-            {{ item.name }}
-          </button>
-        </div>
-        <div class="mega-menu-column">
-          <button v-for="item in developItems" :key="item.type" class="inline-item" @click="goToSubStep('개발', item.type)">
-            {{ item.name }}
-          </button>
-        </div>
-        <div class="mega-menu-column">
-          <button v-for="item in testItems" :key="item.type" class="inline-item" @click="goToSubStep('테스트', item.type)">
-            {{ item.name }}
-          </button>
-        </div>
-        <!-- 알림 섹션을 메가메뉴 우측에 추가 -->
-        <div class="mega-menu-column notification-mega-section">
-          <!-- 알림 헤더 -->
-          <div class="notification-mega-header">
-            <div v-if="unreadCount > 0" class="notification-text-highlight">
-              새 알림이 {{ unreadCount }}개 있습니다.
-            </div>
-            <button class="view-all-notifications-btn" @click="toggleNotificationModal">
-              모든 알림 보기
-            </button>
-          </div>
-          
-          <!-- 알림 미리보기 목록 -->
-          <div class="notification-preview-list">
-            <div v-if="invitations.length === 0 && notifications.length === 0" class="no-notifications-preview">
-              <p>새로운 알림이 없습니다.</p>
-            </div>
-            <template v-else>
-              <!-- 초대 알림 미리보기 (최대 2개) -->
-              <div v-for="invite in invitations.slice(0, 2)" :key="`preview-invite-${invite.invitationId}`" class="notification-preview-item">
-                <img src="@/assets/invite.png" class="preview-icon" alt="초대"/>
-                <div class="preview-content">
-                  <p class="preview-message">
-                    <strong>{{ truncateText(invite.projectTitle, 15) }}</strong> 프로젝트 초대
-                  </p>
-                  <span class="preview-time">{{ formatTime(invite.createdAt) }}</span>
-                </div>
-              </div>
-              
-              <!-- 일반 알림 미리보기 (최대 3개, 초대 알림이 있으면 조정) -->
-              <div v-for="noti in notifications.slice(0, Math.max(1, 3 - invitations.length))" :key="`preview-noti-${noti.id}`" class="notification-preview-item">
-                <img :src="getNotificationIconPath(noti)" class="preview-icon" alt="알림"/>
-                <div class="preview-content">
-                  <p class="preview-message">{{ truncateText(noti.message, 25) }}</p>
-                  <span class="preview-time">{{ formatTime(noti.createdAt) }}</span>
-                </div>
-              </div>
-              
-              <!-- 더 많은 알림이 있을 때 표시 -->
-              <div v-if="(invitations.length + notifications.length) > 3" class="more-notifications-hint">
-                ... 그 외 {{ (invitations.length + notifications.length) - 3 }}개의 알림
-              </div>
-            </template>
-          </div>
-        </div>
-      </div>
-    </div>
+
   </div>
 </template>
 
@@ -205,7 +165,7 @@ const goMyDashBoard = () => {
   }
 }
 
-const showAllSubmenus = ref(false)
+const activeDropdown = ref(null)
 const planningItems = [
   { name: '프로젝트 동기', type: 'motivation' },
   { name: '프로젝트 목표', type: 'goal' },
@@ -252,11 +212,7 @@ const closeNotificationModal = () => {
   showNotificationModal.value = false
 }
 
-watch(showAllSubmenus, (newValue) => {
-  if (newValue) {
-    fetchAllNotifications();
-  }
-});
+
 
 function getNotificationIconPath(notification) {
   const message = notification.message || '';
@@ -456,7 +412,7 @@ const goToSubStep = (step, subStepType) => {
   } else {
     router.push({ path: '/myproject', query: { step, substep: subStepType } });
   }
-  showAllSubmenus.value = false;
+  activeDropdown.value = null;
 };
 </script>
 
@@ -517,185 +473,53 @@ nav ul li button.active::after{
   border-radius:2px;
 }
 
-/* ===== 메가 메뉴 드롭다운 스타일 ===== */
-.mega-menu-container {
+/* ===== 개별 드롭다운 메뉴 ===== */
+.dropdown-menu {
   position: absolute;
-  top: 60px; /* 헤더 높이 */
+  top: 60px;
   left: 0;
-  width: 100%;
+  width: 168px;
   background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 0;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  padding: 8px 0;
   z-index: 1000;
-  overflow: hidden;
-  max-height: 0;
-  transition: max-height 0.35s ease-in-out, padding 0.35s ease-in-out, border-color 0.35s ease-in-out;
-  border-bottom: 1px solid transparent;
+  animation: dropdownSlide 0.2s ease-out;
 }
 
-.mega-menu-container.open {
-  max-height: 500px;
-  padding: 24px 0;
-  border-bottom-color: #e0e0e0;
-  box-shadow: 0 8px 16px rgba(0,0,0,0.08);
+@keyframes dropdownSlide {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.mega-menu-content {
-  display: flex;
-  gap: var(--menu-gap);
-  width: 100%;
-  margin: 0;
-  padding-left: calc(16% + var(--menu-start-margin));
-}
-
-.mega-menu-column {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  width: 140px;
-}
-
-.inline-item {
+.dropdown-item {
   width: 100%;
   text-align: center;
-  padding: 6px 10px;
-  border-radius: 6px;
+  padding: 10px 12px;
   background: none;
   border: none;
   font-size: 0.9rem;
   color: #555;
   cursor: pointer;
-  white-space: nowrap;
   transition: background-color 0.2s, color 0.2s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.inline-item:hover {
+
+.dropdown-item:hover {
   background-color: #f0f5ff;
   color: var(--brand);
 }
 
-/* ===== 메가메뉴 알림 섹션 ===== */
-.notification-mega-section {
-  width: 380px;
-  margin-left: auto;
-  padding-left: 32px;
-  border-left: 1px solid #e5e7eb;
-}
 
-.notification-mega-header {
-  margin-bottom: 16px;
-}
-
-.notification-text-highlight {
-  background: linear-gradient(135deg, #ff6b6b, #ff8e8e);
-  color: white;
-  padding: 8px 16px;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 600;
-  text-align: center;
-  margin-bottom: 12px;
-  box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3);
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0%, 100% {
-    box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3);
-  }
-  50% {
-    box-shadow: 0 2px 16px rgba(255, 107, 107, 0.5);
-  }
-}
-
-.view-all-notifications-btn {
-  width: 100%;
-  padding: 8px 12px;
-  background: var(--brand);
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.view-all-notifications-btn:hover {
-  background: #2c5aa0;
-}
-
-.notification-preview-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-.notification-preview-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 12px;
-  background: #f8f9fa;
-  border-radius: 8px;
-  transition: background-color 0.2s;
-  cursor: pointer;
-}
-
-.notification-preview-item:hover {
-  background: #e9ecef;
-}
-
-.preview-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  object-fit: cover;
-  flex-shrink: 0;
-}
-
-.preview-content {
-  flex: 1;
-  min-width: 0;
-}
-
-.preview-message {
-  font-size: 13px;
-  color: #333;
-  margin: 0 0 4px 0;
-  line-height: 1.4;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.preview-message strong {
-  font-weight: 600;
-  color: var(--brand);
-}
-
-.preview-time {
-  font-size: 11px;
-  color: #888;
-}
-
-.no-notifications-preview {
-  text-align: center;
-  padding: 32px 16px;
-  color: #999;
-}
-
-.no-notifications-preview p {
-  margin: 0;
-  font-size: 14px;
-}
-
-.more-notifications-hint {
-  text-align: center;
-  padding: 8px;
-  font-size: 12px;
-  color: #666;
-  font-style: italic;
-}
 
 /* ===== 설정/뱃지 등 간단 유지 ===== */
 .settings-icon{

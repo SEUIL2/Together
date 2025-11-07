@@ -1,5 +1,5 @@
 <template>
-  <div
+  <div 
       class="test-table-container"
       @contextmenu.prevent="handleRightClick"
       style="position: relative"
@@ -16,112 +16,136 @@
     </div>
 
     <div class="table-header">
-      <div>
-        <h2>{{ currentTab.name }}</h2>
-        <p class="table-subtitle">{{ currentConfig.subtitle }}</p>
+      <div class="title-area">
+        <!-- <h2>{{ currentTab.name }}</h2>
+        <p class="table-subtitle">{{ currentConfig.subtitle }}</p> -->
       </div>
-      <button
-          v-if="!isReadOnly"
-          class="add-row-btn"
-          :disabled="currentTab.loading"
-          @click="addRow(currentTab.type)"
-      >
-        + 새 테스트 추가
-      </button>
     </div>
 
-    <div class="table-wrapper">
-      <table class="test-table">
-        <thead>
-        <tr>
-          <th class="action-header"></th>
-          <th v-for="field in currentConfig.fields" :key="field.key">
-            {{ field.label }}
-          </th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr v-if="currentTab.loading">
-          <td :colspan="columnCount" class="state-cell">
-            데이터를 불러오는 중입니다...
-          </td>
-        </tr>
-        <tr v-else-if="!currentTab.rows.length">
-          <td :colspan="columnCount" class="state-cell">
-            아직 등록된 테스트가 없습니다. "새 테스트 추가" 버튼으로 첫 테스트를 작성해보세요.
-          </td>
-        </tr>
-        <tr
-            v-else
-            v-for="row in currentTab.rows"
-            :key="row.id"
-            class="table-row"
-            @mouseover="hoveredRow = row.id"
-            @mouseleave="hoveredRow = null"
-        >
-          <td class="delete-cell">
-            <button
-                v-if="!isReadOnly"
-                class="delete-btn"
-                title="삭제"
-                @click="deleteRow(currentTab.type, row.id)"
-            >
-              🗑️
-            </button>
-          </td>
-          <td
+    <div class="master-detail-layout">
+      <!-- Master Pane (Left) -->
+      <div class="master-pane">
+        <div class="master-pane-header">
+          <div class="filter-controls">
+            <input type="text" v-model="searchQuery" placeholder="테스트 ID로 검색..." class="search-input" />
+            <div class="status-filter">
+              <button :class="{ active: statusFilter === 'all' }" @click="statusFilter = 'all'">전체</button>
+              <button :class="{ active: statusFilter === 'in-progress' }" @click="statusFilter = 'in-progress'">진행 중</button>
+              <button :class="{ active: statusFilter === 'completed' }" @click="statusFilter = 'completed'">완료</button>
+            </div>
+          </div>
+          <button
+              v-if="!isReadOnly"
+              class="add-row-btn"
+              :disabled="currentTab.loading"
+              @click="addRow(currentTab.type)"
+          >
+            + 새 테스트 추가
+          </button>
+        </div>
+
+        <div v-if="currentTab.loading" class="state-cell">
+          데이터를 불러오는 중입니다...
+        </div>
+        <div v-else-if="!filteredRows.length" class="state-cell">
+          아직 등록된 테스트가 없습니다.
+        </div>
+        <ul v-else class="master-list">
+          <li
+              v-for="row in filteredRows"
+              :key="row.id"
+              :class="{ active: selectedRowId === row.id }"
+              class="master-item"
+              @click="selectedRowId = row.id"
+          >
+            <div class="master-item-content">
+              <span class="master-item-id">{{ row.testId || 'ID 없음' }}</span>
+              <p class="master-item-desc">{{ row.caseDesc || row.scenario || '설명 없음' }}</p>
+            </div>
+            <div class="master-item-status">
+              <span :class="['status-chip', row.completed ? 'status-done' : 'status-progress']">
+                {{ row.completed ? '완료' : '진행 중' }}
+              </span>
+              <button
+                  v-if="!isReadOnly"
+                  class="delete-btn"
+                  title="삭제"
+                  @click.stop="deleteRow(currentTab.type, row.id)"
+              >
+                🗑️
+              </button>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Detail Pane (Right) -->
+      <div class="detail-pane">
+        <div v-if="!selectedRow" class="detail-empty-state">
+          <div class="empty-inner">
+            <span class="empty-icon">←</span>
+            <p>왼쪽 목록에서<br/>테스트를 선택하세요.</p>
+          </div>
+        </div>
+        <div v-else class="detail-form">
+          <div
               v-for="field in currentConfig.fields"
               :key="field.key"
-              :class="['cell', `cell-${field.type}`]"
+              class="form-group"
           >
-            <template v-if="field.type === 'input'">
-              <input
-                  v-model="row[field.key]"
-                  type="text"
-                  :placeholder="field.placeholder || ''"
-                  :disabled="isReadOnly"
-                  @blur="saveRow(currentTab.type, row)"
-              />
-            </template>
-            <template v-else-if="field.type === 'textarea'">
-                <textarea
-                    v-model="row[field.key]"
-                    :rows="field.rows || 2"
+            <div class="form-label-wrapper">
+              <label :for="`field-${field.key}`">{{ field.label }}</label>
+              <InfoTooltip v-if="field.description" :text="field.description" />
+            </div>
+            <div class="form-control">
+              <template v-if="field.type === 'input'">
+                <input
+                    :id="`field-${field.key}`"
+                    v-model="selectedRow[field.key]"
+                    type="text"
                     :placeholder="field.placeholder || ''"
                     :disabled="isReadOnly"
-                    @blur="saveRow(currentTab.type, row)"
-                ></textarea>
-            </template>
-            <template v-else-if="field.type === 'checkbox'">
-              <div class="checkbox-wrapper">
-                <input
-                    v-model="row.completed"
-                    type="checkbox"
-                    :disabled="isReadOnly"
-                    @change="toggleCompleted(currentTab.type, row)"
+                    @blur="saveRow(currentTab.type, selectedRow)"
                 />
-                <span
-                    :class="['status-chip', row.completed ? 'status-done' : 'status-progress']"
-                >
-                    {{ row.completed ? '완료' : '진행 중' }}
+              </template>
+              <template v-else-if="field.type === 'textarea'">
+                <textarea
+                    :id="`field-${field.key}`"
+                    v-model="selectedRow[field.key]"
+                    :rows="field.rows || 3"
+                    :placeholder="field.placeholder || ''"
+                    :disabled="isReadOnly"
+                    @blur="saveRow(currentTab.type, selectedRow)"
+                ></textarea>
+              </template>
+              <template v-else-if="field.type === 'checkbox'">
+                <div class="checkbox-wrapper">
+                  <input
+                      :id="`field-${field.key}`"
+                      v-model="selectedRow.completed"
+                      type="checkbox"
+                      :disabled="isReadOnly"
+                      @change="toggleCompleted(currentTab.type, selectedRow)"
+                  />
+                  <span :class="['status-chip', selectedRow.completed ? 'status-done' : 'status-progress']">
+                    {{ selectedRow.completed ? '완료' : '진행 중' }}
                   </span>
-              </div>
-            </template>
-            <template v-else-if="field.type === 'datetime'">
-              <span class="datetime-text">{{ formatDateTime(row[field.key]) }}</span>
-            </template>
-            <template v-else-if="field.type === 'readonly'">
-              <span class="readonly-text">{{ row[field.key] || '-' }}</span>
-            </template>
-          </td>
-        </tr>
-        </tbody>
-      </table>
+                </div>
+              </template>
+              <template v-else-if="field.type === 'datetime'">
+                <span class="readonly-text">{{ formatDateTime(selectedRow[field.key]) }}</span>
+              </template>
+              <template v-else-if="field.type === 'readonly'">
+                <span class="readonly-text">{{ selectedRow[field.key] || '-' }}</span>
+              </template>
+            </div>
+          </div>
+          <p v-if="!isReadOnly" class="table-hint">
+            입력 후 포커스를 벗어나면 자동으로 저장되며, 완료 체크는 즉시 반영됩니다.
+          </p>
+        </div>
+      </div>
     </div>
-
-    <p v-if="!isReadOnly" class="table-hint">
-      입력 후 포커스를 벗어나면 자동으로 저장되며, 완료 체크는 즉시 반영됩니다.
-    </p>
 
     <div
         v-for="fb in feedbacks"
@@ -172,6 +196,7 @@ import FeedbackPopup from '@/components/feedback/FeedbackPopup.vue'
 import ContextMenu from '@/components/feedback/ContextMenu.vue'
 import FeedbackInput from '@/components/feedback/FeedbackInput.vue'
 import { useFeedback } from '@/composables/useFeedback'
+import InfoTooltip from '@/components/InfoTooltip.vue';
 
 const props = defineProps({
   projectId: Number,
@@ -220,28 +245,30 @@ const tabConfigs = {
       completed: false,
     },
     fields: [
-      { key: 'testId', label: '테스트 ID', type: 'input', placeholder: 'UT_001' },
+      { key: 'testId', label: '테스트 ID', type: 'input', placeholder: 'UT_001', description: '각 테스트 케이스를 식별하는 고유 ID입니다. (예: UT_001)' },
       {
         key: 'methodName',
         label: '메서드명',
         type: 'input',
         placeholder: 'OrderService.calculatePrice',
+        description: '테스트하려는 클래스와 메서드의 이름을 명시합니다. (예: OrderService.calculatePrice)'
       },
-      { key: 'caseDesc', label: '케이스 설명', type: 'input' },
-      { key: 'inputs', label: '입력 / 조건', type: 'input' },
-      { key: 'expectedResult', label: '기대 결과', type: 'input' },
-      { key: 'actualResult', label: '실제 결과', type: 'input' },
-      { key: 'caseType', label: '유형', type: 'input', placeholder: '정상 / 예외' },
+      { key: 'caseDesc', label: '케이스 설명', type: 'input', description: '어떤 상황을 테스트하는지에 대한 간결한 설명입니다.' },
+      { key: 'inputs', label: '입력 / 조건', type: 'input', description: '테스트를 실행하기 위해 필요한 입력값이나 사전 조건을 명시합니다.' },
+      { key: 'expectedResult', label: '기대 결과', type: 'input', description: '테스트가 성공했을 때 예상되는 결과값 또는 시스템의 상태입니다.' },
+      { key: 'actualResult', label: '실제 결과', type: 'input', description: '테스트를 실행한 후 실제로 나타난 결과입니다.' },
+      { key: 'caseType', label: '유형', type: 'input', placeholder: '정상 / 예외', description: '정상적인 경우를 테스트하는지, 예외 상황을 테스트하는지 구분합니다.' },
       {
         key: 'linkedIntegrationId',
         label: '연결된 통합 ID',
         type: 'input',
         placeholder: 'SIT_001',
+        description: '이 단위 테스트와 관련된 통합 테스트가 있다면 해당 ID를 기입합니다.'
       },
-      { key: 'completed', label: '완료 여부', type: 'checkbox' },
-      { key: 'authorName', label: '작성자', type: 'readonly' },
-      { key: 'createdAt', label: '작성일', type: 'datetime' },
-      { key: 'updatedAt', label: '수정일', type: 'datetime' },
+      { key: 'completed', label: '완료 여부', type: 'checkbox', description: '테스트 케이스의 진행 상태를 나타냅니다.' },
+      { key: 'authorName', label: '작성자', type: 'readonly',  },
+      { key: 'createdAt', label: '작성일', type: 'datetime',  },
+      { key: 'updatedAt', label: '수정일', type: 'datetime',  },
     ],
   },
   INTEGRATION: {
@@ -259,16 +286,16 @@ const tabConfigs = {
       completed: false,
     },
     fields: [
-      { key: 'testId', label: '테스트 ID', type: 'input', placeholder: 'SIT_001' },
-      { key: 'moduleName', label: '모듈명', type: 'input', placeholder: '주문 + 결제' },
-      { key: 'scenario', label: '시나리오', type: 'textarea', rows: 2 },
-      { key: 'expected', label: '기대 결과', type: 'textarea', rows: 2 },
-      { key: 'result', label: '실제 결과', type: 'textarea', rows: 2 },
-      { key: 'note', label: '비고', type: 'textarea', rows: 2 },
-      { key: 'completed', label: '완료 여부', type: 'checkbox' },
-      { key: 'authorName', label: '작성자', type: 'readonly' },
-      { key: 'createdAt', label: '작성일', type: 'datetime' },
-      { key: 'updatedAt', label: '수정일', type: 'datetime' },
+      { key: 'testId', label: '테스트 ID', type: 'input', placeholder: 'SIT_001', description: '각 테스트 시나리오를 식별하는 고유 ID입니다. (예: SIT_001)' },
+      { key: 'moduleName', label: '모듈명', type: 'input', placeholder: '주문 + 결제', description: '테스트 대상이 되는 시스템의 모듈 또는 기능 범위를 명시합니다.' },
+      { key: 'scenario', label: '시나리오', type: 'textarea', rows: 2, description: '사용자 관점에서 수행되는 테스트의 전체적인 흐름이나 절차를 설명합니다.' },
+      { key: 'expected', label: '기대 결과', type: 'textarea', rows: 2, description: '시나리오가 성공적으로 완료되었을 때 예상되는 최종 결과입니다.' },
+      { key: 'result', label: '실제 결과', type: 'textarea', rows: 2, description: '시나리오를 실행한 후 실제로 나타난 결과입니다.' },
+      { key: 'note', label: '비고', type: 'textarea', rows: 2, description: '테스트와 관련된 추가 정보나 특이사항을 기록합니다.' },
+      { key: 'completed', label: '완료 여부', type: 'checkbox', description: '테스트 시나리오의 진행 상태를 나타냅니다.' },
+      { key: 'authorName', label: '작성자', type: 'readonly',  },
+      { key: 'createdAt', label: '작성일', type: 'datetime',  },
+      { key: 'updatedAt', label: '수정일', type: 'datetime', },
     ],
   },
 }
@@ -279,7 +306,10 @@ const testTabs = reactive([
 ])
 
 const selectedIndex = ref(0)
-const hoveredRow = ref(null)
+const selectedRowId = ref(null)
+
+const searchQuery = ref('');
+const statusFilter = ref('all'); // 'all', 'in-progress', 'completed'
 
 // URL 쿼리에서 substep을 확인하여 초기 탭 설정
 watch(
@@ -296,7 +326,33 @@ watch(
 
 const currentTab = computed(() => testTabs[selectedIndex.value])
 const currentConfig = computed(() => tabConfigs[currentTab.value.type])
-const columnCount = computed(() => currentConfig.value.fields.length + 1)
+const selectedRow = computed(() => {
+  if (!selectedRowId.value) return null
+  return currentTab.value.rows.find(row => row.id === selectedRowId.value)
+})
+
+const filteredRows = computed(() => {
+  let rows = currentTab.value.rows;
+
+  // 1. Filter by search query
+  if (searchQuery.value) {
+    const lowerCaseQuery = searchQuery.value.toLowerCase();
+    rows = rows.filter(row =>
+      row.testId && row.testId.toLowerCase().includes(lowerCaseQuery)
+    );
+  }
+
+  // 2. Filter by status
+  if (statusFilter.value === 'in-progress') {
+    rows = rows.filter(row => !row.completed);
+  } else if (statusFilter.value === 'completed') {
+    rows = rows.filter(row => row.completed);
+  }
+
+  return rows;
+});
+
+
 
 const feedbacks = ref([])
 const selectedFeedback = ref(null)
@@ -307,6 +363,9 @@ const { markFeedbackAsRead } = useFeedback()
 
 function selectTab(idx) {
   selectedIndex.value = idx
+  searchQuery.value = ''; // 탭 전환 시 검색어 초기화
+  statusFilter.value = 'all'; // 탭 전환 시 필터 초기화
+  selectedRowId.value = null // 탭 전환 시 선택 초기화
   const substep = idx === 0 ? 'unit' : 'integration'
   router.push({
     query: { ...route.query, substep }
@@ -388,6 +447,9 @@ async function fetchRowsForTab(tab) {
       params: getProjectParams(),
     })
     tab.rows = data.map(row => mapResponse(tab.type, row))
+    if (tab.rows.length > 0 && !selectedRowId.value) {
+      selectedRowId.value = tab.rows[0].id
+    }
   } catch (err) {
     console.error('❌ 테스트 행 불러오기 실패:', err)
     tab.rows = []
@@ -428,6 +490,7 @@ async function addRow(type) {
     const tab = getTabByType(type)
     if (tab) {
       tab.rows = [mapResponse(type, data), ...tab.rows]
+      selectedRowId.value = data.id // 새로 추가된 행을 선택
     }
   } catch (err) {
     console.error('❌ 테스트 행 추가 실패:', err)
@@ -480,6 +543,7 @@ async function deleteRow(type, rowId) {
     const tab = getTabByType(type)
     if (tab) {
       tab.rows = tab.rows.filter(row => row.id !== rowId)
+      selectedRowId.value = null // 삭제 후 선택 해제
     }
   } catch (err) {
     console.error('❌ 테스트 행 삭제 실패:', err)
@@ -512,53 +576,60 @@ watch(
     { immediate: true }
 )
 </script>
-
 <style scoped>
 .test-table-container {
-  padding: 32px;
-  background-color: #f7f9fc;
-  min-height: calc(100vh - 120px);
+  padding: 12px;
+  background-color: #ffffff;
+  height: calc(100vh - 120px);
   font-family: 'Segoe UI', 'Apple SD Gothic Neo', sans-serif;
   color: #1f2937;
   border-radius: 16px;
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+  display: flex;
+  flex-direction: column;
 }
 
 .nav-buttons {
   display: flex;
   gap: 12px;
-  margin-bottom: 24px;
+  margin-bottom: 12px;
+  flex-shrink: 0;
 }
 
 .nav-btn {
-  padding: 10px 18px;
+  padding: 8px 16px;
   font-weight: 600;
-  border: 1px solid #cbd5f5;
-  border-radius: 10px;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
   cursor: pointer;
   background-color: #eef2ff;
-  color: #1e40af;
-  transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+  color: #3b82f6;
+  transition: all 0.2s ease;
 }
 
 .nav-btn:hover {
   background-color: #dbeafe;
-  box-shadow: 0 6px 14px rgba(59, 130, 246, 0.2);
+  color: #1e40af;
 }
 
 .nav-btn.active {
-  background-color: #2563eb;
+  background-color: #3b82f6;
   color: #fff;
-  border-color: #1d4ed8;
-  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.35);
+  border-color: #3b82f6;
 }
 
 .table-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
   margin-bottom: 16px;
+  flex-shrink: 0;
+}
+
+.title-area {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.title-area h2 {
+  margin: 0;
 }
 
 .table-header h2 {
@@ -574,15 +645,16 @@ watch(
 }
 
 .add-row-btn {
-  padding: 10px 18px;
+  padding: 8px 16px;
   border: none;
-  background: linear-gradient(135deg, #2563eb, #4f46e5);
+  background-color: #495057;
   color: #fff;
   border-radius: 10px;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 10px 20px rgba(79, 70, 229, 0.25);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  width: 100%;
 }
 
 .add-row-btn:disabled {
@@ -593,52 +665,175 @@ watch(
 
 .add-row-btn:not(:disabled):hover {
   transform: translateY(-2px);
-  box-shadow: 0 14px 24px rgba(79, 70, 229, 0.35);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
-.table-wrapper {
-  overflow-x: auto;
+.master-detail-layout {
+  display: flex;
+  gap: 24px;
+  flex-grow: 1;
+  min-height: 0;
+}
+
+.master-pane {
+  width: 35%;
+  min-width: 300px;
   background-color: #fff;
   border-radius: 16px;
   border: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
-.test-table {
-  width: auto; /* 테이블 너비를 내용에 따라 자동으로 조절 */
-  border-collapse: separate;
-  border-spacing: 0;
+.master-pane-header {
+  padding: 12px;
+  border-bottom: 1px solid #e5e7eb;
+  display: grid;
+  gap: 12px;
 }
 
-.test-table thead th {
-  position: sticky;
-  top: 0;
-  background-color: #eff6ff;
-  color: #1e3a8a;
-  padding: 14px 16px;
-  font-size: 13px;
-  font-weight: 700;
-  text-align: left;
-  border-bottom: 1px solid #cbd5f5;
-  white-space: nowrap; /* 헤더 텍스트 줄바꿈 방지 */
-  z-index: 1;
+.filter-controls {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  align-items: center;
 }
 
-.test-table tbody td {
-  border-bottom: 1px solid #e2e8f0;
-  padding: 12px 16px;
-  vertical-align: top;
-  background-color: #fff;
-  white-space: nowrap; /* 셀 내용 줄바꿈 방지 */
-}
-
-.table-row:hover td {
-  background-color: #f8fafc;
-}
-
-.cell textarea,
-.cell input[type='text'] {
+.search-input {
   width: 100%;
-  min-width: 120px; /* 모든 입력 필드에 최소 너비(120px)를 지정합니다. */
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.status-filter {
+  display: flex;
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: #f1f5f9;
+}
+
+.status-filter button {
+  flex: 1;
+  padding: 6px 8px;
+  border: none;
+  background-color: transparent;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background-color 0.2s;
+}
+
+.status-filter button.active {
+  background-color: #3b82f6;
+  color: white;
+}
+.master-list {
+  list-style: none;
+  padding: 8px;
+  margin: 0;
+  overflow-y: auto;
+}
+
+.master-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.master-item:hover {
+  background-color: #f9fafb;
+}
+
+.master-item.active {
+  background-color: #eef2ff;
+  font-weight: 600;
+}
+
+.master-item-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow: hidden;
+}
+
+.master-item-id {
+  font-size: 14px;
+  color: #111827;
+}
+
+.master-item-desc {
+  font-size: 13px;
+  color: #6b7280;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.master-item-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.detail-pane {
+  width: 65%;
+  background-color: #fff;
+  border-radius: 16px;
+  border: 1px solid #e5e7eb;
+  overflow-y: auto;
+  padding: 24px;
+}
+
+.detail-empty-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  text-align: center;
+  color: #9ca3af;
+}
+.empty-inner { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.empty-icon { font-size: 3rem; color: #d1d5db; }
+.empty-inner p { font-size: 1.1rem; line-height: 1.6; }
+
+.detail-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-label-wrapper {
+  display: flex;
+  align-items: center;
+}
+
+.form-group label {
+  font-weight: 600;
+  font-size: 14px;
+  color: #374151;
+}
+
+
+
+.form-control textarea,
+.form-control input[type='text'] {
+  width: 100%;
   font-size: 13px;
   padding: 8px 10px;
   border: 1px solid #cbd5f5;
@@ -648,15 +843,15 @@ watch(
   background-color: #fff;
 }
 
-.cell textarea:focus,
-.cell input[type='text']:focus {
+.form-control textarea:focus,
+.form-control input[type='text']:focus {
   border-color: #2563eb;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
   outline: none;
 }
 
-.cell textarea:disabled,
-.cell input[type='text']:disabled {
+.form-control textarea:disabled,
+.form-control input[type='text']:disabled {
   background-color: #f1f5f9;
   cursor: not-allowed;
 }
@@ -698,12 +893,8 @@ watch(
 .readonly-text {
   font-size: 13px;
   color: #475569;
-}
-
-.delete-cell {
-  width: 50px;
-  text-align: center;
-  vertical-align: middle; /* 아이콘을 세로 중앙에 위치시키기 위함 */
+  padding: 8px 10px;
+  display: block;
 }
 
 .delete-btn {
@@ -712,14 +903,7 @@ watch(
   cursor: pointer;
   font-size: 18px;
   color: #ef4444;
-  /* 기본적으로 투명하게 만들어 보이지 않게 처리 */
-  opacity: 0;
   transition: opacity 0.2s ease, transform 0.2s ease, color 0.2s ease;
-}
-
-/* 행에 마우스를 올렸을 때 휴지통 아이콘이 보이도록 변경 */
-.table-row:hover .delete-btn {
-  opacity: 1;
 }
 
 .delete-btn:hover {
@@ -727,20 +911,15 @@ watch(
   transform: scale(1.1);
 }
 
-.action-header {
-  width: 40px;
-}
-
 .state-cell {
   text-align: center;
   padding: 40px 0;
   color: #64748b;
   font-size: 14px;
-  background-color: #fff;
 }
 
 .table-hint {
-  margin-top: 18px;
+  margin-top: 12px;
   font-size: 13px;
   color: #6b7280;
 }

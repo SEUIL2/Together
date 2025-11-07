@@ -2,7 +2,8 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: '/api', // ✅ 모든 요청의 기본 경로를 상대 경로인 /api로 설정
+    baseURL: '/api',
+    timeout: 30000, // 30초 타임아웃 설정
     withCredentials: true,             // 쿠키 전송 허용
     // 헤더는 form-data 요청 시 자동 지정 안 하는 게 안전합니다
 }); // ← 꼭 세미콜론!

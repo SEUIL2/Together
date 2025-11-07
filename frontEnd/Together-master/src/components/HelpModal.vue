@@ -1,53 +1,52 @@
 <template>
-  <div class="modal-overlay" @click.self="$emit('close')">
-    <div class="modal-container">
-      <div class="modal-header">
-        <h2>📘 예시 가이드</h2>
-        <button class="close-btn" @click="$emit('close')">✕</button>
-      </div>
+  <transition name="modal-fade">
+    <div class="modal-overlay" @click.self="$emit('close')">
+      <div class="modal-container">
+        <div class="modal-header">
+          <h2 class="modal-title">📘 예시 가이드</h2>
+          <button class="close-btn" @click="$emit('close')">✕</button>
+        </div>
 
-      <!-- 대분류 탭 -->
-      <div class="category-tabs">
-        <button
-          v-for="category in Object.keys(helpData)"
-          :key="category"
-          :class="{ active: selectedCategory === category }"
-          @click="selectCategory(category)"
-        >
-          {{ category }}
-        </button>
-      </div>
+        <!-- 대분류 탭 -->
+        <div class="category-tabs">
+          <button
+            v-for="category in Object.keys(helpData)"
+            :key="category"
+            :class="{ active: selectedCategory === category }"
+            @click="selectCategory(category)"
+          >
+            {{ category }}
+          </button>
+        </div>
 
-      <!-- 하위 항목 버튼 -->
-      <div class="subcategory-buttons">
-        <button
-          v-for="item in helpData[selectedCategory]"
-          :key="item.title"
-          :class="{ active: selectedSubItem?.title === item.title }"
-          @click="selectSubItem(item)"
-        >
-          {{ item.title }}
-        </button>
-      </div>
+        <!-- 하위 항목 버튼 -->
+        <div class="subcategory-buttons">
+          <button
+            v-for="item in helpData[selectedCategory]"
+            :key="item.title"
+            :class="{ active: selectedSubItem?.title === item.title }"
+            @click="selectSubItem(item)"
+          >
+            {{ item.title }}
+          </button>
+        </div>
 
-      <!-- 설명 및 이미지 영역 -->
-      <div v-if="selectedSubItem" class="item-content">
-        <div class="description-box">
-    <p>{{ selectedSubItem.description }}</p>
-  </div>
-<img
-  v-if="selectedSubItem.image"
-  :src="selectedSubItem.image"
-  loading="lazy"
-  alt="예시 이미지"
-  class="help-image"
-/>
-
-
-
+        <!-- 설명 및 이미지 영역 -->
+        <div v-if="selectedSubItem" class="item-content">
+          <div class="description-box">
+            <p>{{ selectedSubItem.description }}</p>
+          </div>
+          <img
+            v-if="selectedSubItem.image"
+            :src="selectedSubItem.image"
+            loading="lazy"
+            alt="예시 이미지"
+            class="help-image"
+          />
+        </div>
       </div>
     </div>
-  </div>
+  </transition>
 </template>
 
 <script setup>
@@ -196,60 +195,31 @@ const helpData = {
 이 가이드를 따라 환경을 맞추면, 프로젝트 실행 오류를 최소화하고 협업 효율을 높일 수 있습니다.
 `,
     },
-        {
-      title: "버전 관리 전략",
+    {
+      title: "기능별 개발 순서",
       description: `
-      버전 관리 전략은 팀 규모와 배포 빈도에 맞춰 일관된 브랜치 운영, 커밋·태그 규칙, 머지 프로세스를 정의해 충돌을 최소화하고 안정적인 배포를 돕습니다. 
-      대표적인 요소를 요약하면 다음과 같습니다.
+      기능별 개발 순서는 프로젝트의 요구사항을 기능 단위로 나누고, 우선순위에 따라 개발 순서를 정하는 과정입니다. 
+      이를 통해 팀은 핵심 기능을 먼저 구현하여 빠르게 프로토타입을 만들고, 점진적으로 서비스를 완성해 나갈 수 있습니다.
 
-      1. 브랜치 모델
-        - 메인 브랜치(main or master)
-            | 항상 배포 가능한 상태를 유지
-        - 개발 브랜치(develop)
-            | 다음 릴리즈를 위한 통합 브랜치
-        - 기능 브랜치(feature/…)
-            | 신규 기능 단위로 분기, 개발 완료 후 develop으로 PR
-        - 릴리즈 브랜치(release/…)
-            | QA·버그 수정 후 메인으로 머지하여 태그 생성
-        - 핫픽스 브랜치(hotfix/…)
-            | 운영 중 긴급 버그 수정용, 수정 후 main·develop에 머지
+      1. 기능 정의 (Epic & User Story)
+        - 가장 큰 기능 단위(Epic)를 정의하고, 각 Epic을 사용자 관점의 작은 기능(User Story)으로 나눕니다.
 
-      2. 브랜치 네이밍 컨벤션
-        - feature/login, bugfix/null-pointer 등
-        - 소문자·슬래시(/) 사용, 목적·이슈 번호 포함 권장 (feature/123-login-page)
+      2. 우선순위 설정 (Priority)
+        - 각 기능의 중요도, 긴급도, 개발 난이도를 고려하여 우선순위를 정합니다. (예: P1 - 필수, P2 - 중요, P3 - 보통)
 
-      3. 커밋 메시지 가이드
-        - 형식: <type>(<scope>): <subject>
-            | type: feat, fix, docs, style, refactor, test, chore
-            | scope: 변경 대상 모듈명 (선택)
-            | subject: 간결한 설명
-        - 예) feat(auth): 로그인 세션 자동 갱신 기능 추가
+      3. 담당자 배정 (Assignee)
+        - 각 기능별로 담당 개발자를 지정하여 책임과 역할을 명확히 합니다.
 
-      4. Pull Request & 코드 리뷰
-        - PR 기준: 기능 단위·이슈 단위로 작게 쪼개기
-        - 리뷰 체크리스트:
-            | 동작 검증(수동/자동테스트)
-            | 코드 스타일·컨벤션 준수
-            | 보안·예외 처리 점검
-        - 머지 방식:
-            | merge commit vs squash merge 선택
-            | 배포 히스토리 관리에 맞춰 통일
+      4. 상태 관리 (Status)
+        - 각 기능의 진행 상태(To Do, In Progress, Done)를 추적하여 팀 전체의 개발 현황을 공유합니다.
 
-      5. 버전 태그 및 릴리즈
-        - Semantic Versioning (vMAJOR.MINOR.PATCH)
-            | MAJOR: 호환성 깨는 변경
-            | MINOR: 기능 추가(하위 호환 유지)
-            | PATCH: 버그 수정
-        - 릴리즈 브랜치 머지 시 git tag -a v1.2.0 -m "Release v1.2.0"
-
-      6. CI/CD 연동
-        - 커밋 혹은 PR 머지 시 자동 빌드·테스트
-        - 태그 시점에 자동 배포 파이프라인 트리거
-
-      7. 권한·보호 설정
-        - main/develop 브랜치 보호(Force-push 금지)
-        - 리뷰 승인 1~2회 이상, 빌드 통과 시에만 머지
-
+      예시:
+        - P1 (Epic: 사용자 관리)
+          - 회원가입 기능 (담당자: 김개발) - In Progress
+          - 로그인 기능 (담당자: 김개발) - To Do
+        - P2 (Epic: 게시판)
+          - 게시글 목록 조회 (담당자: 박코딩) - To Do
+          - 게시글 작성 기능 (담당자: 박코딩) - To Do
       `,
     },
         {
@@ -349,16 +319,35 @@ selectSubItem(helpData[selectedCategory.value][0])
 }
 
 .modal-container {
-  background: white;
+  background: #ffffff;
   border-radius: 12px;
   width: 80%;
   height: 90%;
   overflow-y: auto;
-  padding: 20px 30px;
+  padding: 24px 32px;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
   display: flex;
   flex-direction: column;
   position: relative;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+/* --- Transition --- */
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+  opacity: 0;
+}
+.modal-fade-enter-from .modal-container,
+.modal-fade-leave-to .modal-container {
+  transform: scale(0.95);
+}
+
+/* --- Scrollbar --- */
+.modal-container {
      overflow-y: auto;
      /* ✨ 스크롤바 숨김 */
   scrollbar-width: none; /* Firefox */
@@ -372,8 +361,17 @@ selectSubItem(helpData[selectedCategory.value][0])
   display: flex;
   justify-content: space-between;
   align-items: center;
-    margin-bottom: -20px;
-    margin-top: -20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #dee2e6;
+  background-color: #f8f9fa;
+  padding: 16px 32px;
+  margin: -24px -32px 0; /* 부모의 패딩을 무시하고 상단에 붙임 */
+}
+
+.modal-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #212529;
 }
 
 .close-btn {
@@ -386,24 +384,25 @@ selectSubItem(helpData[selectedCategory.value][0])
 .category-tabs {
   display: flex;
   justify-content: space-between;
-  margin: 10px 0 10px;
+  margin: 20px 0;
+  gap: 8px;
 }
 
 .category-tabs button {
   flex: 1;
-  margin: 0 5px;
-  padding: 10px;
+  padding: 12px;
   font-weight: bold;
-  background: #f0f0f0;
+  background: #e9ecef;
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  transition: 0.2s;
-    font-size: 12px;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  color: #495057;
 }
 
 .category-tabs button.active {
-  background: #007bff;
+  background: #3b82f6;
   color: white;
 }
 
@@ -415,22 +414,24 @@ selectSubItem(helpData[selectedCategory.value][0])
 }
 
 .subcategory-buttons button {
-  background: #e9ecef;
+  background: #f8f9fa;
   border: none;
   padding: 8px 12px;
-  border-radius: 6px;
+  border-radius: 16px;
   cursor: pointer;
-  transition: 0.2s;
-  font-size: 11px;
+  transition: all 0.2s ease;
+  font-size: 13px;
+  font-weight: 500;
+  color: #495057;
 }
 
 .subcategory-buttons button.active {
-  background: #17a2b8;
+  background: #495057;
   color: white;
+  font-weight: 600;
 }
 
 .item-content {
-  border-top: 1px solid #ddd;
   padding-top: 20px;
 }
 
@@ -454,8 +455,8 @@ selectSubItem(helpData[selectedCategory.value][0])
   display: block;
 }
 .description-box {
-  background-color: #f9f9f9;
-  border: 1px solid #e0e0e0;
+  background-color: #ffffff;
+  border: 1px solid #e9ecef;
   border-radius: 10px;
   padding: 20px;
   margin-top: 10px;

@@ -6,8 +6,8 @@
         <h3>참여자 ({{ totalUsers }})</h3>
       </div>
       <ul class="participant-list">
-        <li @click="togglePinUser(uid)" :class="{ pinned: pinnedUserId === uid }"><span class="user-avatar">👤</span> 나 ({{ getUserName(uid) }})</li>
-        <li v-for="user in remoteUsers" :key="user.uid" @click="togglePinUser(user.uid)" :class="{ pinned: pinnedUserId === user.uid }"><span class="user-avatar">👤</span> {{ getUserName(user.uid) }}</li>
+        <!-- 참여자 목록을 allParticipants로 변경 -->
+        <li v-for="user in allParticipants" :key="user.uid" @click="togglePinUser(user.uid)" :class="{ pinned: pinnedUserId === user.uid }"><span class="user-avatar">👤</span> {{ user.isLocal ? `나 (${user.name})` : user.name }}</li>
       </ul>
     </div>
 
@@ -136,6 +136,10 @@ const localVideoTrack = ref(null);
 const localScreenTrack = ref(null); // 화면 공유 트랙
 const remoteUsers = ref([]);
 const joinedRemoteUsers = ref([]); // Users who have joined the channel (from user-joined event)
+
+const allParticipants = ref([]); // API로 가져온 전체 참여자 목록
+let participantPollInterval = null; // 참여자 목록 폴링을 위한 인터벌 ID
+
 const isScreenSharing = ref(false);
 const isAudioMuted = ref(false);
 const isVideoMuted = ref(false);
@@ -301,6 +305,31 @@ onMounted(async () => {
   } catch (error) {
     console.error('❌ 팀원 정보 로드 실패:', error);
   }
+
+  // 0.5. 참여자 목록 주기적으로 가져오기 시작
+  const fetchParticipants = async () => {
+    try {
+      const projectId = route.query.projectId || channel.value;
+      if (!projectId) return;
+
+      const response = await api.get('/agora/participants', { params: { projectId } });
+      const participantData = response.data?.data;
+      if (participantData && participantData.users) {
+        const userIds = participantData.users;
+        // 로컬 사용자를 포함하여 전체 참여자 목록 업데이트
+        allParticipants.value = userIds.map(id => ({
+          uid: id,
+          name: getUserName(id),
+          isLocal: id === uid.value
+        }));
+      }
+    } catch (error) {
+      console.error('❌ 참여자 목록 조회 실패:', error);
+    }
+  };
+
+  await fetchParticipants(); // 최초 즉시 실행
+  participantPollInterval = setInterval(fetchParticipants, 5000); // 5초마다 폴링
 
   // 1. 화상회의 준비 (토큰 발급, 회의록 생성)
   const isReady = await prepareForMeeting();
@@ -687,7 +716,11 @@ const toggleRecording = async () => {
   }
 };
 
-const totalUsers = computed(() => remoteUsers.value.length + 1);
+// totalUsers를 allParticipants 기반으로 변경
+const totalUsers = computed(() => allParticipants.value.length);
+
+// const totalUsers = computed(() => remoteUsers.value.length + 1);
+
 const gridStyle = computed(() => {
   const columns = Math.ceil(Math.sqrt(totalUsers.value));
   return {
@@ -709,6 +742,11 @@ const leaveChannel = async (redirectOnly = false) => {
     if (client.value) {
       await client.value.leave();
     }
+
+    // 참여자 목록 폴링 중지
+    if (participantPollInterval) {
+      clearInterval(participantPollInterval);
+    }
   }
 
   const pid = route.query?.projectId || channel.value;
@@ -721,8 +759,11 @@ const leaveChannel = async (redirectOnly = false) => {
     return;
   }
 
-  // 기본: MeetingPage로 이동
-  router.push({ name: 'MeetingPage', query: { projectId: pid } });
+  // 기본: VideoConferenceLobby로 이동
+  router.push({
+    name: 'VideoConferenceLobby',
+    query: { projectId: pid, projectTitle: projectTitle, readonly: readonly },
+  });
 };
 
 onUnmounted(() => {

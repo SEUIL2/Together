@@ -28,7 +28,6 @@
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
           <span>참여하기</span>
         </button>
-        <button class="back-btn" @click="goBack">돌아가기</button>
       </div>
     </div>
   </div>
@@ -45,17 +44,37 @@ const router = useRouter();
 const connectedUsers = ref([]);
 const isLoading = ref(true);
 let pollingInterval = null;
+const memberInfoMap = ref(new Map());
 
 const projectId = computed(() => route.query.projectId);
 const projectTitle = computed(() => route.query.projectTitle || '프로젝트');
 
+const fetchProjectMembers = async () => {
+  if (!projectId.value) return;
+  try {
+    const response = await api.get('/projects/members', { params: { projectId: projectId.value } });
+    const members = response.data || [];
+    const newMap = new Map();
+    members.forEach(member => newMap.set(member.userId, member.userName));
+    memberInfoMap.value = newMap;
+  } catch (error) {
+    console.error('프로젝트 멤버 정보를 가져오는 데 실패했습니다.', error);
+  }
+};
+
 const fetchConnectedUsers = async () => {
   if (!projectId.value) return;
   try {
-    const response = await api.get('/agora/channel-users', {
+    const response = await api.get('/agora/participants', {
       params: { projectId: projectId.value }
     });
-    connectedUsers.value = response.data || [];
+    const participantData = response.data.data || {};
+    const userIds = participantData.users || [];
+
+    connectedUsers.value = userIds.map(userId => ({
+      userId,
+      userName: memberInfoMap.value.get(userId) || `사용자 ${userId}`
+    }));
   } catch (error) {
     console.error('접속 중인 사용자 정보를 가져오는 데 실패했습니다.', error);
     connectedUsers.value = []; // 에러 발생 시 목록 비우기
@@ -74,18 +93,15 @@ const joinChannel = () => {
   });
 };
 
-const goBack = () => {
-  router.go(-1);
-};
-
-onMounted(() => {
+onMounted(async () => {
   // API 요청 전에 인증 헤더를 명시적으로 설정하여 403 오류를 방지합니다.
   const authHeader = localStorage.getItem('authHeader');
   if (authHeader) {
     api.defaults.headers.common['Authorization'] = authHeader;
   }
 
-  fetchConnectedUsers();
+  await fetchProjectMembers(); // 멤버 정보를 먼저 가져옵니다.
+  await fetchConnectedUsers(); // 그 다음 접속자 정보를 가져옵니다.
   // 5초마다 현재 접속자 정보를 폴링
   pollingInterval = setInterval(fetchConnectedUsers, 5000);
 });
@@ -111,8 +127,8 @@ onUnmounted(() => {
   width: 100%;
   max-width: 500px;
   background: white;
-  border-radius: 16px;
-  padding: 40px;
+  border-radius: 16px; /* 모서리 둥글기 */
+  padding: 32px 40px; /* 상하 패딩을 줄여 전체 높이 조정 */
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
   text-align: center;
 }
@@ -203,7 +219,7 @@ onUnmounted(() => {
   gap: 12px;
 }
 
-.join-btn, .back-btn {
+.join-btn {
   padding: 14px 20px;
   border-radius: 8px;
   border: none;
@@ -223,13 +239,5 @@ onUnmounted(() => {
 }
 .join-btn:hover {
   background-color: #2563eb;
-}
-
-.back-btn {
-  background-color: #e5e7eb;
-  color: #374151;
-}
-.back-btn:hover {
-  background-color: #d1d5db;
 }
 </style>

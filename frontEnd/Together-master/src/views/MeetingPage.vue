@@ -118,7 +118,7 @@ const formatDate = (dateStr) => {
 async function fetchMeetings() {
   try {
     const response = await api.get('/meeting/all-author'); // ✅ 전체 경로로 수정
-    meetings.value = response.data.sort((a, b) => new Date(b.meetingDate) - new Date(a.meetingDate));
+    meetings.value = response.data; // 서버에서 이미 최신순으로 정렬되어 오므로 클라이언트 정렬 제거
     if (meetings.value.length > 0 && selectedIndex.value >= filteredMeetings.value.length) {
       selectedIndex.value = 0
     }
@@ -139,7 +139,7 @@ async function addMeeting() {
 
   try {
     const response = await api.post('/meeting/create', meetingDto); // ✅ 전체 경로로 수정
-    meetings.value.unshift(response.data); // 새 회의를 배열 맨 앞에 추가
+    meetings.value.unshift(response.data); // 새 회의를 배열 맨 앞에 추가합니다.
     // meetings.value.sort((a, b) => new Date(b.meetingDate) - new Date(a.meetingDate)); // unshift를 사용하므로 이 줄은 필요 없어집니다.
     selectedFilter.value = 'ALL';
     await nextTick();

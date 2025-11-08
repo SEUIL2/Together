@@ -44,14 +44,14 @@
           </div>
 
           <div class="form-group">
-            <label>테마 색상</label>
+            <label>작업 색상</label>
             <div class="color-picker-section">
               <div class="color-circle" :style="{ backgroundColor: userColor }" @click="toggleColorMenu"></div>
               <div v-if="showColorMenu" class="color-menu">
                 <div v-for="color in availableColors" :key="color" class="color-option" :style="{ backgroundColor: color }" @click="selectColor(color)"></div>
               </div>
             </div>
-            <small>프로필에 적용할 테마 색상을 선택하세요.</small>
+            <small>작업에 적용할 작업 색상을 선택하세요.</small>
           </div>
         </div>
       </div>

@@ -202,10 +202,10 @@ const originalFiles = ref([]);
 
 const designItems = reactive([
   { name: "유스케이스 다이어그램", type: "usecase", content: "", files: [], completed: false },
+  { name: "ERD", type: "erd", content: "", files: [], completed: false },
   { name: "클래스 다이어그램", type: "classDiagram", content: "", files: [], completed: false },
   { name: "시퀀스 다이어그램", type: "sequence", content: "", files: [], completed: false },
   { name: "UI 디자인", type: "ui", content: "", files: [], completed: false },
-  { name: "ERD", type: "erd", content: "", files: [], completed: false },
   { name: "테이블 명세", type: "table", content: "", files: [], completed: false },
   { name: "시스템 아키텍쳐", type: "architecture", content: "", files: [], completed: false },
 ])

@@ -41,7 +41,7 @@ public class DesignDetailService {
                 if (json != null) detail.setUsecaseJson(json); // ⭐️ 유스케이스 JSON도 저장!
                 detail.getUsecaseFiles().addAll(metaList);
             }
-            case "classDiagram" -> {
+            case "classdiagram" -> {
                 if (text != null) detail.setClassDiagramText(text);
                 if (json != null) detail.setClassDiagramJson(json); // ✅ 다이어그램 JSON 저장 무영 수정
                 detail.getClassDiagramFiles().addAll(metaList);

@@ -31,7 +31,7 @@ import Feedback from '../views/FeedbackPage.vue'
 import SequenceDiagramPage from '../views/toolview/SequenceDiagramPage.vue'
 //admin Page
 import AdminDashboard from '../views/AdminDashboard.vue'
-
+import VueFlowEditor from '../components/diagramtool/vueflow/VueFlowEditor.vue'
 import VideoChat from '../views/VideoChat.vue';
 import PdfExportPage from '@/views/PdfExportPage.vue';
 import ProjectSimilarityCheck from '@/views/professor/ProjectSimilarityCheck.vue';
@@ -365,9 +365,10 @@ const routes = [
   },
 
   {
-    path: '/test-class-diagram',
-    name: 'TestClassDiagram',
-    component: () => import('@/views/test/VueFlowClassTest.vue'),
+    path: '/diagrams', //
+    name: 'VueFlowEditor',
+    component: VueFlowEditor,
+    props: true //
   },
 ]
 
@@ -375,5 +376,6 @@ const router = createRouter({
   history: createWebHistory(),
   routes,
 })
+
 
 export default router

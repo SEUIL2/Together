@@ -111,19 +111,6 @@
         <div 
           class="tool-item" 
           draggable="true" 
-          @dragstart="onDragStart($event, 'packageNode')"
-        >
-          <!-- 패키지 아이콘 (SVG) -->
-          <svg class="tool-icon-svg" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M5 8V24H27V14H17V8H5Z" stroke="#4B5563" stroke-width="2" fill="#FEFDF9"/>
-            <path d="M17 8H23V12H17V8Z" stroke="#4B5563" stroke-width="1.5" fill="#FEFDF9"/>
-          </svg>
-          <span class="tool-name">패키지 (Package)</span>
-        </div>
-
-        <div 
-          class="tool-item" 
-          draggable="true" 
           @dragstart="onDragStart($event, 'note')"
         >
           <!-- 노트 아이콘 (SVG) -->

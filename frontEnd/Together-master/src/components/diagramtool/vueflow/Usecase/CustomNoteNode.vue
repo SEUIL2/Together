@@ -11,15 +11,6 @@
       @blur="stopEditing"
       @keydown.stop
     ></textarea>
-
-    <Handle id="top" type="source" :position="Position.Top" />
-    <Handle id="top" type="target" :position="Position.Top" />
-    <Handle id="bottom" type="source" :position="Position.Bottom" />
-    <Handle id="bottom" type="target" :position="Position.Bottom" />
-    <Handle id="left" type="source" :position="Position.Left" />
-    <Handle id="left" type="target" :position="Position.Left" />
-    <Handle id="right" type="source" :position="Position.Right" />
-    <Handle id="right" type="target" :position="Position.Right" />
   </div>
 </template>
 

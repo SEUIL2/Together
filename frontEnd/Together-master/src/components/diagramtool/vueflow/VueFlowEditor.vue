@@ -48,9 +48,9 @@
           <div class="menu-section">
             <div class="menu-label">선 종류</div>
             <select class="menu-select" @change="setEdgeType($event.target.value)" :value="currentContextMenuTargetEdge.type || 'step'">
+              <option value="default">직선</option>
               <option value="step">직각 선</option>
               <option value="smoothstep">곡선</option>
-              <option value="default">직선</option>
             </select>
           </div>
 
@@ -80,7 +80,7 @@
           <template v-else-if="activeTab === 'classDiagram'">
             <div class="menu-section">
               <div class="menu-label">시작 모양</div>
-              <select class="menu-select" @change="setEdgeMarkerStart($event.target.value)" :value="currentContextMenuTargetEdge.markerStart || ''">
+              <select class="menu-select" @change="setEdgeMarkerStart($event.target.value)" :value="getMarkerId(currentContextMenuTargetEdge.markerStart)">
                 <option value="">없음</option>
                 <option value="diamond-aggregation">집합 (빈 마름모)</option>
                 <option value="diamond-composition">복합 (채워진 마름모)</option>
@@ -88,10 +88,12 @@
             </div>
             <div class="menu-section">
               <div class="menu-label">끝 모양</div>
-              <select class="menu-select" @change="setEdgeMarkerEnd($event.target.value)" :value="currentContextMenuTargetEdge.markerEnd || ''">
+              <select class="menu-select" @change="setEdgeMarkerEnd($event.target.value)" :value="getMarkerId(currentContextMenuTargetEdge.markerEnd)">
                 <option value="">없음</option>
                 <option value="arrow-generalization">일반화 (빈 삼각형)</option>
                 <option value="arrow-dependency">의존 (화살표)</option>
+                <option value="diamond-aggregation">집합 (빈 마름모)</option>
+                <option value="diamond-composition">복합 (채워진 마름모)</option>
               </select>
             </div>
             <div class="menu-section">
@@ -262,6 +264,13 @@ function setEdgeType(type) {
   }
 }
 
+function getMarkerId(marker) {
+  if (typeof marker === 'string' && marker.startsWith('url(#')) {
+    return marker.slice(5, -1);
+  }
+  return marker?.type || '';
+}
+
 // (유지) onNodeContextMenu, onEdgeContextMenu (자식에게 이벤트를 받음)
 function onNodeContextMenu(event) {
   const wrapperBounds = flowWrapper.value?.getBoundingClientRect();
@@ -334,29 +343,28 @@ function setEdgeMarkerStart(markerValue) {
   const edgeIndex = activeEdges.value.findIndex(edge => edge.id === id);
   if (edgeIndex !== -1) {
     const updatedEdges = [...activeEdges.value];
+    let newMarkerStart;
 
-    // [수정] 클래스 다이어그램은 url() 문자열을 직접 사용하므로 객체로 감싸지 않음
     if (activeTab.value === 'classDiagram') {
-      const edgeToUpdate = { ...updatedEdges[edgeIndex], markerStart: markerValue };
-      updatedEdges[edgeIndex] = edgeToUpdate;
-      allDiagramData.value[activeTab.value].edges = updatedEdges; // [수정] 직접 데이터 소스를 변경
-    } else {
-      let newMarkerStart;
-      if (markerValue === 'arrowclosed') {
-        newMarkerStart = { 
-          type: MarkerType.ArrowClosed, 
-          color: '#000000', 
-          width: 15,
-          height: 15,
-        };
-      } else {
-        newMarkerStart = undefined; 
+      newMarkerStart = markerValue ? `url(#${markerValue})` : undefined;
+      // [수정] 커스텀 마커가 올바르게 표시되도록 엣지 타입을 'default'(직선)로 강제합니다.
+      if (markerValue) {
+        updatedEdges[edgeIndex].type = 'default';
       }
-
-      const edgeToUpdate = { ...updatedEdges[edgeIndex], markerStart: newMarkerStart };
-      updatedEdges[edgeIndex] = edgeToUpdate;
-      allDiagramData.value[activeTab.value].edges = updatedEdges; // [수정] 직접 데이터 소스를 변경
+    } else {
+      switch (markerValue) {
+        case 'arrowclosed':
+          newMarkerStart = { type: MarkerType.ArrowClosed, color: '#000000', width: 15, height: 15 };
+          break;
+        default:
+          newMarkerStart = undefined;
+          break;
+      }
     }
+
+    const edgeToUpdate = { ...updatedEdges[edgeIndex], markerStart: newMarkerStart };
+    updatedEdges[edgeIndex] = edgeToUpdate;
+    allDiagramData.value[activeTab.value].edges = updatedEdges;
   }
 }
 
@@ -366,29 +374,28 @@ function setEdgeMarkerEnd(markerValue) {
   const edgeIndex = activeEdges.value.findIndex(edge => edge.id === id);
   if (edgeIndex !== -1) {
     const updatedEdges = [...activeEdges.value];
-    
-    // [수정] 클래스 다이어그램은 url() 문자열을 직접 사용하므로 객체로 감싸지 않음
-    if (activeTab.value === 'classDiagram') {
-      const edgeToUpdate = { ...updatedEdges[edgeIndex], markerEnd: markerValue };
-      updatedEdges[edgeIndex] = edgeToUpdate;
-      allDiagramData.value[activeTab.value].edges = updatedEdges; // [수정] 직접 데이터 소스를 변경
-    } else {
-      let newMarkerEnd;
-      if (markerValue === 'arrowclosed') {
-        newMarkerEnd = { 
-          type: MarkerType.ArrowClosed,
-          color: '#000000', 
-          width: 15,
-          height: 15,
-        };
-      } else {
-        newMarkerEnd = undefined; 
-      }
+    let newMarkerEnd;
 
-      const edgeToUpdate = { ...updatedEdges[edgeIndex], markerEnd: newMarkerEnd };
-      updatedEdges[edgeIndex] = edgeToUpdate;
-      allDiagramData.value[activeTab.value].edges = updatedEdges; // [수정] 직접 데이터 소스를 변경
+    if (activeTab.value === 'classDiagram') {
+      newMarkerEnd = markerValue ? `url(#${markerValue})` : undefined;
+      // [수정] 어떤 마커든 선택되면 엣지 타입을 'default'(직선)로 강제합니다.
+      if (markerValue) {
+        updatedEdges[edgeIndex].type = 'default';
+      }
+    } else {
+      switch (markerValue) {
+        case 'arrowclosed':
+          newMarkerEnd = { type: MarkerType.ArrowClosed, color: '#000000', width: 15, height: 15 };
+          break;
+        default:
+          newMarkerEnd = undefined;
+          break;
+      }
     }
+
+    const edgeToUpdate = { ...updatedEdges[edgeIndex], markerEnd: newMarkerEnd };
+    updatedEdges[edgeIndex] = edgeToUpdate;
+    allDiagramData.value[activeTab.value].edges = updatedEdges;
   }
 }
 

@@ -1,11 +1,11 @@
 <template>
   <div class="class-node">
-    <div class="header" @dblclick="startEditing('name')">
+    <div class="header" :data-type="'name'" @dblclick="startEditing('name')">
       <div v-if="data.stereotype" class="stereotype" data-type="name">
         &lt;&lt;{{ data.stereotype }}&gt;&gt;
       </div>
       <!-- 이름 편집 -->
-      <strong v-if="!editingState.name" class="class-name" data-type="name">{{ data.name }}</strong>
+      <strong v-if="!editingState.name" class="class-name" :data-type="'name'">{{ data.name }}</strong>
       <input
         v-else
         ref="nameInputRef"
@@ -23,9 +23,10 @@
         v-for="(attr, index) in data.attributes || []" 
         :key="index" 
         class="attribute-item"
-        @dblclick="startEditing('attribute', index)"
+        :data-type="'attribute'"
+        :data-index="index"
       >
-        <span v-if="editingState.attributeIndex !== index">{{ attr }}</span>
+        <span v-if="editingState.attributeIndex !== index" :data-type="'attribute'" :data-index="index">{{ attr }}</span>
         <input
           v-else
           :ref="el => itemInputRefs[index] = el"
@@ -39,7 +40,7 @@
       </div>
       <div v-if="!data.attributes || data.attributes.length === 0" class="empty-placeholder"></div>
       
-      <button class="add-btn" data-type="add-attribute" @click="addItem('attribute')" title="속성 추가">+</button>
+      <button class="add-btn" data-type="add-attribute" title="속성 추가">+</button>
     </div>
 
     <div class="content methods">
@@ -48,9 +49,10 @@
         v-for="(method, index) in data.methods || []" 
         :key="index" 
         class="method-item"
-        @dblclick="startEditing('method', index)"
+        :data-type="'method'"
+        :data-index="index"
       >
-        <span v-if="editingState.methodIndex !== index">{{ method }}</span>
+        <span v-if="editingState.methodIndex !== index" :data-type="'method'" :data-index="index">{{ method }}</span>
         <input
           v-else
           :ref="el => itemInputRefs[index] = el"
@@ -64,7 +66,7 @@
       </div>
       <div v-if="!data.methods || data.methods.length === 0" class="empty-placeholder"></div>
 
-      <button class="add-btn" data-type="add-method" @click="addItem('method')" title="메서드 추가">+</button>
+      <button class="add-btn" data-type="add-method" title="메서드 추가">+</button>
     </div>
 
     <Handle id="left" type="source" :position="Position.Left" />
@@ -136,16 +138,6 @@ function deleteItem(type, index) {
   }
   // 부모에게 변경사항을 알릴 필요 없이,
   // Vue의 반응성 시스템이 props 객체 내부 배열의 변경을 감지하고 화면을 업데이트합니다.
-}
-
-function addItem(type) {
-  if (type === 'attribute') {
-    if (!props.data.attributes) props.data.attributes = [];
-    props.data.attributes.push('+ newAttribute: Type');
-  } else if (type === 'method') {
-    if (!props.data.methods) props.data.methods = [];
-    props.data.methods.push('+ newMethod(): void');
-  }
 }
 
 </script>

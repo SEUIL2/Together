@@ -120,7 +120,11 @@ function onDrop(event) {
   const nodeType = event.dataTransfer?.getData('application/node');
   if (!nodeType || !['usecase-actor', 'usecase-bubble', 'usecase-system', 'note'].includes(nodeType)) return;
 
-  const position = project({ x: event.clientX, y: event.clientY });
+  const containerBounds = event.currentTarget.getBoundingClientRect();
+  const position = project({ 
+    x: event.clientX - containerBounds.left, 
+    y: event.clientY - containerBounds.top 
+  });
   const newNodeId = `node-${lastNodeId.value + 1}`;
   let newNode;
 

@@ -300,11 +300,12 @@ const activeItem = computed(() => planningItems[selectedIndex.value])
 
 function selectTab(idx: number) {
   const type = planningItems[idx].type
-  // 만약 정보구조도(또는 다른 다이어그램)라면 페이지 이동
+  // 정보구조도는 VueFlowEditor로 이동
   if (type === 'infostructure') {
     router.push({
-      path: `/info-structure/${resolvedProjectId.value}`,
+      path: `/diagrams/${resolvedProjectId.value}`,
       query: {
+        tab: 'infostructure',
         readonly: String(props.readonly ?? route.query.readonly === 'true'),
         projectTitle: route.query.projectTitle || '프로젝트'
       }

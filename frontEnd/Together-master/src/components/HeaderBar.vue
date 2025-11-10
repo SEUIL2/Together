@@ -403,14 +403,32 @@ const goToStep = (stepName) => {
 }
 
 const goToSubStep = (step, subStepType) => {
-  // 모든 서브스텝은 프로젝트 컨텍스트(프로젝트 ID와 step/substep 쿼리)로 이동하도록 통일
-  if (isProfessorReadOnly.value && projectId.value) {
-    router.push({
-      path: `/professor/project/${projectId.value}`,
-      query: { ...route.query, step, substep: subStepType }
-    });
+  // 다이어그램들은 VueFlowEditor로 이동
+  const diagramTypes = ['usecase', 'erd', 'classDiagram', 'sequence', 'infostructure'];
+  
+  // 설계 탭의 다이어그램 또는 기획 탭의 정보구조도는 VueFlowEditor로 이동
+  if ((step === '설계' && diagramTypes.includes(subStepType)) || 
+      (step === '기획' && subStepType === 'infostructure')) {
+    if (projectId.value) {
+      // projectId가 있으면 VueFlowEditor로 이동하고 쿼리 파라미터로 탭 지정
+      router.push({
+        path: `/diagrams/${projectId.value}`,
+        query: { tab: subStepType }
+      });
+    } else {
+      // projectId가 없으면 MyProject로 이동
+      router.push({ path: '/myproject', query: { step, substep: subStepType } });
+    }
   } else {
-    router.push({ path: '/myproject', query: { step, substep: subStepType } });
+    // 다른 서브스텝들은 기존 방식 유지
+    if (isProfessorReadOnly.value && projectId.value) {
+      router.push({
+        path: `/professor/project/${projectId.value}`,
+        query: { ...route.query, step, substep: subStepType }
+      });
+    } else {
+      router.push({ path: '/myproject', query: { step, substep: subStepType } });
+    }
   }
   activeDropdown.value = null;
 };

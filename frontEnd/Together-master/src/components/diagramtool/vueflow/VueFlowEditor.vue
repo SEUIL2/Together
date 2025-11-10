@@ -5,17 +5,19 @@
       @tab-changed="onTabChange" 
     />
 
-    <div v-if="saveStatus !== 'idle'" class="save-toast" :class="saveStatus">
-      {{ saveStatus === 'saving' ? '저장 중...' : saveStatus === 'saved' ? '💾 저장 완료' : '저장 실패!' }}
-    </div>
-
     <div 
       class="canvas-wrapper" 
       ref="flowWrapper" 
       @click="hideContextMenu" 
     > 
       <!-- 클래스 다이어그램일 때는 전체 페이지를 렌더링 -->
-      <ClassDiagramPage v-if="activeTab === 'classDiagram'" :key="activeTab" />
+      <ClassDiagramPage v-if="activeTab === 'classDiagram'" :key="`class-${activeTab}`" />
+      
+      <!-- ERD일 때는 전체 페이지를 렌더링 -->
+      <ErdDiagramPage v-else-if="activeTab === 'erd'" :key="`erd-${activeTab}`" />
+      
+      <!-- 시퀀스 다이어그램일 때는 전체 페이지를 렌더링 -->
+      <SequenceDiagramPage v-else-if="activeTab === 'sequence'" :key="`sequence-${activeTab}`" />
       
       <!-- 다른 다이어그램들은 기존 방식 유지 -->
       <template v-else>
@@ -166,6 +168,8 @@ import '@vue-flow/core/dist/theme-default.css'
 
 // [추가] 캔버스 컴포넌트 import
 import ClassDiagramPage from '@/views/toolview/ClassDiagramPage.vue'
+import ErdDiagramPage from '@/views/toolview/ErdDiagramPage.vue'
+import SequenceDiagramPage from '@/views/toolview/SequenceDiagramPage.vue'
 import UsecaseDiagramCanvas from './Usecase/UsecaseDiagramCanvas.vue'
 import InfoStructureDiagramCanvas from './InfoStructure/InfoStructureDiagramCanvas.vue'
 // (InfoStructureDiagramCanvas.vue 파일도 Usecase처럼 만들어야 합니다)
@@ -181,17 +185,16 @@ const props = defineProps({
 });
 
 import { MarkerType } from '@vue-flow/core'
-// [추가] 캔버스 컴포넌트 매핑 (classDiagram은 별도로 처리)
+// [추가] 캔버스 컴포넌트 매핑 (classDiagram, erd, sequence는 별도로 처리)
 const diagramComponents = {
   usecase: markRaw(UsecaseDiagramCanvas),
   infostructure: markRaw(InfoStructureDiagramCanvas),
-  // (erd, sequence 등도 여기에 추가)
 };
 
 // [추가] 현재 탭에 맞는 캔버스 컴포넌트 선택
 const currentDiagramComponent = computed(() => {
-  // classDiagram은 제외 (별도로 전체 페이지 렌더링)
-  if (activeTab.value === 'classDiagram') return null;
+  // classDiagram, erd, sequence는 제외 (별도로 전체 페이지 렌더링)
+  if (activeTab.value === 'classDiagram' || activeTab.value === 'erd' || activeTab.value === 'sequence') return null;
   return diagramComponents[activeTab.value] || null;
 });
 
@@ -572,10 +575,13 @@ onMounted(async () => {
   height: 100%;
 }
 
-/* ClassDiagramPage가 전체 영역을 차지하도록 */
-.canvas-wrapper > * {
+/* ClassDiagramPage, ErdDiagramPage, SequenceDiagramPage만 전체 영역을 차지하도록 */
+.canvas-wrapper .diagram-layout,
+.canvas-wrapper .erd-layout {
   width: 100%;
   height: 100%;
+  position: relative;
+  z-index: 1;
 }
 </style>
 <style>
@@ -663,8 +669,13 @@ onMounted(async () => {
   border-radius: 8px;
   color: white;
   font-weight: 600;
-  z-index: 1000;
+  z-index: 9999;
   transition: opacity 0.3s;
+  pointer-events: none;
+  white-space: nowrap;
+  display: inline-block;
+  width: auto;
+  height: auto;
 }
 .save-toast.saving { background-color: #777; }
 .save-toast.saved { background-color: #323232; }

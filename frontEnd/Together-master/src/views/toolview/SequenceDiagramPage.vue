@@ -1,7 +1,11 @@
 <template>
   <div class="diagram-layout" @click="hideAllMenus" @wheel.prevent="handleWheel">
+    <div v-if="saveStatus === 'saving'" class="save-toast saving">저장 중...</div>
+    <div v-else-if="saveStatus === 'saved'" class="save-toast saved">💾 저장 완료</div>
+    <div v-else-if="saveStatus === 'error'" class="save-toast error">저장 실패!</div>
+
     <!-- 툴박스 -->
-    <ToolBox/>
+    <ToolBox diagramType="sequence" />
 
     <!-- 다이어그램 캔버스 -->
     <div class="diagram-canvas" ref="canvasRef" @dragover.prevent @drop="handleDrop">
@@ -86,11 +90,6 @@
           class="name-edit-input"
         />
       </div>
-    </div>
-
-    <!-- 저장 상태 토스트 -->
-    <div v-if="saveStatus !== 'idle'" class="save-toast" :class="saveStatus">
-      {{ saveStatus === 'saving' ? '저장 중...' : saveStatus === 'saved' ? '💾 저장 완료' : '저장 실패!' }}
     </div>
   </div>
 </template>
@@ -532,7 +531,7 @@ onUnmounted(() => {
 <style scoped>
 .diagram-layout {
   display: flex;
-  height: 100vh;
+  height: 100%;
   width: 100%;
   background: #f4f6f8;
 }
@@ -562,10 +561,15 @@ onUnmounted(() => {
   border-radius: 8px;
   color: white;
   font-weight: 600;
-  z-index: 1000;
+  z-index: 9999;
   transition: opacity 0.3s;
+  pointer-events: none;
+  white-space: nowrap;
+  display: inline-block;
+  width: auto;
+  height: auto;
 }
 .save-toast.saving { background-color: #777; }
-.save-toast.saved { background-color: #28a745; }
+.save-toast.saved { background-color: #323232; }
 .save-toast.error { background-color: #dc3545; }
 </style>

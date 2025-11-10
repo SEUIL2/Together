@@ -14,21 +14,27 @@
       ref="flowWrapper" 
       @click="hideContextMenu" 
     > 
-      <component
-        v-if="currentDiagramComponent"
-        :is="currentDiagramComponent"
-        :nodes="activeNodes"
-        :edges="activeEdges"
-        @update:nodes="allDiagramData[activeTab].nodes = $event"
-        @update:edges="allDiagramData[activeTab].edges = $event"
-
-        @node-context-menu="onNodeContextMenu"
-        @edge-context-menu="onEdgeContextMenu"
-        :key="activeTab"
-        @move-start="hideContextMenu"
-      />
+      <!-- 클래스 다이어그램일 때는 전체 페이지를 렌더링 -->
+      <ClassDiagramPage v-if="activeTab === 'classDiagram'" :key="activeTab" />
       
-      <Toolbox :active-tab="activeTab" />
+      <!-- 다른 다이어그램들은 기존 방식 유지 -->
+      <template v-else>
+        <component
+          v-if="currentDiagramComponent"
+          :is="currentDiagramComponent"
+          :nodes="activeNodes"
+          :edges="activeEdges"
+          @update:nodes="allDiagramData[activeTab].nodes = $event"
+          @update:edges="allDiagramData[activeTab].edges = $event"
+
+          @node-context-menu="onNodeContextMenu"
+          @edge-context-menu="onEdgeContextMenu"
+          :key="activeTab"
+          @move-start="hideContextMenu"
+        />
+        
+        <Toolbox :active-tab="activeTab" />
+      </template>
 
       <div
         v-if="contextMenu.visible" 
@@ -159,7 +165,7 @@ import '@vue-flow/core/dist/style.css'
 import '@vue-flow/core/dist/theme-default.css'
 
 // [추가] 캔버스 컴포넌트 import
-import ClassDiagramCanvas from './ClassDiagram/ClassDiagramCanvas.vue'
+import ClassDiagramPage from '@/views/toolview/ClassDiagramPage.vue'
 import UsecaseDiagramCanvas from './Usecase/UsecaseDiagramCanvas.vue'
 import InfoStructureDiagramCanvas from './InfoStructure/InfoStructureDiagramCanvas.vue'
 // (InfoStructureDiagramCanvas.vue 파일도 Usecase처럼 만들어야 합니다)
@@ -175,9 +181,8 @@ const props = defineProps({
 });
 
 import { MarkerType } from '@vue-flow/core'
-// [추가] 캔버스 컴포넌트 매핑
+// [추가] 캔버스 컴포넌트 매핑 (classDiagram은 별도로 처리)
 const diagramComponents = {
-  classDiagram: markRaw(ClassDiagramCanvas),
   usecase: markRaw(UsecaseDiagramCanvas),
   infostructure: markRaw(InfoStructureDiagramCanvas),
   // (erd, sequence 등도 여기에 추가)
@@ -185,6 +190,8 @@ const diagramComponents = {
 
 // [추가] 현재 탭에 맞는 캔버스 컴포넌트 선택
 const currentDiagramComponent = computed(() => {
+  // classDiagram은 제외 (별도로 전체 페이지 렌더링)
+  if (activeTab.value === 'classDiagram') return null;
   return diagramComponents[activeTab.value] || null;
 });
 
@@ -561,6 +568,12 @@ onMounted(async () => {
   overflow: hidden;
 }
 .vue-flow-wrapper {
+  width: 100%;
+  height: 100%;
+}
+
+/* ClassDiagramPage가 전체 영역을 차지하도록 */
+.canvas-wrapper > * {
   width: 100%;
   height: 100%;
 }

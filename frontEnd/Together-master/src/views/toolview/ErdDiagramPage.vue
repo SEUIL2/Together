@@ -1,10 +1,10 @@
 <template>
   <div class="erd-layout" @click=closeAllMenus @wheel="onWheel">
     <div v-if="saveStatus === 'saving'" class="save-toast saving">저장 중...</div>
-<div v-else-if="saveStatus === 'saved'" class="save-toast saved">💾 저장 완료</div>
-<div v-else-if="saveStatus === 'error'" class="save-toast error">저장 실패!</div>
+    <div v-else-if="saveStatus === 'saved'" class="save-toast saved">💾 저장 완료</div>
+    <div v-else-if="saveStatus === 'error'" class="save-toast error">저장 실패!</div>
 
-    <ToolBox />
+    <ToolBox diagramType="erd" />
     <div class="diagram" ref="diagramRef" @dragover.prevent @drop="handleDrop">
       <ErdRelationContextMenu
   v-if="menuVisible"
@@ -460,7 +460,8 @@ onMounted(async () => {
 <style scoped>
 .erd-layout {
   display: flex;
-  height: 100vh;
+  height: 100%;
+  width: 100%;
 }
 /* .toolbox {
   width: 200px;
@@ -524,20 +525,22 @@ onMounted(async () => {
 }
 .save-toast {
   position: fixed;
-  top: 24px;
-  right: 36px;
-  z-index: 9000;
-  background: #4b80ff;
-  color: #fff;
-  border-radius: 6px;
-  font-size: 15px;
-  padding: 10px 26px;
-  box-shadow: 0 4px 16px #0022;
-  transition: opacity .3s;
+  bottom: 20px;
+  right: 20px;
+  padding: 10px 20px;
+  border-radius: 8px;
+  color: white;
+  font-weight: 600;
+  z-index: 9999;
+  transition: opacity 0.3s;
   pointer-events: none;
+  white-space: nowrap;
+  display: inline-block;
+  width: auto;
+  height: auto;
 }
-.save-toast.saving { background: #000000; }
-.save-toast.saved { background: #000000; }
-.save-toast.error { background: #ff5555; }
+.save-toast.saving { background-color: #777; }
+.save-toast.saved { background-color: #323232; }
+.save-toast.error { background-color: #dc3545; }
 
 </style>

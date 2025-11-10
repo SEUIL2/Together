@@ -50,12 +50,20 @@ import { useToolStore } from '@/stores/toolStore.js'
 import ClassCodeModal from '@/components/diagramtool/classdiagram/ClassCodeModal.vue'
 import ErdCodeModal from '@/components/diagramtool/erd/ErdCodeModal.vue'
 
+const props = defineProps({
+  diagramType: {
+    type: String,
+    default: null
+  }
+})
+
 const route = useRoute()
 const toolStore = useToolStore()
 const showCodeModal = ref(false)
 
-// 현재 다이어그램 타입 추출
+// 현재 다이어그램 타입 추출 (props로 받으면 우선 사용)
 const currentDiagram = computed(() => {
+  if (props.diagramType) return props.diagramType
   if (route.path.startsWith('/class-diagram')) return 'class'
   if (route.path.startsWith('/erd-diagram')) return 'erd'
   if (route.path.startsWith('/info-structure')) return 'info'

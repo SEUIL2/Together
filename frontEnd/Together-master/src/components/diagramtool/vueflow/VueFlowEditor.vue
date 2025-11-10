@@ -5,30 +5,38 @@
       @tab-changed="onTabChange" 
     />
 
-    <div v-if="saveStatus !== 'idle'" class="save-toast" :class="saveStatus">
-      {{ saveStatus === 'saving' ? '저장 중...' : saveStatus === 'saved' ? '💾 저장 완료' : '저장 실패!' }}
-    </div>
-
     <div 
       class="canvas-wrapper" 
       ref="flowWrapper" 
       @click="hideContextMenu" 
     > 
-      <component
-        v-if="currentDiagramComponent"
-        :is="currentDiagramComponent"
-        :nodes="activeNodes"
-        :edges="activeEdges"
-        @update:nodes="allDiagramData[activeTab].nodes = $event"
-        @update:edges="allDiagramData[activeTab].edges = $event"
-
-        @node-context-menu="onNodeContextMenu"
-        @edge-context-menu="onEdgeContextMenu"
-        :key="activeTab"
-        @move-start="hideContextMenu"
-      />
+      <!-- 클래스 다이어그램일 때는 전체 페이지를 렌더링 -->
+      <ClassDiagramPage v-if="activeTab === 'classDiagram'" :key="`class-${activeTab}`" />
       
-      <Toolbox :active-tab="activeTab" />
+      <!-- ERD일 때는 전체 페이지를 렌더링 -->
+      <ErdDiagramPage v-else-if="activeTab === 'erd'" :key="`erd-${activeTab}`" />
+      
+      <!-- 시퀀스 다이어그램일 때는 전체 페이지를 렌더링 -->
+      <SequenceDiagramPage v-else-if="activeTab === 'sequence'" :key="`sequence-${activeTab}`" />
+      
+      <!-- 다른 다이어그램들은 기존 방식 유지 -->
+      <template v-else>
+        <component
+          v-if="currentDiagramComponent"
+          :is="currentDiagramComponent"
+          :nodes="activeNodes"
+          :edges="activeEdges"
+          @update:nodes="allDiagramData[activeTab].nodes = $event"
+          @update:edges="allDiagramData[activeTab].edges = $event"
+
+          @node-context-menu="onNodeContextMenu"
+          @edge-context-menu="onEdgeContextMenu"
+          :key="activeTab"
+          @move-start="hideContextMenu"
+        />
+        
+        <Toolbox :active-tab="activeTab" />
+      </template>
 
       <div
         v-if="contextMenu.visible" 
@@ -161,7 +169,9 @@ import '@vue-flow/core/dist/style.css'
 import '@vue-flow/core/dist/theme-default.css'
 
 // [추가] 캔버스 컴포넌트 import
-import ClassDiagramCanvas from './ClassDiagram/ClassDiagramCanvas.vue'
+import ClassDiagramPage from '@/views/toolview/ClassDiagramPage.vue'
+import ErdDiagramPage from '@/views/toolview/ErdDiagramPage.vue'
+import SequenceDiagramPage from '@/views/toolview/SequenceDiagramPage.vue'
 import UsecaseDiagramCanvas from './Usecase/UsecaseDiagramCanvas.vue'
 import InfoStructureDiagramCanvas from './InfoStructure/InfoStructureDiagramCanvas.vue'
 // (InfoStructureDiagramCanvas.vue 파일도 Usecase처럼 만들어야 합니다)
@@ -177,16 +187,16 @@ const props = defineProps({
 });
 
 import { MarkerType } from '@vue-flow/core'
-// [추가] 캔버스 컴포넌트 매핑
+// [추가] 캔버스 컴포넌트 매핑 (classDiagram, erd, sequence는 별도로 처리)
 const diagramComponents = {
-  classDiagram: markRaw(ClassDiagramCanvas),
   usecase: markRaw(UsecaseDiagramCanvas),
   infostructure: markRaw(InfoStructureDiagramCanvas),
-  // (erd, sequence 등도 여기에 추가)
 };
 
 // [추가] 현재 탭에 맞는 캔버스 컴포넌트 선택
 const currentDiagramComponent = computed(() => {
+  // classDiagram, erd, sequence는 제외 (별도로 전체 페이지 렌더링)
+  if (activeTab.value === 'classDiagram' || activeTab.value === 'erd' || activeTab.value === 'sequence') return null;
   return diagramComponents[activeTab.value] || null;
 });
 
@@ -571,6 +581,15 @@ onMounted(async () => {
   width: 100%;
   height: 100%;
 }
+
+/* ClassDiagramPage, ErdDiagramPage, SequenceDiagramPage만 전체 영역을 차지하도록 */
+.canvas-wrapper .diagram-layout,
+.canvas-wrapper .erd-layout {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  z-index: 1;
+}
 </style>
 <style>
 /* (유지) context-menu, save-toast, .vue-flow__edge-path, .color-swatch 스타일 */
@@ -657,8 +676,13 @@ onMounted(async () => {
   border-radius: 8px;
   color: white;
   font-weight: 600;
-  z-index: 1000;
+  z-index: 9999;
   transition: opacity 0.3s;
+  pointer-events: none;
+  white-space: nowrap;
+  display: inline-block;
+  width: auto;
+  height: auto;
 }
 .save-toast.saving { background-color: #777; }
 .save-toast.saved { background-color: #323232; }

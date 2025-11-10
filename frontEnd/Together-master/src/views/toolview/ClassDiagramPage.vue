@@ -1,6 +1,10 @@
 <template>
   <div class="diagram-layout" @click="hideAllMenus">
-    <ToolBox />
+    <div v-if="saveStatus === 'saving'" class="save-toast saving">저장 중...</div>
+    <div v-else-if="saveStatus === 'saved'" class="save-toast saved">💾 저장 완료</div>
+    <div v-else-if="saveStatus === 'error'" class="save-toast error">저장 실패!</div>
+
+    <ToolBox diagramType="class" />
     <div class="diagram-page" @dragover.prevent @drop="handleDrop">
       <v-stage
         ref="stageRef"
@@ -109,9 +113,6 @@
   </button>
 </div>
 
-
-      <div v-if="showSavedMessage" class="save-toast">저장 완료✔️</div>
-      <div v-if="saveError" class="error-toast">저장 실패 ⚠️</div>
     </div>
   </div>
 </template>
@@ -168,6 +169,7 @@ const selectedBoxId = ref(null)
 
 const showSavedMessage = ref(false)
 const saveError = ref(false)
+const saveStatus = ref('idle') // 'idle', 'saving', 'saved', 'error'
 
 const hideAllMenus = () => {
   arrowContextMenuVisible.value = false
@@ -491,15 +493,23 @@ const saveToServer = async () => {
     formData.append('projectId', props.projectId)
   }
 
+  saveStatus.value = 'saving'
+  
   try {
     await api.put('/design/update', formData) // Content-Type은 FormData 사용 시 api가 자동으로 설정합니다.
 
+    saveStatus.value = 'saved'
     showSavedMessage.value = true
     saveError.value = false
-    setTimeout(() => showSavedMessage.value = false, 3000)
+    setTimeout(() => {
+      showSavedMessage.value = false
+      saveStatus.value = 'idle'
+    }, 1200)
   } catch (err) {
     console.warn('❌ 자동 저장 실패:', err)
+    saveStatus.value = 'error'
     saveError.value = true
+    setTimeout(() => saveStatus.value = 'idle', 3000)
     alert('⚠️ 저장 중 오류 발생')
   }
 }
@@ -594,7 +604,8 @@ function updateBoxName({ boxId, value }) {
 <style scoped>
 .diagram-layout {
   display: flex;
-  height: 100vh;
+  height: 100%;
+  width: 100%;
 }
 .diagram-page {
   flex: 1;
@@ -614,24 +625,23 @@ function updateBoxName({ boxId, value }) {
 }
 .save-toast {
   position: fixed;
-  top: 20px;
+  bottom: 20px;
   right: 20px;
-  background: #4caf50;
+  padding: 10px 20px;
+  border-radius: 8px;
   color: white;
-  padding: 8px 16px;
-  border-radius: 6px;
-  z-index: 1000;
+  font-weight: 600;
+  z-index: 9999;
+  transition: opacity 0.3s;
+  pointer-events: none;
+  white-space: nowrap;
+  display: inline-block;
+  width: auto;
+  height: auto;
 }
-.error-toast {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  background: #e53935;
-  color: white;
-  padding: 8px 16px;
-  border-radius: 6px;
-  z-index: 1000;
-}
+.save-toast.saving { background-color: #777; }
+.save-toast.saved { background-color: #323232; }
+.save-toast.error { background-color: #dc3545; }
 .overlay-editbox {
   position: absolute;
   z-index: 1001;

@@ -1,11 +1,11 @@
 <template>
   <div class="class-node">
-    <div class="header" @dblclick="startEditing('name')">
+    <div class="header" :data-type="'name'" @dblclick="startEditing('name')">
       <div v-if="data.stereotype" class="stereotype" data-type="name">
         &lt;&lt;{{ data.stereotype }}&gt;&gt;
       </div>
       <!-- 이름 편집 -->
-      <strong v-if="!editingState.name" class="class-name" data-type="name">{{ data.name }}</strong>
+      <strong v-if="!editingState.name" class="class-name" :data-type="'name'">{{ data.name }}</strong>
       <input
         v-else
         ref="nameInputRef"
@@ -23,9 +23,10 @@
         v-for="(attr, index) in data.attributes || []" 
         :key="index" 
         class="attribute-item"
-        @dblclick="startEditing('attribute', index)"
+        :data-type="'attribute'"
+        :data-index="index"
       >
-        <span v-if="editingState.attributeIndex !== index">{{ attr }}</span>
+        <span v-if="editingState.attributeIndex !== index" :data-type="'attribute'" :data-index="index">{{ attr }}</span>
         <input
           v-else
           :ref="el => itemInputRefs[index] = el"
@@ -48,9 +49,10 @@
         v-for="(method, index) in data.methods || []" 
         :key="index" 
         class="method-item"
-        @dblclick="startEditing('method', index)"
+        :data-type="'method'"
+        :data-index="index"
       >
-        <span v-if="editingState.methodIndex !== index">{{ method }}</span>
+        <span v-if="editingState.methodIndex !== index" :data-type="'method'" :data-index="index">{{ method }}</span>
         <input
           v-else
           :ref="el => itemInputRefs[index] = el"

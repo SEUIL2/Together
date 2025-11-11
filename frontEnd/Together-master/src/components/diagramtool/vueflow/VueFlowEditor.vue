@@ -434,6 +434,41 @@ function setNodeHeaderColor(color) {
   hideContextMenu(); 
 }
 
+// [추가] 다이어그램 데이터 경량화 함수
+function lightenDiagramData(diagramData) {
+  if (!diagramData || !diagramData.nodes || !diagramData.edges) {
+    return diagramData;
+  }
+
+  const lightNodes = diagramData.nodes.map(node => ({
+    id: node.id,
+    type: node.type,
+    position: node.position,
+    data: node.data,
+    style: node.style,
+    width: node.width,
+    height: node.height,
+    // 런타임 속성(selected, dragging, computedPosition 등)은 제외됩니다.
+  }));
+
+  const lightEdges = diagramData.edges.map(edge => ({
+    id: edge.id,
+    source: edge.source,
+    target: edge.target,
+    sourceHandle: edge.sourceHandle,
+    targetHandle: edge.targetHandle,
+    type: edge.type,
+    label: edge.label,
+    data: edge.data,
+    markerStart: edge.markerStart,
+    markerEnd: edge.markerEnd,
+    style: edge.style,
+    // 핵심: sourceNode, targetNode 등 불필요한 객체는 제외됩니다.
+  }));
+
+  return { nodes: lightNodes, edges: lightEdges, viewport: diagramData.viewport };
+}
+
 // (유지) 저장 관련 로직
 import api from '@/api'
 import { debounce } from 'lodash'
@@ -453,12 +488,15 @@ const saveDiagramData = debounce(async () => {
     return;
   }
 
+  // [수정] 데이터 경량화 로직 추가
+  const lightData = lightenDiagramData(currentDiagramData);
+
   // [수정] 정보구조도는 /planning/update, 나머지는 /design/upload로 분기
   if (activeTab.value === 'infostructure') {
     const formData = new FormData();
     formData.append('type', 'infostructure');
     formData.append('projectId', route.params.projectId);
-    formData.append('json', JSON.stringify(currentDiagramData));
+    formData.append('json', JSON.stringify(lightData));
     // formData.append('text', ''); // 텍스트 입력 UI가 있다면 여기에 추가
 
     try {
@@ -475,7 +513,7 @@ const saveDiagramData = debounce(async () => {
   } else {
     const formData = new FormData();
     formData.append('type', activeTab.value);
-    formData.append('json', JSON.stringify(currentDiagramData));
+    formData.append('json', JSON.stringify(lightData));
     formData.append('projectId', route.params.projectId);
 
     try {
@@ -596,7 +634,9 @@ onMounted(async () => {
 }
 </style>
 <style>
+@import '@vue-flow/node-resizer/dist/style.css';
 /* (유지) context-menu, save-toast, .vue-flow__edge-path, .color-swatch 스타일 */
+
 .context-menu {
   position: absolute;
   z-index: 1000;
@@ -691,8 +731,6 @@ onMounted(async () => {
 .save-toast.saving { background-color: #777; }
 .save-toast.saved { background-color: #323232; }
 .save-toast.error { background-color: #dc3545; }
-
-@import '@vue-flow/node-resizer/dist/style.css';
 
 .vue-flow__edge-path {
   stroke: #000000 !important;

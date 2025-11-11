@@ -1,86 +1,98 @@
 <template>
   <div class="diagram-canvas-container" @dragover="onDragOver" @drop="onDrop" @click="handleClickOutside">
     <VueFlow
-  ref="vueFlowRef"
-  :nodes="props.nodes"
-  :edges="props.edges"
-  :node-types="nodeTypes"
-  :edge-types="edgeTypes"
-  :default-viewport="defaultViewport"
-  edges-up-front
-  :zoom-on-double-click="false"
-  @connect="onConnect" 
-  @nodes-drag-stop="onNodeDragStop"
-  @move-end="onViewportChange"
-  @node-double-click="handleNodeDoubleClick"
-  @node-click="handleNodeClick"
-  @update:nodes="emit('update:nodes', $event)"
-  @update:edges="emit('update:edges', $event)"
-  @node-context-menu="$emit('node-context-menu', $event)"
-  @edge-context-menu="$emit('edge-context-menu', $event)"
-  @move-start="$emit('move-start', $event)"
->
-  <Background />
-  <Controls />
-  
-  <!-- [수정] Vue Flow v2 방식에 맞게 마커를 슬롯으로 정의 -->
-  <template #marker-arrow-generalization>
-    <marker
-      id="arrow-generalization"
-      viewBox="0 0 10 10"
-      refX="10" refY="5"
-      markerWidth="10" markerHeight="10"
-      orient="auto"
+      ref="vueFlowRef"
+      :nodes="props.nodes"
+      :edges="props.edges"
+      :node-types="nodeTypes"
+      :edge-types="edgeTypes"
+      :default-viewport="defaultViewport"
+      edges-up-front
+      :zoom-on-double-click="false"
+      @connect="onConnect"
+      @nodes-drag-stop="onNodeDragStop"
+      @move-end="onViewportChange"
+      @node-double-click="handleNodeDoubleClick"
+      @node-click="handleNodeClick"
+      @update:nodes="emit('update:nodes', $event)"
+      @update:edges="emit('update:edges', $event)"
+      @node-context-menu="$emit('node-context-menu', $event)"
+      @edge-context-menu="$emit('edge-context-menu', $event)"
+      @move-start="$emit('move-start', $event)"
     >
-      <path d="M0,0 L10,5 L0,10 Z" stroke="black" stroke-width="1.5" fill="white" />
-    </marker>
-  </template>
+      <Background />
+      <Controls />
 
-  <template #marker-arrow-dependency>
-    <marker
-      id="arrow-dependency"
-      viewBox="0 0 10 10"
-      refX="10" refY="5"
-      markerWidth="10" markerHeight="10"
-      orient="auto"
-    >
-      <path d="M0,0 L10,5 L0,10" stroke="black" stroke-width="1.5" fill="none" />
-    </marker>
-  </template>
+      <!-- 
+        [최종 수정] Vue Flow 공식 예제를 기반으로 한, 가장 표준적인 마커 정의입니다.
+        이 코드는 다른 설정과 무관하게 독립적으로 작동해야 합니다.
+      -->
+      <svg>
+        <defs>
+          <!-- 일반화 (빈 삼각형) -->
+          <marker
+            id="arrow-generalization"
+            viewBox="-10 -5 10 10"
+            refX="-1"
+            refY="0"
+            markerUnits="strokeWidth"
+            markerWidth="10"
+            markerHeight="10"
+            orient="auto"
+          >
+            <path d="M -10 -5 L 0 0 L -10 5 z" fill="#fff" stroke="#000" stroke-width="1.5" />
+          </marker>
 
-  <template #marker-diamond-aggregation>
-    <marker
-      id="diamond-aggregation"
-      viewBox="0 0 20 20"
-      refX="10" refY="10"
-      markerWidth="12" markerHeight="12"
-      orient="auto"
-    >
-    <path d="M10,0 L20,10 L10,20 L0,10 Z" stroke="black" stroke-width="1.5" fill="#ffffff" />
-    </marker>
-  </template>
+          <!-- 의존 (화살표) -->
+          <marker
+            id="arrow-dependency"
+            viewBox="-10 -5 10 10"
+            refX="-1"
+            refY="0"
+            markerUnits="strokeWidth"
+            markerWidth="10"
+            markerHeight="10"
+            orient="auto"
+          >
+            <path d="M 0 -5 L -10 0 L 0 5" fill="none" stroke="#000" stroke-width="1.5" />
+          </marker>
 
-  <template #marker-diamond-composition>
-    <marker
-      id="diamond-composition"
-      viewBox="0 0 20 20"
-      refX="10" refY="10"
-      markerWidth="12" markerHeight="12"
-      orient="auto"
-    >
-    <path d="M10,0 L20,10 L10,20 L0,10 Z" stroke="black" stroke-width="1.5" fill="#000000" />
-    </marker>
-  </template>
-</VueFlow>
+          <!-- 집합 (빈 마름모) -->
+          <marker
+            id="diamond-aggregation"
+            viewBox="-20 -10 20 20"
+            refX="-1"
+            refY="0"
+            markerUnits="strokeWidth"
+            markerWidth="12"
+            markerHeight="12"
+            orient="auto"
+          >
+            <path d="M 0 0 L -10 -7 L -20 0 L -10 7 z" fill="#fff" stroke="#000" stroke-width="1.5" />
+          </marker>
 
-    <!-- 노드 이름 수정용 오버레이 -->
+          <!-- 복합 (채워진 마름모) -->
+          <marker
+            id="diamond-composition"
+            viewBox="-20 -10 20 20"
+            refX="-1"
+            refY="0"
+            markerUnits="strokeWidth"
+            markerWidth="12"
+            markerHeight="12"
+            orient="auto"
+          >
+            <path d="M 0 0 L -10 -7 L -20 0 L -10 7 z" fill="#000" stroke="#000" stroke-width="1.5" />
+          </marker>
+        </defs>
+      </svg>
+    </VueFlow>
+
+    <!-- 노드 이름 수정용 오버레이 (기존 코드 유지) -->
     <div
       v-if="editing.visible"
       class="overlay-editbox"
-      :style="{
-        top: editing.y + 'px',
-        left: editing.x + 'px',
-      }"
+      :style="{ top: editing.y + 'px', left: editing.x + 'px' }"
       @click.stop
     >
       <input
@@ -110,6 +122,7 @@
 </template>
 
 <script setup>
+// 스크립트 부분은 기존 코드를 그대로 유지합니다.
 import { ref, reactive, onMounted, nextTick, markRaw, computed } from 'vue'
 import { VueFlow, useVueFlow } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
@@ -144,7 +157,6 @@ const nodeTypes = {
 const edgeTypes = {
 };
 
-// --- [추가] 편집 로직 ---
 const editing = reactive({
   visible: false,
   nodeId: null,
@@ -235,9 +247,6 @@ function deleteEditingItem() {
   editing.visible = false;
 }
 
-
-
-// [추가] 노드 더블클릭 핸들러
 function handleNodeDoubleClick(nodeMouseEvent) {
   const target = nodeMouseEvent.event.target;
   const type = target.dataset.type;
@@ -261,7 +270,6 @@ function handleNodeDoubleClick(nodeMouseEvent) {
   }
 }
 
-// [추가] 노드 클릭 핸들러 (항목 추가)
 function handleNodeClick(nodeMouseEvent) {
   const target = nodeMouseEvent.event.target;
   const type = target.dataset.type;
@@ -293,14 +301,12 @@ function handleNodeClick(nodeMouseEvent) {
   }
 }
 
-// [추가] 캔버스 바깥쪽 클릭 시 수정 완료
 function handleClickOutside() {
   if (editing.visible) {
     applyEdit();
   }
 }
 
-// --- (유지) 드래그 앤 드롭 로직 ---
 const lastNodeId = computed(() => {
   return Math.max(0, ...props.nodes.map(n => {
     const idNum = parseInt(String(n.id).split('-').pop(), 10);
@@ -320,7 +326,6 @@ function onDrop(event) {
   const nodeType = event.dataTransfer?.getData('application/node');
   if (!nodeType || !['classNode', 'interfaceNode', 'enumNode', 'note'].includes(nodeType)) return;
   
-  // [수정] 캔버스 내부 좌표로 변환
   const containerBounds = event.currentTarget.getBoundingClientRect();
   const position = project({ 
     x: event.clientX - containerBounds.left, 
@@ -371,7 +376,6 @@ const defaultViewport = {
   zoom: 1,
 };
 
-// --- (유지) 캔버스 고유 로직 ---
 function onConnect(connectionParams) {
   const newEdge = {
     id: `e${connectionParams.source}${connectionParams.sourceHandle}-${connectionParams.target}${connectionParams.targetHandle}-${Date.now()}`,
@@ -381,12 +385,12 @@ function onConnect(connectionParams) {
     sourceHandle: connectionParams.sourceHandle,
     targetHandle: connectionParams.targetHandle,
 
-    // [수정] 이 줄을 삭제하거나 undefined로 설정합니다.
-    // markerEnd: 'arrow-generalization', // <-- 이 줄 삭제
+    markerStart: '',
+    markerEnd: '',
     data: { 
       label: '',
       lineStyle: 'none',
-      relationshipType: 'association' // [추가] 기본값은 연관(association)
+      relationshipType: 'association'
     },
     label: '', 
     labelStyle: { fill: '#2d3748', fontWeight: 500 }, 
@@ -398,10 +402,8 @@ function onConnect(connectionParams) {
   emit('update:edges', [...props.edges, newEdge]);
 }
 function onNodeDragStop() {
-  // 자동 저장은 부모(VueFlowEditor)의 watch가 담당
 }
 
-// --- (유지) 뷰포트 로직 ---
 const activeTabId = 'classDiagram'; 
 
 function onViewportChange() {
@@ -435,14 +437,12 @@ onMounted(() => {
 </script>
 
 <style>
-/* (유지) 캔버스 컨테이너 스타일 */
 .diagram-canvas-container {
   width: 100%;
   height: 100%;
   position: relative;
 }
 
-/* [추가] 오버레이 에디터 스타일 */
 .overlay-editbox {
   position: absolute;
   z-index: 1001;

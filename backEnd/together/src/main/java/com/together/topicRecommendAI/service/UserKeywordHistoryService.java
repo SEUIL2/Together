@@ -22,11 +22,11 @@ public class UserKeywordHistoryService {
 
     private final UserKeywordHistoryRepository historyRepository;
 
-    // 히스토리 최대 저장 개수 (50개)
-    private static final int MAX_HISTORY_COUNT = 40;
+    // 히스토리 최대 저장 개수 (8개)
+    private static final int MAX_HISTORY_COUNT = 8;
 
     /**
-     * 새로운 키워드 히스토리를 저장하고, 50개 제한을 초과하면 가장 오래된 항목을 삭제합니다.
+     * 새로운 키워드 히스토리를 저장하고, 8개 제한을 초과하면 가장 오래된 항목을 삭제합니다.
      * @param user 키워드를 사용한 사용자
      * @param keyword 저장할 키워드
      */
@@ -44,7 +44,7 @@ public class UserKeywordHistoryService {
         // 2. 현재 사용자의 총 히스토리 개수 확인
         long totalCount = historyRepository.countByUser(user); // [cite] 1번 항목에서 수정한 Repository 사용
 
-        // 3. 50개를 초과하는지 확인
+        // 3. 8개를 초과하는지 확인
         if (totalCount > MAX_HISTORY_COUNT) {
             // 4. 초과하는 개수 계산
             int excessCount = (int) (totalCount - MAX_HISTORY_COUNT);

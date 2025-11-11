@@ -85,48 +85,6 @@ public class AiKeywordGenerator {
     private final UserKeywordHistoryRepository historyRepository;
     private final UserKeywordHistoryService userKeywordHistoryService;
 
-    /*public List<String> generateKeywords(UserEntity user) {
-        List<String> previousKeywords = getPreviousKeywords(user);
-        String prompt = buildPrompt(previousKeywords, null);
-        return getAndSaveNewKeywords(user, previousKeywords, prompt);
-    }
-
-    public List<String> generateKeywordsFromUserInput(UserEntity user, List<String> userInputKeywords) {
-        List<String> previousKeywords = getPreviousKeywords(user);
-        String prompt = buildPrompt(previousKeywords, userInputKeywords);
-        return getAndSaveNewKeywords(user, previousKeywords, prompt);
-    }
-
-    private List<String> getPreviousKeywords(UserEntity user) {
-        return historyRepository.findByUser(user).stream()
-                .map(UserKeywordHistoryEntity::getKeyword)
-                .collect(Collectors.toList());
-    }
-
-    private List<String> getAndSaveNewKeywords(UserEntity user, List<String> previousKeywords, String prompt) {
-        String rawAnswer = openAiService.ask(prompt);
-
-        List<String> keywords = Arrays.stream(rawAnswer.split("\n"))
-                .map(line -> line.replaceAll("^\\d+\\.\\s*", "").trim())
-                .filter(line -> !line.isBlank())
-                .collect(Collectors.toList());
-
-        List<String> newKeywords = keywords.stream()
-                .filter(k -> !previousKeywords.contains(k))
-                .toList();
-
-        List<UserKeywordHistoryEntity> saveList = newKeywords.stream()
-                .map(k -> {
-                    UserKeywordHistoryEntity history = new UserKeywordHistoryEntity();
-                    history.setUser(user);
-                    history.setKeyword(k);
-                    return history;
-                }).toList();
-        historyRepository.saveAll(saveList);
-
-        return newKeywords;
-    }*/
-
     public List<String> generateKeywords(UserEntity user) {
         // [수정] 서비스의 메소드 사용
         List<String> previousKeywords = userKeywordHistoryService.getPreviousKeywords(user);
@@ -141,21 +99,6 @@ public class AiKeywordGenerator {
         return getAndSaveNewKeywords(user, previousKeywords, prompt);
     }
 
-    /*private List<String> getPreviousKeywords(UserEntity user) {
-        // [기존]
-        // return historyRepository.findByUser(user).stream()
-        //         .map(UserKeywordHistoryEntity::getKeyword)
-        //         .collect(Collectors.toList());
-
-        // [수정] 이 메소드는 이제 userKeywordHistoryService.getPreviousKeywords로 대체되어 사용되지 않거나,
-        //      위의 generateKeywords, generateKeywordsFromUserInput 메소드처럼 직접 호출로 변경합니다.
-        //      (위 코드에서는 이미 변경했습니다.)
-        //      이 메소드(getPreviousKeywords)는 삭제해도 무방합니다.
-
-        // 만약 남겨둔다면, 내부 구현을 서비스 호출로 변경합니다.
-        return userKeywordHistoryService.getPreviousKeywords(user);
-    }*/
-
     private List<String> getAndSaveNewKeywords(UserEntity user, List<String> previousKeywords, String prompt) {
         String rawAnswer = openAiService.ask(prompt);
 
@@ -168,18 +111,6 @@ public class AiKeywordGenerator {
                 .filter(k -> !previousKeywords.contains(k))
                 .toList();
 
-        // [기존]
-        // List<UserKeywordHistoryEntity> saveList = newKeywords.stream()
-        //         .map(k -> {
-        //             UserKeywordHistoryEntity history = new UserKeywordHistoryEntity();
-        //             history.setUser(user);
-        //             history.setKeyword(k);
-        //             return history;
-        //         }).toList();
-        // historyRepository.saveAll(saveList);
-
-        // [수정] UserKeywordHistoryService를 통해 각 키워드를 저장합니다.
-        // 이렇게 하면 키워드가 하나씩 저장될 때마다 50개 제한 로직이 동작합니다.
         newKeywords.forEach(keyword ->
                 userKeywordHistoryService.addKeywordHistory(user, keyword)
         );
@@ -214,16 +145,18 @@ public class AiKeywordGenerator {
             }
         }
         else {
+            String basePrompt = String.format(
+                    "너는 대학생의 프로젝트 주제 추천을 돕는 AI야. " +
+                            "대학생들이 실제 팀 프로젝트로 구현할 수 있을 정도로 간단하고 실용적인 주제를 기반으로 키워드를 생성해. \n" +
+                            "## 필수 조건:\n" +
+                            "1. 각 키워드는 명사 형태로 간결하게 제시한다. ('~앱', '~ 웹사이트' 같은 접미사는 절대 붙이지 않는다.)\n" +
+                            "2. 예시: 입력 키워드가 '음식'이라면, '맛집 지도', '레시피 공유', '식단 관리', '푸드 커뮤니티' 처럼 응답한다.\n\n" +
+                            "위 조건에 맞는 키워드 8개를 추천해줘."
+            );
             if (exclude.isEmpty()) {
-                return "대학생들이 실제 팀 프로젝트로 구현할 수 있을 정도로 간단하고 실용적인 주제를 기반으로 키워드를 생성해줘. \n" +
-                        "웹 또는 모바일 앱 형태로 만들 수 있는 프로젝트에 적합한 키워드만 포함해줘. \n" +
-                        "예를 들어 커뮤니티 사이트, 축제 웹사이트, 일정 관리 앱, 반려동물 기록 앱 같은 쉬운 주제를 위한 키워드가 필요해. \n" +
-                        "너무 자세한 예시는 불필요해, 키워드로 추천해줘, 예를 들어서 키워드 뒤에 '~앱' 이나 '~웹' 이 안붙게끔 해줘 \n" +
-                        "응답되는 키워드 앞에 '대학생을 위한~' 은 안붙게끔 해줘 \n" +
-                        "총 8개의 키워드를 추천해줘. 이전에 제시한 키워드는 제외하고, 서로 다른 분야를 다루도록 중복 없이 생성해줘. ";
+                return basePrompt;
             }
-            return String.format("다음 키워드는 이미 추천되었어: %s. 이걸 제외하고 대학생이 웹/앱으로 만들기 쉬운 키워드 8개만 추천해줘.",
-                    String.join(", ", exclude));
+            return basePrompt + String.format("\n\n## 제외할 키워드:\n%s", String.join(", ", exclude));
         }
     }
 }

@@ -56,9 +56,9 @@
           <div class="menu-section">
             <div class="menu-label">선 종류</div>
             <select class="menu-select" @change="setEdgeType($event.target.value)" :value="currentContextMenuTargetEdge.type || 'step'">
-              <option value="default">직선</option>
               <option value="step">직각 선</option>
               <option value="smoothstep">곡선</option>
+              <option value="default">직선</option>
             </select>
           </div>
 
@@ -88,7 +88,7 @@
           <template v-else-if="activeTab === 'classDiagram'">
             <div class="menu-section">
               <div class="menu-label">시작 모양</div>
-              <select class="menu-select" @change="setEdgeMarkerStart($event.target.value)" :value="getMarkerId(currentContextMenuTargetEdge.markerStart)">
+              <select class="menu-select" @change="setEdgeMarkerStart($event.target.value)" :value="currentContextMenuTargetEdge.markerStart || ''">
                 <option value="">없음</option>
                 <option value="diamond-aggregation">집합 (빈 마름모)</option>
                 <option value="diamond-composition">복합 (채워진 마름모)</option>
@@ -96,12 +96,10 @@
             </div>
             <div class="menu-section">
               <div class="menu-label">끝 모양</div>
-              <select class="menu-select" @change="setEdgeMarkerEnd($event.target.value)" :value="getMarkerId(currentContextMenuTargetEdge.markerEnd)">
+              <select class="menu-select" @change="setEdgeMarkerEnd($event.target.value)" :value="currentContextMenuTargetEdge.markerEnd || ''">
                 <option value="">없음</option>
                 <option value="arrow-generalization">일반화 (빈 삼각형)</option>
                 <option value="arrow-dependency">의존 (화살표)</option>
-                <option value="diamond-aggregation">집합 (빈 마름모)</option>
-                <option value="diamond-composition">복합 (채워진 마름모)</option>
               </select>
             </div>
             <div class="menu-section">
@@ -277,13 +275,6 @@ function setEdgeType(type) {
   }
 }
 
-function getMarkerId(marker) {
-  if (typeof marker === 'string' && marker.startsWith('url(#')) {
-    return marker.slice(5, -1);
-  }
-  return marker?.type || '';
-}
-
 // (유지) onNodeContextMenu, onEdgeContextMenu (자식에게 이벤트를 받음)
 function onNodeContextMenu(event) {
   const wrapperBounds = flowWrapper.value?.getBoundingClientRect();
@@ -356,28 +347,29 @@ function setEdgeMarkerStart(markerValue) {
   const edgeIndex = activeEdges.value.findIndex(edge => edge.id === id);
   if (edgeIndex !== -1) {
     const updatedEdges = [...activeEdges.value];
-    let newMarkerStart;
 
+    // [수정] 클래스 다이어그램은 url() 문자열을 직접 사용하므로 객체로 감싸지 않음
     if (activeTab.value === 'classDiagram') {
-      newMarkerStart = markerValue ? `url(#${markerValue})` : undefined;
-      // [수정] 커스텀 마커가 올바르게 표시되도록 엣지 타입을 'default'(직선)로 강제합니다.
-      if (markerValue) {
-        updatedEdges[edgeIndex].type = 'default';
-      }
+      const edgeToUpdate = { ...updatedEdges[edgeIndex], markerStart: markerValue };
+      updatedEdges[edgeIndex] = edgeToUpdate;
+      allDiagramData.value[activeTab.value].edges = updatedEdges; // [수정] 직접 데이터 소스를 변경
     } else {
-      switch (markerValue) {
-        case 'arrowclosed':
-          newMarkerStart = { type: MarkerType.ArrowClosed, color: '#000000', width: 15, height: 15 };
-          break;
-        default:
-          newMarkerStart = undefined;
-          break;
+      let newMarkerStart;
+      if (markerValue === 'arrowclosed') {
+        newMarkerStart = { 
+          type: MarkerType.ArrowClosed, 
+          color: '#000000', 
+          width: 15,
+          height: 15,
+        };
+      } else {
+        newMarkerStart = undefined; 
       }
-    }
 
-    const edgeToUpdate = { ...updatedEdges[edgeIndex], markerStart: newMarkerStart };
-    updatedEdges[edgeIndex] = edgeToUpdate;
-    allDiagramData.value[activeTab.value].edges = updatedEdges;
+      const edgeToUpdate = { ...updatedEdges[edgeIndex], markerStart: newMarkerStart };
+      updatedEdges[edgeIndex] = edgeToUpdate;
+      allDiagramData.value[activeTab.value].edges = updatedEdges; // [수정] 직접 데이터 소스를 변경
+    }
   }
 }
 
@@ -387,28 +379,29 @@ function setEdgeMarkerEnd(markerValue) {
   const edgeIndex = activeEdges.value.findIndex(edge => edge.id === id);
   if (edgeIndex !== -1) {
     const updatedEdges = [...activeEdges.value];
-    let newMarkerEnd;
-
+    
+    // [수정] 클래스 다이어그램은 url() 문자열을 직접 사용하므로 객체로 감싸지 않음
     if (activeTab.value === 'classDiagram') {
-      newMarkerEnd = markerValue ? `url(#${markerValue})` : undefined;
-      // [수정] 어떤 마커든 선택되면 엣지 타입을 'default'(직선)로 강제합니다.
-      if (markerValue) {
-        updatedEdges[edgeIndex].type = 'default';
-      }
+      const edgeToUpdate = { ...updatedEdges[edgeIndex], markerEnd: markerValue };
+      updatedEdges[edgeIndex] = edgeToUpdate;
+      allDiagramData.value[activeTab.value].edges = updatedEdges; // [수정] 직접 데이터 소스를 변경
     } else {
-      switch (markerValue) {
-        case 'arrowclosed':
-          newMarkerEnd = { type: MarkerType.ArrowClosed, color: '#000000', width: 15, height: 15 };
-          break;
-        default:
-          newMarkerEnd = undefined;
-          break;
+      let newMarkerEnd;
+      if (markerValue === 'arrowclosed') {
+        newMarkerEnd = { 
+          type: MarkerType.ArrowClosed,
+          color: '#000000', 
+          width: 15,
+          height: 15,
+        };
+      } else {
+        newMarkerEnd = undefined; 
       }
-    }
 
-    const edgeToUpdate = { ...updatedEdges[edgeIndex], markerEnd: newMarkerEnd };
-    updatedEdges[edgeIndex] = edgeToUpdate;
-    allDiagramData.value[activeTab.value].edges = updatedEdges;
+      const edgeToUpdate = { ...updatedEdges[edgeIndex], markerEnd: newMarkerEnd };
+      updatedEdges[edgeIndex] = edgeToUpdate;
+      allDiagramData.value[activeTab.value].edges = updatedEdges; // [수정] 직접 데이터 소스를 변경
+    }
   }
 }
 
@@ -441,6 +434,41 @@ function setNodeHeaderColor(color) {
   hideContextMenu(); 
 }
 
+// [추가] 다이어그램 데이터 경량화 함수
+function lightenDiagramData(diagramData) {
+  if (!diagramData || !diagramData.nodes || !diagramData.edges) {
+    return diagramData;
+  }
+
+  const lightNodes = diagramData.nodes.map(node => ({
+    id: node.id,
+    type: node.type,
+    position: node.position,
+    data: node.data,
+    style: node.style,
+    width: node.width,
+    height: node.height,
+    // 런타임 속성(selected, dragging, computedPosition 등)은 제외됩니다.
+  }));
+
+  const lightEdges = diagramData.edges.map(edge => ({
+    id: edge.id,
+    source: edge.source,
+    target: edge.target,
+    sourceHandle: edge.sourceHandle,
+    targetHandle: edge.targetHandle,
+    type: edge.type,
+    label: edge.label,
+    data: edge.data,
+    markerStart: edge.markerStart,
+    markerEnd: edge.markerEnd,
+    style: edge.style,
+    // 핵심: sourceNode, targetNode 등 불필요한 객체는 제외됩니다.
+  }));
+
+  return { nodes: lightNodes, edges: lightEdges, viewport: diagramData.viewport };
+}
+
 // (유지) 저장 관련 로직
 import api from '@/api'
 import { debounce } from 'lodash'
@@ -460,12 +488,15 @@ const saveDiagramData = debounce(async () => {
     return;
   }
 
+  // [수정] 데이터 경량화 로직 추가
+  const lightData = lightenDiagramData(currentDiagramData);
+
   // [수정] 정보구조도는 /planning/update, 나머지는 /design/upload로 분기
   if (activeTab.value === 'infostructure') {
     const formData = new FormData();
     formData.append('type', 'infostructure');
     formData.append('projectId', route.params.projectId);
-    formData.append('json', JSON.stringify(currentDiagramData));
+    formData.append('json', JSON.stringify(lightData));
     // formData.append('text', ''); // 텍스트 입력 UI가 있다면 여기에 추가
 
     try {
@@ -482,7 +513,7 @@ const saveDiagramData = debounce(async () => {
   } else {
     const formData = new FormData();
     formData.append('type', activeTab.value);
-    formData.append('json', JSON.stringify(currentDiagramData));
+    formData.append('json', JSON.stringify(lightData));
     formData.append('projectId', route.params.projectId);
 
     try {
@@ -603,7 +634,9 @@ onMounted(async () => {
 }
 </style>
 <style>
+@import '@vue-flow/node-resizer/dist/style.css';
 /* (유지) context-menu, save-toast, .vue-flow__edge-path, .color-swatch 스타일 */
+
 .context-menu {
   position: absolute;
   z-index: 1000;
@@ -698,8 +731,6 @@ onMounted(async () => {
 .save-toast.saving { background-color: #777; }
 .save-toast.saved { background-color: #323232; }
 .save-toast.error { background-color: #dc3545; }
-
-@import '@vue-flow/node-resizer/dist/style.css';
 
 .vue-flow__edge-path {
   stroke: #000000 !important;

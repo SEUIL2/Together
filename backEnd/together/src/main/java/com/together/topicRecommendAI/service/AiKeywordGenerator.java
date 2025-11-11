@@ -83,8 +83,9 @@ public class AiKeywordGenerator {
 
     private final OpenAiService openAiService;
     private final UserKeywordHistoryRepository historyRepository;
+    private final UserKeywordHistoryService userKeywordHistoryService;
 
-    public List<String> generateKeywords(UserEntity user) {
+    /*public List<String> generateKeywords(UserEntity user) {
         List<String> previousKeywords = getPreviousKeywords(user);
         String prompt = buildPrompt(previousKeywords, null);
         return getAndSaveNewKeywords(user, previousKeywords, prompt);
@@ -122,6 +123,66 @@ public class AiKeywordGenerator {
                     return history;
                 }).toList();
         historyRepository.saveAll(saveList);
+
+        return newKeywords;
+    }*/
+
+    public List<String> generateKeywords(UserEntity user) {
+        // [수정] 서비스의 메소드 사용
+        List<String> previousKeywords = userKeywordHistoryService.getPreviousKeywords(user);
+        String prompt = buildPrompt(previousKeywords, null);
+        return getAndSaveNewKeywords(user, previousKeywords, prompt);
+    }
+
+    public List<String> generateKeywordsFromUserInput(UserEntity user, List<String> userInputKeywords) {
+        // [수정] 서비스의 메소드 사용
+        List<String> previousKeywords = userKeywordHistoryService.getPreviousKeywords(user);
+        String prompt = buildPrompt(previousKeywords, userInputKeywords);
+        return getAndSaveNewKeywords(user, previousKeywords, prompt);
+    }
+
+    /*private List<String> getPreviousKeywords(UserEntity user) {
+        // [기존]
+        // return historyRepository.findByUser(user).stream()
+        //         .map(UserKeywordHistoryEntity::getKeyword)
+        //         .collect(Collectors.toList());
+
+        // [수정] 이 메소드는 이제 userKeywordHistoryService.getPreviousKeywords로 대체되어 사용되지 않거나,
+        //      위의 generateKeywords, generateKeywordsFromUserInput 메소드처럼 직접 호출로 변경합니다.
+        //      (위 코드에서는 이미 변경했습니다.)
+        //      이 메소드(getPreviousKeywords)는 삭제해도 무방합니다.
+
+        // 만약 남겨둔다면, 내부 구현을 서비스 호출로 변경합니다.
+        return userKeywordHistoryService.getPreviousKeywords(user);
+    }*/
+
+    private List<String> getAndSaveNewKeywords(UserEntity user, List<String> previousKeywords, String prompt) {
+        String rawAnswer = openAiService.ask(prompt);
+
+        List<String> keywords = Arrays.stream(rawAnswer.split("\n"))
+                .map(line -> line.replaceAll("^\\d+\\.\\s*", "").trim())
+                .filter(line -> !line.isBlank())
+                .collect(Collectors.toList());
+
+        List<String> newKeywords = keywords.stream()
+                .filter(k -> !previousKeywords.contains(k))
+                .toList();
+
+        // [기존]
+        // List<UserKeywordHistoryEntity> saveList = newKeywords.stream()
+        //         .map(k -> {
+        //             UserKeywordHistoryEntity history = new UserKeywordHistoryEntity();
+        //             history.setUser(user);
+        //             history.setKeyword(k);
+        //             return history;
+        //         }).toList();
+        // historyRepository.saveAll(saveList);
+
+        // [수정] UserKeywordHistoryService를 통해 각 키워드를 저장합니다.
+        // 이렇게 하면 키워드가 하나씩 저장될 때마다 50개 제한 로직이 동작합니다.
+        newKeywords.forEach(keyword ->
+                userKeywordHistoryService.addKeywordHistory(user, keyword)
+        );
 
         return newKeywords;
     }

@@ -365,10 +365,10 @@ const routes = [
   },
 
   {
-    path: '/diagrams', //
+    path: '/diagrams/:projectId',
     name: 'VueFlowEditor',
     component: VueFlowEditor,
-    props: true //
+    props: true
   },
 ]
 

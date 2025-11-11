@@ -202,7 +202,10 @@ const currentDiagramComponent = computed(() => {
 
 const flowWrapper = vueRef(null);
 const route = useRoute();
-const activeTab = ref(props.initialTab || localStorage.getItem('lastActiveDiagramTab') || 'classDiagram');
+
+// 쿼리 파라미터 'tab'을 우선 확인, 없으면 localStorage, 기본값은 'classDiagram'
+const initialActiveTab = route.query.tab || props.initialTab || localStorage.getItem('lastActiveDiagramTab') || 'classDiagram';
+const activeTab = ref(initialActiveTab);
 
 const contextMenu = ref({
   visible: false,
@@ -497,6 +500,14 @@ const saveDiagramData = debounce(async () => {
 }, 1000)
 
 watch(allDiagramData, saveDiagramData, { deep: true })
+
+// route.query.tab이 변경되면 activeTab 업데이트
+watch(() => route.query.tab, (newTab) => {
+  if (newTab && typeof newTab === 'string') {
+    activeTab.value = newTab
+    localStorage.setItem('lastActiveDiagramTab', newTab)
+  }
+})
 
 // (유지) onMounted (데이터 로딩 및 newNodeId 설정)
 

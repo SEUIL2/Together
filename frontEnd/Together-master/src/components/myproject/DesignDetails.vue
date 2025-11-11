@@ -290,9 +290,11 @@ function isValidFigmaLink(content) {
 function selectTab(idx) {
   const type = designItems[idx].type
   if (['usecase', 'classDiagram', 'erd', 'sequence'].includes(type)) {
-    router.push({ // 🚀 [수정] 모든 다이어그램 페이지 이동 시 projectId를 포함하도록 수정
-      path: `${PAGE_LINKS[type]}/${props.projectId}`,
+    // VueFlowEditor로 이동하고 해당 탭 활성화
+    router.push({
+      path: `/diagrams/${props.projectId}`,
       query: {
+        tab: type,
         readonly: props.readonly ?? route.query.readonly === 'true',
         projectTitle: props.projectTitle || route.query.projectTitle || '프로젝트'
       }

@@ -1,7 +1,7 @@
 <template>
   <div class="diagram-layout" @click="hideAllMenus">
     <div v-if="saveStatus === 'saving'" class="save-toast saving">저장 중...</div>
-    <div v-else-if="saveStatus === 'saved'" class="save-toast saved">💾 저장 완료</div>
+    <div v-else-if="saveStatus === 'saved'" class="save-toast saved">💾 저장 완료!</div>
     <div v-else-if="saveStatus === 'error'" class="save-toast error">저장 실패!</div>
 
     <ToolBox diagramType="class" />
@@ -28,7 +28,8 @@
   :config="box"
   @update-position="updateBoxPosition"
   @anchor-click="handleAnchorClick"
-  @start-edit="startEditing"
+  @height-update="updateBoxHeight"
+  @width-update="updateBoxWidth"
   @contextmenu="handleBoxRightClick"
   @update-attribute="updateBoxAttribute"
   @delete-attribute="deleteBoxAttribute"
@@ -80,45 +81,12 @@
         <button @click="deleteClassBox">❌ 클래스 삭제</button>
       </div>
 
-<!-- 수정창 컨테이너: 입력창+삭제버튼을 flex로 묶어서 배치 -->
-<div
-  v-if="editing.visible"
-  class="overlay-editbox"
-  :style="{
-    top: editing.y + 'px',
-    left: editing.x + 'px',
-  }"
->
-  <input
-    class="editbox-input"
-    v-model="editing.value"
-    @keydown.enter="applyEdit"
-    @blur="applyEdit"
-    autofocus
-    placeholder="내용 입력"
-  />
-  <button
-    v-if="editing.type !== 'name'"
-    class="editbox-delbtn"
-    @mousedown.prevent="deleteEditingItem"
-    title="삭제"
-  >
-    <svg width="20" height="20" viewBox="0 0 20 20">
-      <g>
-        <rect x="6" y="8.7" width="2" height="6" rx="1"/>
-        <rect x="12" y="8.7" width="2" height="6" rx="1"/>
-        <path d="M4.3 6.3h11.4l-1.1 10.1a1 1 0 0 1-1 .9H6.4a1 1 0 0 1-1-.9L4.3 6.3zm3.2-2.1a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v1.1h-5V4.2z" />
-      </g>
-    </svg>
-  </button>
-</div>
-
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, watch, onMounted, onUnmounted, reactive  } from 'vue'
+import { ref, watch, onMounted, onUnmounted, reactive, computed  } from 'vue'
 import api from '@/api'
 import { debounce } from 'lodash'
 import { useToolStore } from '@/stores/toolStore'
@@ -149,19 +117,16 @@ const classBoxes = ref([])
 const relationships = ref([])
 const relationshipStart = ref(null)
 
+// 성능 최적화: ID로 박스를 빠르게 찾기 위한 Map
+const boxMap = computed(() => {
+  return new Map(classBoxes.value.map(box => [box.id, box]));
+});
+
 const selectedRelationship = ref(null)
 const arrowContextMenuVisible = ref(false)
 const contextMenuX = ref(0)
 const contextMenuY = ref(0)
 
-const editing = reactive({
-  visible: false, // 수정 input 노출 여부
-  boxId: null,
-  type: '',    // 'name' | 'attribute' | 'method'
-  index: null, // attribute/method index, name이면 null
-  x: 0, y: 0,  // input 위치 (Stage 기준)
-  value: ''    // 수정할 값
-})
 const boxContextMenuVisible = ref(false)
 const boxMenuX = ref(0)
 const boxMenuY = ref(0)
@@ -184,12 +149,15 @@ const handleDrop = (event) => {
   if (tool.type !== 'box' || tool.subtype !== 'class') return
 
   const boundingRect = event.currentTarget.getBoundingClientRect()
-  const x = event.clientX - boundingRect.left
-  const y = event.clientY - boundingRect.top
+  // 캔버스의 이동 및 줌 상태를 고려하여 정확한 드롭 위치를 계산합니다.
+  const x = (event.clientX - boundingRect.left - stageX.value) / scale.value;
+  const y = (event.clientY - boundingRect.top - stageY.value) / scale.value;
 
   classBoxes.value.push({
     id: Date.now(), x, y, width: 160, height: 100,
-    name: 'NewClass', attributes: ['+ id: int'], methods: ['+ getId(): int']
+    name: 'NewClass', 
+    attributes: ['+ attribute: type'], 
+    methods: ['+ method(): returnType']
   })
 }
 
@@ -230,41 +198,7 @@ function handleArrowContextMenu({ rel, x, y }) {
   arrowContextMenuVisible.value = true
 }
 
-
-const updateBoxPosition = ({ id, x, y }) => {
-  const box = classBoxes.value.find(b => b.id === id)
-  if (box) { box.x = x; box.y = y }
-}
-
-function handleAnchorClick(anchor) {
-  if (!relationshipStart.value) {
-    relationshipStart.value = anchor
-  } else {
-    relationships.value.push({
-      id: Date.now(),
-      from: relationshipStart.value,
-      to: anchor,
-      type: 'association',
-      fromType: 'arrow',    // ← 여기!
-      toType:   'none',
-      lineStyle: 'solid',
-      midPoints: []
-    })
-    relationshipStart.value = null
-  }
-}
-
-
-const handleSelect = ({ rel, event }) => {
-  event.preventDefault(); event.stopPropagation()
-  selectedRelationship.value = rel
-  contextMenuX.value = event.clientX - 180
-  contextMenuY.value = event.clientY - 50
-  arrowContextMenuVisible.value = true
-}
-
 function handleUpdate(updated) {
-  console.log('🔄 handleUpdate 호출, updated:', updated)
   const idx = relationships.value.findIndex(r => r.id === updated.id)
   if (idx !== -1) {
     relationships.value[idx] = {
@@ -273,6 +207,64 @@ function handleUpdate(updated) {
     }
   }
   arrowContextMenuVisible.value = false
+}
+
+
+const updateBoxPosition = ({ id, x, y }) => {
+  const box = classBoxes.value.find(b => b.id === id)
+  if (box) { box.x = x; box.y = y }
+}
+
+const updateBoxHeight = ({ id, height }) => {
+  const box = classBoxes.value.find(b => b.id === id);
+  if (box) {
+    box.height = height;
+  }
+};
+function handleAnchorClick(anchor) {
+  // 너비가 변경된 후 앵커 위치가 바뀔 수 있으므로, 클릭 시 위치 재계산
+  const box = classBoxes.value.find(b => b.id === anchor.boxId);
+  if (box) {
+    const pos = getAnchorPosition(anchor.boxId, anchor.direction);
+    anchor.x = pos.x;
+    anchor.y = pos.y;
+  }
+  if (!relationshipStart.value) {
+    relationshipStart.value = anchor
+  } else {
+    relationships.value.push({
+      id: Date.now(),
+      from: relationshipStart.value,
+      to: anchor,
+      type: 'association',
+      fromType: 'none',
+      toType: 'none',
+      lineStyle: 'solid',
+      midPoints: []
+    })
+    relationshipStart.value = null
+  }
+}
+
+const updateBoxWidth = ({ id, width }) => {
+  const box = classBoxes.value.find(b => b.id === id);
+  if (box) {
+    box.width = width;
+    // 너비가 변경되면 캔버스를 다시 그려서 관계선 위치 등을 업데이트합니다.
+    const stage = stageRef.value?.getStage();
+    if (stage) {
+      stage.batchDraw();
+    }
+  }
+};
+
+
+const handleSelect = ({ rel, event }) => {
+  event.preventDefault(); event.stopPropagation()
+  selectedRelationship.value = rel
+  contextMenuX.value = event.clientX - 180
+  contextMenuY.value = event.clientY - 50
+  arrowContextMenuVisible.value = true
 }
 
 
@@ -296,26 +288,11 @@ const deleteClassBox = () => {
 }
 
 const getAnchorPosition = (boxId, direction) => {
-  const box = classBoxes.value.find(b => b.id === boxId)
-  if (!box) return { x: 0, y: 0 }
+  const box = boxMap.value.get(boxId); // 최적화: Map에서 O(1) 시간으로 조회
+  if (!box) return { x: 0, y: 0 };
 
-  // ClassBox.vue와 동일한 높이 계산 로직 적용
-  const headerHeight = 44
-  const attrLineHeight = 22
-  const attrAddBtnGap = 8
-  const attrAddBtnHeight = 18
-  const methodSectionGap = 10
-  const methodAddBtnHeight = 20
-  const sectionVPadding = 12
-  const minBoxHeight = 80
-
-  const attributesStartY = headerHeight + sectionVPadding
-  const attrAddBtnY = attributesStartY + (box.attributes?.length || 0) * attrLineHeight + attrAddBtnGap
-  const attrSectionBottom = attrAddBtnY + attrAddBtnHeight
-  const methodsStartY = attrSectionBottom + methodSectionGap
-  const methodAddBtnY = methodsStartY + (box.methods?.length || 0) * attrLineHeight
-  const height = Math.max(methodAddBtnY + methodAddBtnHeight + sectionVPadding, minBoxHeight)
-  const width = box.width
+  const height = box.height || 100; // ClassBox에서 업데이트된 높이 사용, 없으면 기본값
+  const width = box.width || 160; // ClassBox에서 업데이트된 너비 사용
 
   switch (direction) {
     case 'top': return { x: box.x + width / 2, y: box.y }
@@ -324,47 +301,6 @@ const getAnchorPosition = (boxId, direction) => {
     case 'right': return { x: box.x + width, y: box.y + height / 2 }
     default: return { x: box.x, y: box.y }
   }
-}
-
-// ClassBox에서 emit('start-edit', { ... }) 받기
-function startEditing({ boxId, type, index, x, y, value }) {
-  editing.visible = true
-  editing.boxId = boxId
-  editing.type = type
-  editing.index = index
-  editing.x = x
-  editing.y = y
-  editing.value = value
-}
-
-// 입력 적용 (수정 완료)
-function applyEdit() {
-  if (!editing.visible) return
-  const box = classBoxes.value.find(b => b.id === editing.boxId)
-  if (!box) {
-    editing.visible = false
-    return
-  }
-  if (editing.type === 'name') {
-    box.name = editing.value
-  } else if (editing.type === 'attribute') {
-    box.attributes[editing.index] = editing.value
-  } else if (editing.type === 'method') {
-    box.methods[editing.index] = editing.value
-  }
-  editing.visible = false
-}
-// 속성/메서드 삭제는 휴지통 버튼 따로 띄우거나,
-// 입력창에서 editing.type/boxId/index로 직접 splice해도 됨
-function deleteEditingItem() {
-  const box = classBoxes.value.find(b => b.id === editing.boxId)
-  if (!box) return
-  if (editing.type === 'attribute') {
-    box.attributes.splice(editing.index, 1)
-  } else if (editing.type === 'method') {
-    box.methods.splice(editing.index, 1)
-  }
-  editing.visible = false
 }
 
 const addBendPoint = ({ relId, x, y }) => {
@@ -520,8 +456,19 @@ const props = defineProps({
   projectTitle: String
 })
 
-const autoSave = debounce(saveToServer, 1000)
+const autoSave = debounce(saveToServer, 2500) // debounce 시간을 늘려 잦은 저장 방지
 watch([classBoxes, relationships], autoSave, { deep: true })
+
+// 마지막 뷰포트(위치, 줌) 저장
+const saveViewport = debounce(() => {
+  const viewport = {
+    scale: scale.value,
+    x: stageX.value,
+    y: stageY.value,
+  };
+  localStorage.setItem(`classDiagramViewport_${props.projectId}`, JSON.stringify(viewport));
+}, 500);
+watch([scale, stageX, stageY], saveViewport);
 
 onMounted(async () => {
   try {
@@ -544,6 +491,19 @@ onMounted(async () => {
     }
   } catch (err) {
     console.error('❌ 클래스 다이어그램 초기 데이터 로드 실패:', err)
+  }
+
+  // 저장된 뷰포트 불러오기
+  const savedViewport = localStorage.getItem(`classDiagramViewport_${props.projectId}`);
+  if (savedViewport) {
+    try {
+      const viewport = JSON.parse(savedViewport);
+      scale.value = viewport.scale || 1;
+      stageX.value = viewport.x || 0;
+      stageY.value = viewport.y || 0;
+    } catch (e) {
+      console.error("저장된 뷰포트 정보를 불러오는 데 실패했습니다:", e);
+    }
   }
 
   window.addEventListener('keydown', handleKeyDown)
@@ -642,54 +602,5 @@ function updateBoxName({ boxId, value }) {
 .save-toast.saving { background-color: #777; }
 .save-toast.saved { background-color: #323232; }
 .save-toast.error { background-color: #dc3545; }
-.overlay-editbox {
-  position: absolute;
-  z-index: 1001;
-  display: flex;
-  align-items: center;
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 6px 20px rgba(44,62,80,0.12), 0 1.5px 6px rgba(44,62,80,0.06);
-  padding: 8px 14px 8px 14px;
-  gap: 10px;
-  border: 1.2px solid #d3dae6;
-  min-width: 150px;
-  min-height: 38px;
-  transition: box-shadow 0.18s, border 0.15s;
-}
-.overlay-editbox:focus-within {
-  box-shadow: 0 8px 24px rgba(44,62,80,0.18), 0 2px 10px rgba(44,62,80,0.11);
-  border-color: #4ba7fa;
-}
-.editbox-input {
-  border: none;
-  outline: none;
-  font-size: 16px;
-  background: transparent;
-  min-width: 110px;
-  padding: 2px 3px;
-  color: #232b39;
-}
-.editbox-input::placeholder {
-  color: #bbb;
-}
-.editbox-delbtn {
-  background: none;
-  border: none;
-  padding: 0 3px;
-  cursor: pointer;
-  transition: filter 0.14s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.editbox-delbtn svg {
-  fill: #ec7e7e;
-  transition: fill 0.2s;
-}
-.editbox-delbtn:hover svg {
-  fill: #d32f2f;
-  filter: drop-shadow(0 0 2px #f58b8b);
-}
 
 </style>

@@ -4,10 +4,10 @@
   <v-group :x="tipX" :y="tipY" :rotation="angleDeg">
     <v-line
       :points="diamondPoints"
-      :stroke="fill"
+      :stroke="stroke"
       :strokeWidth="1.5"
       :closed="true"
-      :fill="isFilled ? fill : undefined"
+      :fill="isFilled ? stroke : 'white'"
       lineJoin="round"
     />
   </v-group>
@@ -19,7 +19,8 @@ import { computed } from 'vue'
 const props = defineProps({
   x: Number,                  // 선 끝점(앵커) x
   y: Number,                  // 선 끝점(앵커) y
-  fill: { type: String, default: '#2c3e50' },
+  stroke: { type: String, default: '#2c3e50' },
+  fill: { type: String, default: 'white' },
   /** rotation(연속 각도, 도 단위)이 우선, 없으면 direction을 매핑 */
   rotation: { type: Number, default: null },
   direction: { type: String, default: null }, // 'up'|'down'|'left'|'right'

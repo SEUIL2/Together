@@ -24,7 +24,7 @@
       :y="from.y"
       :rotation="startAngleDeg"
       :offset="0"
-      :fill="strokeColor"
+      :stroke="strokeColor"
       :filled="fromType === 'filled_diamond'"
     />
 
@@ -36,7 +36,7 @@
       :y="to.y"
       :rotation="endAngleDeg"
       :offset="0"
-      :fill="strokeColor"
+      :stroke="strokeColor"
       :filled="toType === 'filled_diamond'"
     />
 
